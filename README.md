@@ -8,7 +8,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished.
+This package is still in development and the port process is still not finished. There are 24 files with 4,310 lines of code that haven’t been ported, so there is still long way to go.
 
 ## Changelog
 
