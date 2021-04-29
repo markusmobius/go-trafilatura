@@ -26,7 +26,8 @@ LRU_TEST = LRUCache(maxsize=LRU_SIZE)
 
 RE_HTML_LANG = re.compile(r'([a-z]{2})', re.I)
 
-RE_FILTER = re.compile(r'\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|Linkedin|Mail|PDF|Pinterest|Pocket|Print|Reddit|Twitter|Whatsapp|Xing)$', flags=re.IGNORECASE)
+RE_FILTER = re.compile(
+    r'\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|Linkedin|Mail|PDF|Pinterest|Pocket|Print|Reddit|Twitter|Whatsapp|Xing)$', flags=re.IGNORECASE)
 # COMMENTS_BLACKLIST = ('( Abmelden / Ändern )') # Fill in your details below|Trage deine Daten unten|Kommentar verfassen|Bitte logge dich|Hinterlasse einen Kommentar| to %s| mit %s)
 
 
@@ -49,24 +50,11 @@ def duplicate_test(element, config):
     if len(teststring) > config.getint('DEFAULT', 'MIN_DUPLCHECK_SIZE'):
         # retrieve value from cache
         cacheval = LRU_TEST.get(teststring)
-        if cacheval > config.getint('DEFAULT', 'MAX_REPETITIONS'):  # non-existent key will return -1
+        # non-existent key will return -1
+        if cacheval > config.getint('DEFAULT', 'MAX_REPETITIONS'):
             LRU_TEST.put(teststring, cacheval + 1)
             return True
     put_in_cache(teststring)
-    return False
-
-
-def check_html_lang(tree, target_language):
-    '''Check HTML meta-elements for language information and split
-       the result in case there are several languages'''
-    # https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Language
-    for elem in tree.xpath('//html[@lang]'):
-        if target_language in RE_HTML_LANG.split(elem.get('lang')):
-            return True
-    for elem in tree.xpath('//meta[@http-equiv="content-language"]'):
-        if target_language in RE_HTML_LANG.split(elem.get('content')):
-            return True
-    LOGGER.warning('HTML lang detection failed')
     return False
 
 
@@ -83,7 +71,8 @@ def language_filter(temp_text, temp_comments, target_language, docmeta):
                 langtest = temp_text
             result = cld3.get_language(langtest)
             if result.language != target_language:
-                LOGGER.warning('wrong language: %s %s %s', result, docmeta['id'], docmeta['url'])
+                LOGGER.warning('wrong language: %s %s %s',
+                               result, docmeta['id'], docmeta['url'])
                 return True
         else:
             LOGGER.warning('Detector not installed, no language detection run')
@@ -100,7 +89,7 @@ def textfilter(element):
     if text_chars_test(testtext) is False:
         return True
     for line in testtext.splitlines():
-        #if len(line) <= 5:
+        # if len(line) <= 5:
         #    continue
         if RE_FILTER.match(line):
             return True
