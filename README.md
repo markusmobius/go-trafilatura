@@ -12,16 +12,16 @@ This package is still in development and the port process is still not finished.
 
 ## Changelog
 
-### 25 April 2021
-
-- Porting process started
-
 ### 29 April 2021
 
 - Port `check_html_lang` function in `filters.py`
 - Port metadata extraction in `metadata.py`. There is a minor modification in metadata extraction from JSON+LD data. In the original Trafilatura, this step is done using regular expressions which is not exactly ideal for handling JSON data. Instead, here we use a proper JSON parser with fallback to the original regular expressions. This way, the extraction should be more accurate yet still give the same result when tested.
 - Good news: we might not need to port Python's [`courlan`][4] package since Go's `net/url` is good enough.
 - Bad news: we might need to port Python's [`htmldate`][5] which used to find publish date of a web page, which used in metadata extraction.
+
+### 25 April 2021
+
+- Porting process started
 
 [0]: https://github.com/adbar/trafilatura
 [1]: https://github.com/adbar
