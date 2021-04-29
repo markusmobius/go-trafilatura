@@ -8,7 +8,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 21 files with 4,310 lines of code that haven’t been ported, so there is still long way to go.
+This package is still in development and the port process is still not finished. There are 21 files with 3,695 lines of code that haven’t been ported, so there is still long way to go.
 
 ## Changelog
 
@@ -16,6 +16,7 @@ This package is still in development and the port process is still not finished.
 
 - Port `check_html_lang` function in `filters.py`
 - Port metadata extraction in `metadata.py`. There is a minor modification in metadata extraction from JSON+LD data. In the original Trafilatura, this step is done using regular expressions which is not exactly ideal for handling JSON data. Instead, here we use a proper JSON parser with fallback to the original regular expressions. This way, the extraction should be more accurate yet still give the same result when tested.
+- Port `tree_cleaning` and `prune_html` in `htmlprocessing.py`
 - Good news: we might not need to port Python's [`courlan`][4] package since Go's `net/url` is good enough.
 - Bad news: we might need to port Python's [`htmldate`][5] which used to find publish date of a web page, which used in metadata extraction.
 

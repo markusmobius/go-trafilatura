@@ -60,7 +60,7 @@ type Options struct {
 	// Specify whether to remove duplicate segments and documents.
 	Deduplicate bool
 
-	// Only keep documents featuring all essential metadata date, title, url).
+	// Only keep documents featuring all essential metadata (date, title, url).
 	HasEssentialMetadata bool
 
 	// Discard documents with too many elements.
@@ -87,7 +87,38 @@ func Extract(r io.Reader, opts Options) error {
 	if !opts.NoFallback {
 		docBackup = dom.Clone(doc, true)
 	}
-
 	fmt.Println(docBackup)
+
+	// Extract metadata if necessary
+	var metadata Metadata
+	if opts.OutputFormat != Text {
+		// Fetch metadata
+		metadata = extractMetadata(doc, opts.OriginalURL)
+
+		// Stop content extraction if URL included in blacklist
+		if metadata.URL != "" && strIn(metadata.URL, opts.URLBlacklist...) {
+			return fmt.Errorf("%s is in blacklist", metadata.URL)
+		}
+
+		// Check if essential metadata is missing
+		if opts.HasEssentialMetadata {
+			if metadata.Title == "" {
+				return fmt.Errorf("title is required")
+			}
+
+			if metadata.URL == "" {
+				return fmt.Errorf("url is required")
+			}
+
+			// TODO: need to port htmldate
+			// if metadata.Date == "" {
+			// 	return fmt.Errorf("date is required")
+			// }
+		}
+	}
+
+	// Clean HTML
+	cleanHTML(doc, opts.IncludeTables, opts.IncludeImages)
+
 	return nil
 }
