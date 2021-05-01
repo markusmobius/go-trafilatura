@@ -8,7 +8,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 20 files with 3,542 lines of code that haven’t been ported, so there is still long way to go.
+This package is still in development and the port process is still not finished. There are 20 files with 3,500 lines of code that haven’t been ported, so there is still long way to go.
 
 ## Changelog
 
@@ -18,6 +18,7 @@ This package is still in development and the port process is still not finished.
 - Port `textfilter` in `filters.py`
 - Port `duplicate_test` in `filters.py`
 - Port `extract_comments` in `core.py`. It's still not tested though since there are no specific unit test for this.
+- Port `CONTENT_XPATH` in `xpaths.py`
 
 ### 29 April 2021
 

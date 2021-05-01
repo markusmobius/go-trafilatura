@@ -5,56 +5,6 @@ X-Path expressions needed to extract and filter the main text content
 # under GNU GPL v3 license
 
 
-BODY_XPATH = [
-    '''.//*[(self::article or self::div or self::main or self::section)][contains(@id, "content-main") or
-    contains(@class, "content-main") or contains(@class, "content_main") or
-    contains(@id, "content-body") or contains(@class, "content-body") or
-    contains(@class, "story-body") or
-    @id="article" or @class="post" or @class="entry"]''',
-    '''.//*[(self::article or self::div or self::main or self::section)][
-    contains(@class, "post-text") or contains(@class, "post_text") or
-    contains(@class, "post-body") or contains(@class, "post-entry") or contains(@class, "postentry") or
-    contains(@class, "post-content") or contains(@class, "post_content") or
-    contains(@class, "postcontent") or contains(@class, "postContent") or
-    contains(@class, "article-text") or contains(@class, "articletext") or contains(@class, "articleText")]''',
-    '''.//*[(self::article or self::div or self::main or self::section)][contains(@id, "entry-content") or
-    contains(@class, "entry-content") or contains(@id, "article-content") or
-    contains(@class, "article-content") or contains(@id, "article__content") or
-    contains(@class, "article__content") or contains(@id, "article-body") or
-    contains(@class, "article-body") or contains(@id, "article__body") or
-    contains(@class, "article__body") or @itemprop="articleBody" or @id="articleContent" or
-    contains(@class, "ArticleContent") or contains(@class, "page-content") or
-    contains(@class, "text-content") or contains(@class, "content__body") or
-    contains(@id, "body-text") or contains(@class, "body-text")]''',
-    './/article',
-    """.//*[(self::article or self::div or self::main or self::section)][contains(@class, 'post-bodycopy') or
-    contains(@class, 'storycontent') or contains(@class, 'story-content') or
-    @class='postarea' or @class='art-postcontent' or
-    contains(@class, 'theme-content') or contains(@class, 'blog-content') or
-    contains(@class, 'section-content') or contains(@class, 'single-content') or
-    contains(@class, 'single-post') or
-    contains(@class, 'main-column') or contains(@class, 'wpb_text_column') or
-    starts-with(@id, 'primary') or @class="text" or
-    @class="cell" or @id="story" or @class="story" or
-    contains(translate(@class, "ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"), "fulltext")]""",
-    '''.//*[(self::article or self::div or self::main or self::section)][contains(@id, "main-content") or
-    contains(@class, "main-content") or contains(translate(@class, "ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"), "page-content")]''',
-    './/*[(self::article or self::div or self::section)][starts-with(@class, "main") or starts-with(@id, "main") or starts-with(@role, "main")]|//main',
-
-]
-# starts-with(@id, "article") or
-# or starts-with(@id, "story") or contains(@class, "story")
-# or @class="content" or @id="content"
-# starts-with(@class, "content ") or contains(@class, " content")
-# '//div[contains(@class, "text") or contains(@class, "article-wrapper") or contains(@class, "content-wrapper")]',
-# '//div[contains(@class, "article-wrapper") or contains(@class, "content-wrapper")]',
-# |//*[(self::article or self::div or self::main or self::section)][contains(@class, "article") or contains(@class, "Article")]
-# or @class="content" or @class="Content"
-# or starts-with(@class, 'post ')
-# './/span[@class=""]', # instagram?
-# or contains(@class, 'Comments')
-
-
 DISCARD_XPATH = [
     '''.//*[contains(@id, "footer") or contains(@class, "footer") or
     contains(@id, "bottom") or contains(@class, "bottom")]''',

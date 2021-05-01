@@ -7,21 +7,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-type selectorRule func(*html.Node) bool
-
-var commentSelectorRules = []selectorRule{
-	commentSelectorRule1,
-	commentSelectorRule2,
-	commentSelectorRule3,
-	commentSelectorRule4,
-}
-
-var discardedCommentSelectorRules = []selectorRule{
-	discardedCommentSelectorRule1,
-	discardedCommentSelectorRule2,
-	discardedCommentSelectorRule3,
-}
-
 func commentSelectorRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
