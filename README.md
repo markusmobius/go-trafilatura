@@ -8,9 +8,15 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 21 files with 3,695 lines of code that haven’t been ported, so there is still long way to go.
+This package is still in development and the port process is still not finished. There are 20 files with 3,578 lines of code that haven’t been ported, so there is still long way to go.
 
 ## Changelog
+
+### 1 May 2021
+
+- Port `LRUCache` in `lru.py`
+- Port `textfilter` in `filters.py`
+- Port `duplicate_test` in `filters.py`
 
 ### 29 April 2021
 

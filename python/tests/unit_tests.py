@@ -169,51 +169,6 @@ def test_exotic_tags(xmloutput=False):
     assert b"Description" in result
 
 
-def test_lrucache():
-    '''test basic duplicate detection'''
-    lru_test = LRUCache(maxsize=2)
-    trafilatura.filters.LRU_TEST = lru_test
-    my_body = etree.Element('body')
-    # element too short
-    #my_element = html.fromstring('<p>AAAA BBBB</p>')
-    # my_body.append(my_element)
-    # put_in_cache(my_body)
-    #assert duplicate_test(my_element, DEFAULT_CONFIG) is False
-    # cached element
-    my_element = html.fromstring(
-        '<p>AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB</p>')
-    my_body.append(my_element)
-    assert duplicate_test(my_element, DEFAULT_CONFIG) is False
-    assert duplicate_test(my_element, DEFAULT_CONFIG) is False
-    assert duplicate_test(my_body, DEFAULT_CONFIG) is False
-    assert duplicate_test(my_element, DEFAULT_CONFIG) is True
-    other_body = etree.Element('body')
-    other_element = html.fromstring(
-        '<p>CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD</p>')
-    other_body.append(other_element)
-    assert duplicate_test(other_body, DEFAULT_CONFIG) is False
-    assert duplicate_test(other_element, DEFAULT_CONFIG) is False
-    assert duplicate_test(other_body, DEFAULT_CONFIG) is False
-    assert duplicate_test(other_element, DEFAULT_CONFIG) is True
-    yet_another_body = etree.Element('body')
-    yet_another_element = html.fromstring(
-        '<p>EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF</p>')
-    yet_another_body.append(yet_another_element)
-    assert duplicate_test(yet_another_body, DEFAULT_CONFIG) is False
-    assert duplicate_test(yet_another_body, DEFAULT_CONFIG) is False
-    assert duplicate_test(yet_another_body, DEFAULT_CONFIG) is False
-    # 2 elements in cache, original element has been cleared?
-    # print(LRU_TEST.maxsize, LRU_TEST.full)
-    assert duplicate_test(other_element, DEFAULT_CONFIG) is True
-    assert duplicate_test(yet_another_element, DEFAULT_CONFIG) is True
-    assert duplicate_test(my_element, DEFAULT_CONFIG) is False
-    # clear the cache
-    lru_test.clear()
-    assert duplicate_test(other_element, DEFAULT_CONFIG) is False
-    # get wrong key
-    assert lru_test.get('tralala') == -1
-
-
 def test_formatting():
     '''Test HTML formatting conversion and extraction'''
     # simple
