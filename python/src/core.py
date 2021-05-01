@@ -435,56 +435,6 @@ def extract_content(tree, include_tables=False, include_images=False, include_li
     return result_body, temp_text, len(temp_text), sure_thing
 
 
-def process_comments_node(elem, potential_tags, dedupbool, config):
-    '''Process comment node and determine how to deal with its content'''
-    if elem.tag in potential_tags:
-        # print(elem.tag, elem.text_content())
-        processed_element = handle_textnode(
-            elem, comments_fix=True, deduplicate=dedupbool, config=config)
-        # test length and remove
-        # and processed_element.text not in COMMENTS_BLACKLIST:
-        if processed_element is not None:
-            processed_element.attrib.clear()
-            # if textfilter(elem) is True: # ^Pingback
-            #    return None
-            return processed_element
-    return None
-
-
-def extract_comments(tree, dedupbool, config):
-    '''Try and extract comments out of potential sections in the HTML'''
-    comments_body = etree.Element('body')
-    # define iteration strategy
-    potential_tags = set(TAG_CATALOG)  # 'span'
-    # potential_tags.add('div') trouble with <div class="comment-author meta">
-    for expr in COMMENTS_XPATH:
-        # select tree if the expression has been found
-        subtree = tree.xpath(expr)
-        if not subtree:
-            continue
-        subtree = subtree[0]
-        # prune
-        subtree = discard_unwanted_comments(subtree)
-        etree.strip_tags(subtree, 'a', 'ref', 'span')
-        # extract content
-        # for elem in subtree.xpath('.//*'):
-        #    processed_elem = process_comments_node(elem, potential_tags)
-        #    if processed_elem is not None:
-        #        comments_body.append(processed_elem)
-        processed_elems = [process_comments_node(
-            elem, potential_tags, dedupbool, config) for elem in subtree.xpath('.//*')]
-        comments_body.extend(list(filter(None.__ne__, processed_elems)))
-        # control
-        if len(comments_body) > 0:  # if it has children
-            LOGGER.debug(expr)
-            # remove corresponding subtree
-            subtree.getparent().remove(subtree)
-            break
-    # lengths
-    temp_comments = trim(' '.join(comments_body.itertext()))
-    return comments_body, temp_comments, len(temp_comments), tree
-
-
 def compare_extraction(tree, backup_tree, url, body, text, len_text, target_language, include_formatting, include_links, include_images, config):
     '''Decide whether to choose own or external extraction
        based on a series of heuristics'''

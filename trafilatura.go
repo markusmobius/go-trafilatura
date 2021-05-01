@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	nurl "net/url"
+	"strings"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -71,6 +72,9 @@ type Options struct {
 }
 
 func Extract(r io.Reader, opts Options) error {
+	// Prepare cache for detecting text duplicate
+	cache := NewCache(128)
+
 	// Parse HTML
 	doc, err := html.Parse(r)
 	if err != nil {
@@ -119,6 +123,86 @@ func Extract(r io.Reader, opts Options) error {
 
 	// Clean HTML
 	cleanHTML(doc, opts.IncludeTables, opts.IncludeImages)
+
+	// Extract comments
+	var commentsContainer *html.Node
+	if opts.IncludeComments {
+		commentsContainer = extractComments(doc, cache, opts.Deduplicate)
+	}
+
+	fmt.Println(commentsContainer)
+	return nil
+}
+
+// extractComments try and extract comments out of potential sections in the HTML.
+func extractComments(doc *html.Node, cache *Cache, deduplicate bool) *html.Node {
+	// Prepare potential tags
+	potentialTags := duplicateMap(tagCatalog)
+
+	// Fetch all nodes in document
+	nodes := dom.GetElementsByTagName(doc, "*")
+
+	// Process each selector
+	for _, rule := range commentSelectorRules {
+		// Capture first node that matched with the rule
+		var commentNode *html.Node
+		for i := 0; i < len(nodes); i++ {
+			if rule(nodes[i]) {
+				commentNode = nodes[i]
+				break
+			}
+		}
+
+		// If no nodes matched, try next selector rule
+		if commentNode == nil {
+			continue
+		}
+
+		// Discard unwanted comments
+		var discardedNodes []*html.Node
+		for _, n := range dom.GetElementsByTagName(commentNode, "*") {
+			for _, discardRule := range discardedCommentSelectorRules {
+				if discardRule(n) {
+					discardedNodes = append(discardedNodes, n)
+					break
+				}
+			}
+		}
+
+		if len(discardedNodes) > 0 {
+			removeNodes(discardedNodes)
+		}
+
+		// Strip unwanted tags
+		unwantedNodes := dom.QuerySelectorAll(commentNode, "a, span")
+		if len(unwantedNodes) > 0 {
+			stripNodes(unwantedNodes)
+		}
+
+		// Process comment node
+		var removableNodes []*html.Node
+		for _, childNode := range dom.GetElementsByTagName(commentNode, "*") {
+			isUseful := commentsNodeFilter(childNode, cache, deduplicate, potentialTags)
+			if !isUseful {
+				removableNodes = append(removableNodes, childNode)
+			} else {
+				childNode.Attr = nil
+			}
+		}
+
+		if len(removableNodes) > 0 {
+			removeNodes(removableNodes)
+		}
+
+		// If comment node is not empty, separate from its parent then return it
+		text := dom.TextContent(commentNode)
+		text = strings.TrimSpace(text)
+		if text != "" {
+			clone := dom.Clone(commentNode, true)
+			commentNode.Parent.RemoveChild(commentNode)
+			return clone
+		}
+	}
 
 	return nil
 }

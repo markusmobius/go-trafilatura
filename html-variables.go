@@ -129,6 +129,20 @@ var emptyTagsToRemove = map[string]struct{}{
 	// "col":      {},
 }
 
+var tagCatalog = map[string]struct{}{
+	"blockquote": {},
+	"code":       {},
+	"del":        {},
+	"fw":         {},
+	"head":       {},
+	"hi":         {},
+	"lb":         {},
+	"list":       {},
+	"p":          {},
+	"pre":        {},
+	"quote":      {},
+}
+
 func duplicateMap(original map[string]struct{}) map[string]struct{} {
 	duplicate := make(map[string]struct{})
 	for key, val := range original {

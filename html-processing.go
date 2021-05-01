@@ -1,9 +1,13 @@
 package trafilatura
 
 import (
+	"regexp"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
+
+var rxWords = regexp.MustCompile(`\w`)
 
 // cleanHTML cleans the tree by discarding unwanted elements
 func cleanHTML(doc *html.Node, includeTables, includeImages bool) {
@@ -35,7 +39,7 @@ func cleanHTML(doc *html.Node, includeTables, includeImages bool) {
 	// Remove nodes in remove list but keep its children
 	for tagName := range removeList {
 		nodes := dom.GetElementsByTagName(doc, tagName)
-		removeNodesKeepChildren(nodes)
+		stripNodes(nodes)
 	}
 }
 
@@ -59,7 +63,7 @@ func pruneHTML(doc *html.Node) {
 	removeNodes(emptyNodes)
 }
 
-// removeCommentNodes find all comment nodes in document then remove it.
+// removeCommentNodes find all `html.CommentNode` in document then remove it.
 func removeCommentNodes(doc *html.Node) {
 	// Find all comment nodes
 	var finder func(*html.Node)
@@ -94,9 +98,9 @@ func removeNodes(nodeList []*html.Node) {
 	}
 }
 
-// removeNodesKeepChildren iterates over a nodeList and remove each of them
+// stripNodes iterates over a nodeList and remove each of them
 // while still keeping the children.
-func removeNodesKeepChildren(nodeList []*html.Node) {
+func stripNodes(nodeList []*html.Node) {
 	for i := len(nodeList) - 1; i >= 0; i-- {
 		node := nodeList[i]
 

@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func Test_CleanHTML(t *testing.T) {
+func Test_cleanHTML(t *testing.T) {
 	rawHTML := `<html><body>
 		<table><a href="">Link</a></table>
 		<img src="test.jpg" />

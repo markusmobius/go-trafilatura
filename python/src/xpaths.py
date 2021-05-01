@@ -1,8 +1,8 @@
 """
 X-Path expressions needed to extract and filter the main text content
 """
-## This file is available from https://github.com/adbar/trafilatura
-## under GNU GPL v3 license
+# This file is available from https://github.com/adbar/trafilatura
+# under GNU GPL v3 license
 
 
 BODY_XPATH = [
@@ -52,21 +52,6 @@ BODY_XPATH = [
 # or @class="content" or @class="Content"
 # or starts-with(@class, 'post ')
 # './/span[@class=""]', # instagram?
-
-
-COMMENTS_XPATH = [
-    """.//*[(self::div or self::list or self::section)][contains(@id, 'commentlist')
-    or contains(@class, 'commentlist')  or contains(@class, 'comment-page') or
-    contains(@class, 'comment-list') or contains(@class, 'comments-list') or
-    contains(@class, 'comments-content')]""",
-    """.//*[(self::div or self::section or self::list)][starts-with(@id, 'comments')
-    or starts-with(@class, 'comments') or starts-with(@class, 'Comments') or
-    starts-with(@id, 'comment-') or starts-with(@class, 'comment-') or
-    contains(@class, 'article-comments')]""",
-    """.//*[(self::div or self::section or self::list)][starts-with(@id, 'comol') or
-    starts-with(@id, 'disqus_thread') or starts-with(@id, 'dsq-comments')]""",
-    """.//*[(self::div or self::section)][starts-with(@id, 'social') or contains(@class, 'comment')]"""
-]
 # or contains(@class, 'Comments')
 
 
@@ -118,12 +103,3 @@ DISCARD_XPATH = [
 # contains(@id, "link") or contains(@class, "link")
 # class contains cats
 # or contains(@class, "hidden ")
-
-
-COMMENTS_DISCARD_XPATH = [
-    './/*[(self::div or self::section)][starts-with(@id, "respond")]',
-    './/cite|.//quote',
-    '''.//*[@class="comments-title" or contains(@class, "comments-title") or contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
-    contains(@class, "-reply-") or contains(@class, "message") or
-    contains(@id, "akismet") or contains(@class, "akismet") or contains(@style, "display:none")]''',
-]

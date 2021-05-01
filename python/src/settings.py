@@ -44,9 +44,6 @@ MAX_SITEMAPS_SEEN = 10000
 
 
 # filters
-
-TAG_CATALOG = frozenset(['blockquote', 'code', 'del',
-                        'fw', 'head', 'hi', 'lb', 'list', 'p', 'pre', 'quote'])
 # + list(CUT_EMPTY_ELEMS)
 
 

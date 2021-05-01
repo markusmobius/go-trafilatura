@@ -76,3 +76,42 @@ func duplicateFilter(cache *Cache, n *html.Node) bool {
 
 	return isDuplicate
 }
+
+func nodeTextFilter(node *html.Node, deduplicate bool, cache *Cache) bool {
+	// Make sure text is not empty
+	text := dom.TextContent(node)
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return true
+	}
+
+	// If text doesn't contain any word, stop
+	if !rxWords.MatchString(text) {
+		return true
+	}
+
+	// Check filter
+	if textFilter(node) {
+		return true
+	}
+
+	if deduplicate && cache != nil && duplicateFilter(cache, node) {
+		return true
+	}
+
+	return false
+}
+
+func commentsNodeFilter(n *html.Node, cache *Cache, deduplicate bool, potentialTags map[string]struct{}) bool {
+	// Make sure node is one of the potential comments
+	if _, isPotential := potentialTags[dom.TagName(n)]; !isPotential {
+		return false
+	}
+
+	// Make sure node is not empty and not duplicated
+	if nodeTextFilter(n, deduplicate, cache) {
+		return false
+	}
+
+	return true
+}

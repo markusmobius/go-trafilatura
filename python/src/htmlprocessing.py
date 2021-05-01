@@ -28,14 +28,6 @@ def discard_unwanted(tree):
     return tree
 
 
-def discard_unwanted_comments(tree):
-    '''delete unwanted comment sections'''
-    for expr in COMMENTS_DISCARD_XPATH:
-        for subtree in tree.xpath(expr):
-            subtree.getparent().remove(subtree)
-    return tree
-
-
 def collect_link_info(links_xpath):
     '''Collect heuristics on link text'''
     linklen, elemnum, shortelems, mylist = 0, 0, 0, []
@@ -183,39 +175,6 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
         elem.tag = 'del'
         elem.set('rend', 'overstrike')
     return tree
-
-
-def handle_textnode(element, comments_fix=True, deduplicate=True, config=DEFAULT_CONFIG):
-    '''Convert, format, and probe potential text elements'''
-    if element.text is None and element.tail is None:
-        return None
-    # lb bypass
-    if comments_fix is False and element.tag == 'lb':
-        element.tail = trim(element.tail)
-        # if textfilter(element) is True:
-        #     return None
-        # duplicate_test(subelement)?
-        return element
-    if element.text is None:
-        # try the tail
-        # LOGGER.debug('using tail for element %s', element.tag)
-        element.text = element.tail
-        element.tail = ''
-        # handle differently for br/lb
-        if comments_fix is True and element.tag == 'lb':
-            element.tag = 'p'
-    # trim
-    element.text = trim(element.text)
-    if element.tail:
-        element.tail = trim(element.tail)
-    if element.text and re.search(r'\w', element.text):  # text_content()?
-        if textfilter(element) is True:
-            return None
-        if deduplicate is True and duplicate_test(element, config) is True:
-            return None
-    else:
-        return None
-    return element
 
 
 def process_node(element, deduplicate=True, config=DEFAULT_CONFIG):
