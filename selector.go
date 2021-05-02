@@ -26,3 +26,10 @@ var contentSelectorRules = []selectorRule{
 	contentSelectorRule6,
 	contentSelectorRule7,
 }
+
+var discardedContentSelectorRules = []selectorRule{
+	discardedContentSelectorRule1,
+	discardedContentSelectorRule2,
+	discardedContentSelectorRule3,
+	discardedContentSelectorRule4,
+}

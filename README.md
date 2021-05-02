@@ -8,9 +8,13 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 20 files with 3,500 lines of code that haven’t been ported, so there is still long way to go.
+This package is still in development and the port process is still not finished. There are 19 files with 3,496 lines of code that haven’t been ported, so there is still long way to go.
 
 ## Changelog
+
+### 2 May 2021
+
+- Port `DISCARD_XPATH` in `xpaths.py`
 
 ### 1 May 2021
 
