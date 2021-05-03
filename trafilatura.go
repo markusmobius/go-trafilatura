@@ -6,6 +6,7 @@ import (
 	nurl "net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
@@ -139,16 +140,13 @@ func extractComments(doc *html.Node, cache *Cache, deduplicate bool) *html.Node 
 	// Prepare potential tags
 	potentialTags := duplicateMap(tagCatalog)
 
-	// Fetch all nodes in document
-	nodes := dom.GetElementsByTagName(doc, "*")
-
 	// Process each selector
 	for _, rule := range commentSelectorRules {
 		// Capture first node that matched with the rule
 		var commentNode *html.Node
-		for i := 0; i < len(nodes); i++ {
-			if rule(nodes[i]) {
-				commentNode = nodes[i]
+		for _, n := range dom.GetElementsByTagName(doc, "*") {
+			if rule(n) {
+				commentNode = n
 				break
 			}
 		}
@@ -205,4 +203,120 @@ func extractComments(doc *html.Node, cache *Cache, deduplicate bool) *html.Node 
 	}
 
 	return nil
+}
+
+// extractContent find the main content of a page using a set of selectors, then
+// extract relevant elements, strip them of unwanted subparts and convert them.
+func extractContent(doc *html.Node, opts Options) *html.Node {
+	// var sureThing bool
+	// resultContainer := dom.CreateElement("div")
+
+	// Prepare potential tags
+	potentialTags := duplicateMap(tagCatalog)
+
+	if opts.IncludeTables {
+		potentialTags["table"] = struct{}{}
+	}
+
+	if opts.IncludeImages {
+		potentialTags["img"] = struct{}{}
+	}
+
+	if opts.IncludeLinks {
+		potentialTags["a"] = struct{}{}
+	}
+
+	// Process each selector
+	for _, rule := range contentSelectorRules {
+		// Capture first node that matched with the rule
+		var contentNode *html.Node
+		for _, n := range dom.GetElementsByTagName(doc, "*") {
+			if rule(n) {
+				contentNode = n
+				break
+			}
+		}
+
+		// If no nodes matched, try next selector rule
+		if contentNode == nil {
+			continue
+		}
+
+		// Discard unwanted sections
+		var discardedNodes []*html.Node
+		for _, n := range dom.GetElementsByTagName(contentNode, "*") {
+			for _, discardRule := range discardedContentSelectorRules {
+				if discardRule(n) {
+					discardedNodes = append(discardedNodes, n)
+					break
+				}
+			}
+		}
+
+		if len(discardedNodes) > 0 {
+			removeNodes(discardedNodes)
+		}
+
+		// Remove elements by link density
+		removeHighLinkDensityNodes(contentNode, "div", true)
+		removeHighLinkDensityNodes(contentNode, "ul", false)
+		removeHighLinkDensityNodes(contentNode, "ol", false)
+		removeHighLinkDensityNodes(contentNode, "dl", false)
+		removeHighLinkDensityNodes(contentNode, "p", false)
+
+		if _, exist := potentialTags["table"]; exist {
+			var tablesToRemove []*html.Node
+			for _, table := range dom.GetElementsByTagName(contentNode, "table") {
+				if tableHasHighLinkDensity(table) {
+					tablesToRemove = append(tablesToRemove, table)
+				}
+			}
+
+			if len(tablesToRemove) > 0 {
+				removeNodes(tablesToRemove)
+			}
+		}
+
+		// If content node now empty, try other selector
+		if len(dom.GetElementsByTagName(contentNode, "*")) == 0 {
+			continue
+		}
+	}
+}
+
+func removeHighLinkDensityNodes(node *html.Node, tagName string, backtracking bool) {
+	var nodesToDelete []*html.Node
+	textNodes := make(map[string][]*html.Node)
+
+	for _, n := range dom.GetElementsByTagName(node, tagName) {
+		nonEmptyLinks, isHighDensity := nodeHasHighLinkDensity(n)
+
+		if isHighDensity {
+			nodesToDelete = append(nodesToDelete, n)
+			continue
+		}
+
+		if backtracking && len(nonEmptyLinks) > 0 {
+			text := dom.TextContent(n)
+			text = strNormalize(text)
+			if _, exist := textNodes[text]; !exist {
+				textNodes[text] = []*html.Node{n}
+			} else {
+				textNodes[text] = append(textNodes[text], n)
+			}
+		}
+	}
+
+	if backtracking {
+		for text, nodes := range textNodes {
+			textLength := utf8.RuneCountInString(text)
+			if textLength > 0 && textLength < 1000 && len(nodes) >= 3 {
+				nodesToDelete = append(nodesToDelete, nodes...)
+			}
+		}
+	}
+
+	if len(nodesToDelete) > 0 {
+		removeNodes(nodesToDelete)
+	}
 }

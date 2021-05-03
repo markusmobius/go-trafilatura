@@ -115,3 +115,107 @@ func commentsNodeFilter(n *html.Node, cache *Cache, deduplicate bool, potentialT
 
 	return true
 }
+
+func nodeHasHighLinkDensity(n *html.Node) ([]*html.Node, bool) {
+	// Fetch links in node
+	links := dom.GetElementsByTagName(n, "a")
+	if len(links) == 0 {
+		return nil, false
+	}
+
+	// Prepare limit and threshold
+	var limitLength int
+	var threshold float64
+
+	switch {
+	case dom.TagName(n) == "p":
+		limitLength, threshold = 25, 0.9
+	case n.NextSibling == nil:
+		limitLength, threshold = 200, 0.66
+	default:
+		limitLength, threshold = 100, 0.66
+	}
+
+	// Check if text of this node is within limit
+	text := dom.TextContent(n)
+	text = strNormalize(text)
+	if utf8.RuneCountInString(text) >= limitLength {
+		return nil, false
+	}
+
+	// Collect link info
+	linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+	nNonEmptyLinks := len(nonEmptyLinks)
+	if nNonEmptyLinks == 0 {
+		// In this case, there are only empty links which obviously means
+		// that this node doesn't have high link density. However, since it's
+		// empty might as well delete it, so here we return true.
+		return nil, true
+	}
+
+	// Check if links data surpass threshold
+	if float64(linkLength) >= threshold*float64(nNonEmptyLinks) ||
+		float64(nShortLinks)/float64(nNonEmptyLinks) >= threshold {
+		return nonEmptyLinks, true
+	}
+
+	return nil, false
+}
+
+func tableHasHighLinkDensity(table *html.Node) bool {
+	// Fetch links in table
+	links := dom.GetElementsByTagName(table, "a")
+	if len(links) == 0 {
+		return false
+	}
+
+	// Check text length
+	text := dom.TextContent(table)
+	text = strNormalize(text)
+	textLength := utf8.RuneCountInString(text)
+	if textLength <= 250 {
+		return false
+	}
+
+	// Collect link info
+	linkTextLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+	nNonEmptyLinks := len(nonEmptyLinks)
+	if nNonEmptyLinks == 0 {
+		// In this case, there are only empty links which obviously means
+		// that this node doesn't have high link density. However, since it's
+		// empty might as well delete it, so here we return true.
+		return true
+	}
+
+	if (textLength <= 1000 && float64(linkTextLength) > float64(textLength)*0.8) ||
+		(textLength > 1000 && float64(linkTextLength) > float64(textLength)*0.5) {
+		return true
+	}
+
+	if float64(nShortLinks) > float64(len(links))*0.66 {
+		return true
+	}
+
+	return false
+}
+
+func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+	for _, link := range links {
+		text := dom.TextContent(link)
+		text = strNormalize(text)
+
+		textLength := utf8.RuneCountInString(text)
+		if textLength == 0 {
+			continue
+		}
+
+		linkLength += textLength
+		if textLength < 100 {
+			nShortLinks++
+		}
+
+		nonEmptyLinks = append(nonEmptyLinks, link)
+	}
+
+	return
+}

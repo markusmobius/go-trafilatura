@@ -335,33 +335,6 @@ def handle_textelem(element, potential_tags, dedupbool, config):
     return new_element
 
 
-def delete_by_link_density(subtree, tagname, backtracking=False):
-    '''Determine the link density of elements with respect to their length,
-       and remove the elements identified as boilerplate.'''
-    myelems, deletions = dict(), list()
-    for elem in subtree.iter(tagname):
-        result, templist = link_density_test(elem)
-        if result is True:
-            deletions.append(elem)
-        elif backtracking is True and len(templist) > 0:
-            text = trim(elem.text_content())
-            if text not in myelems:
-                myelems[text] = [elem]
-            else:
-                myelems[text].append(elem)
-    # summing up
-    if backtracking is True:
-        for item in myelems:
-            if 0 < len(item) < 100 and len(myelems[item]) >= 3:
-                deletions.extend(myelems[item])
-                #print('backtrack:', item)
-            # else: # and not re.search(r'[?!.]', text):
-                #print(elem.tag, templist)
-    for elem in list(OrderedDict.fromkeys(deletions)):
-        elem.getparent().remove(elem)
-    return subtree
-
-
 def extract_content(tree, include_tables=False, include_images=False, include_links=False, deduplicate=False, config=None):
     '''Find the main content of a page using a set of XPath expressions,
        then extract relevant elements, strip them of unwanted subparts and
