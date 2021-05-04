@@ -9,7 +9,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func Test_cleanHTML(t *testing.T) {
+func Test_docCleaning(t *testing.T) {
 	rawHTML := `<html><body>
 		<table><a href="">Link</a></table>
 		<img src="test.jpg" />
@@ -19,7 +19,7 @@ func Test_cleanHTML(t *testing.T) {
 	</body></html>`
 
 	doc, _ := html.Parse(strings.NewReader(rawHTML))
-	cleanHTML(doc, false, true)
+	docCleaning(doc, false, true)
 
 	assert.Empty(t, dom.QuerySelectorAll(doc, "table"))
 	assert.NotEmpty(t, dom.QuerySelectorAll(doc, "img"))

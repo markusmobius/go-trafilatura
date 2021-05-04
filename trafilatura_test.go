@@ -1,5 +1,13 @@
 package trafilatura
 
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
+)
+
 var testFiles = map[string]string{
 	"http://blog.python.org/2016/12/python-360-is-now-available.html":                                                                           "blog.python.org.html",
 	"https://creativecommons.org/about/":                                                                                                        "creativecommons.org.html",
@@ -53,4 +61,23 @@ var testFiles = map[string]string{
 	"https://www.scmp.com/comment/opinion/article/3046526/taiwanese-president-tsai-ing-wens-political-playbook-should-be":                       "scmp.com.playbook.html",
 	"https://www.faz.net/aktuell/wirtschaft/nutzerbasierte-abrechnung-musik-stars-fordern-neues-streaming-modell-16604622.html":                 "faz.net.streaming.html",
 	"https://www.ndr.de/nachrichten/info/16-Coronavirus-Update-Wir-brauchen-Abkuerzungen-bei-der-Impfstoffzulassung,podcastcoronavirus140.html": "ndr.de.podcastcoronavirus140.html",
+	"http://exotic_tags": "exotic_tags.html",
+}
+
+func loadMockFile(url string) *html.Node {
+	// Open file
+	path := testFiles[url]
+	path = filepath.Join("test-files", path)
+	f, err := os.Open(path)
+	if err != nil {
+		logrus.Panicln(err)
+	}
+
+	// Parse HTML
+	doc, err := html.Parse(f)
+	if err != nil {
+		logrus.Panicln(err)
+	}
+
+	return doc
 }

@@ -99,23 +99,3 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
         elem.tag = 'del'
         elem.set('rend', 'overstrike')
     return tree
-
-
-def process_node(element, deduplicate=True, config=DEFAULT_CONFIG):
-    '''Convert, format, and probe potential text elements (light format)'''
-    if element.tag == 'done':
-        return None
-    if len(element) == 0 and not element.text and not element.tail:
-        return None
-    # trim
-    element.text, element.tail = trim(element.text), trim(element.tail)
-    # adapt content string
-    if element.tag != 'lb' and not element.text and element.tail:
-        element.text = element.tail
-    # content checks
-    if element.text or element.tail:
-        if textfilter(element) is True:
-            return None
-        if deduplicate is True and duplicate_test(element, config) is True:
-            return None
-    return element

@@ -87,14 +87,6 @@ def test_trim():
     '''test string trimming'''
     assert trim('	Test  ') == 'Test'
     assert trim('\t\tTest  Test\r\n') == 'Test Test'
-    my_elem = etree.Element('body')
-    my_elem.text = 'Test Text'
-    assert textfilter(my_elem) is False
-    # my_elem.text = 'Tags: Arbeit, Urlaub'
-    my_elem.text = 'Instagram'
-    assert textfilter(my_elem) is True
-    my_elem.text = '\t\t'
-    assert textfilter(my_elem) is True
     # sanitize logic
     assert utils.sanitize(None) is None
 
@@ -305,14 +297,6 @@ def test_external():
 
 def test_images():
     '''Test image extraction function'''
-    assert handle_image(html.fromstring('<img src="test.jpg"/>')) is not None
-    assert handle_image(html.fromstring(
-        '<img data-src="test.jpg" alt="text" title="a title"/>')) is not None
-    assert handle_image(html.fromstring('<img other="test.jpg"/>')) is None
-    assert utils.is_image_file('test.jpg') is True
-    assert utils.is_image_file('test.txt') is False
-    assert handle_textelem(etree.Element('graphic'), [],
-                           False, DEFAULT_CONFIG) is None
     resources_dir = os.path.join(TEST_DIR, 'resources')
     with open(os.path.join(resources_dir, 'http_sample.html')) as f:
         teststring = f.read()
@@ -321,23 +305,10 @@ def test_images():
         teststring, include_images=True, no_fallback=True)
     assert '<graphic src="test.jpg" title="Example image"/>' in extract(
         teststring, include_images=True, no_fallback=True, output_format='xml', config=ZERO_CONFIG)
-    # CNN example
-    mydoc = html.fromstring('<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781" src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-eq-state="mini xsmall small medium" data-src="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg">')
-    myimage = handle_image(mydoc)
-    assert myimage is not None and 'alt' in myimage.attrib and 'src' in myimage.attrib
-    # modified CNN example
-    mydoc = html.fromstring('<img class="media__image media__image--responsive" alt="Harry and Meghan last March, in their final royal engagement." data-src-mini="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-169.jpg" data-src-xsmall="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-medium-plus-169.jpg" data-src-small="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-large-169.jpg" data-src-medium="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-exlarge-169.jpg" data-src-large="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-super-169.jpg" data-src-full16x9="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-full-169.jpg" data-src-mini1x1="//cdn.cnn.com/cnnnext/dam/assets/210307091919-harry-meghan-commonwealth-day-small-11.jpg" data-demand-load="loaded" data-eq-pts="mini: 0, xsmall: 221, small: 308, medium: 461, large: 781">')
-    myimage = handle_image(mydoc)
-    assert myimage is not None and 'alt' in myimage.attrib and 'src' in myimage.attrib and myimage.get(
-        'src').startswith('http')
 
 
 def test_links():
     '''Test link extraction function'''
-    assert handle_textelem(etree.Element('ref'), [],
-                           False, DEFAULT_CONFIG) is None
-    assert handle_formatting(html.fromstring(
-        '<a href="testlink.html">Test link text.</a>')) is not None
     mydoc = html.fromstring(
         '<html><body><p><a href="testlink.html">Test link text.</a></p></body></html>')
     assert 'testlink.html' not in extract(mydoc)
@@ -382,20 +353,13 @@ def test_tei():
 
 def test_htmlprocessing():
     '''test html-related functions'''
-    assert trafilatura.htmlprocessing.tree_cleaning(
-        etree.Element('html'), True) is not None
-    assert trafilatura.htmlprocessing.prune_html(
-        etree.Element('unwanted')) is not None
     mydoc = html.fromstring(
         '<html><body><table><a href="">Link</a></table><img src="test.jpg"/><u>Underlined</u><tt>True Type</tt><sub>Text</sub><sup>Text</sup></body></html>')
     myconverted = trafilatura.htmlprocessing.convert_tags(
         mydoc, include_formatting=True, include_tables=True, include_images=True)
     assert myconverted.xpath('.//ref') and myconverted.xpath(
         './/graphic') and myconverted.xpath('.//hi[@rend="#t"]') and myconverted.xpath('.//table')
-    myconverted = trafilatura.htmlprocessing.tree_cleaning(
-        mydoc, include_tables=False, include_images=True)
-    assert myconverted.xpath(
-        './/graphic') and not myconverted.xpath('.//table')
+
     mydoc = html.fromstring(
         '<html><body><article><h1>Test headline</h1><p>Test</p></article></body></html>')
     assert '<head rend="h1">Test headline</head>' in extract(
