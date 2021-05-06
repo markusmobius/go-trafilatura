@@ -2,6 +2,7 @@ package trafilatura
 
 import (
 	"regexp"
+	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/etree"
@@ -83,11 +84,26 @@ func pruneHTML(doc *html.Node) {
 	}
 }
 
+// discardUnwanted deletes unwanted sections.
+func discardUnwanted(tree *html.Node) {
+	subElements := dom.GetElementsByTagName(tree, "*")
+	for i := len(subElements) - 1; i >= 0; i-- {
+		subElement := subElements[i]
+		for _, rule := range selector.DiscardedContentRules {
+			if rule(subElement) {
+				etree.Remove(subElement)
+				break
+			}
+		}
+	}
+}
+
+// discardUnwantedComments deletes unwanted comment sections.
 func discardUnwantedComments(tree *html.Node) {
 	subElements := dom.GetElementsByTagName(tree, "*")
 	for i := len(subElements) - 1; i >= 0; i-- {
 		subElement := subElements[i]
-		for _, rule := range selector.DiscardedCommentsRule {
+		for _, rule := range selector.DiscardedCommentsRules {
 			if rule(subElement) {
 				etree.Remove(subElement)
 				break
@@ -142,4 +158,137 @@ func handleTextNode(node *html.Node, cache *Cache, fixComments, deduplicate bool
 	}
 
 	return node
+}
+
+// linkDensityTest check whether sections will be removed because it's rich in
+// links (probably boilerplate)
+func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
+	// Fetch links in node
+	links := dom.GetElementsByTagName(element, "a")
+	if len(links) == 0 {
+		return nil, false
+	}
+
+	// Prepare limit and threshold
+	var limitLength int
+	var threshold float64
+
+	switch {
+	case dom.TagName(element) == "p":
+		limitLength, threshold = 25, 0.9
+	case element.NextSibling == nil:
+		limitLength, threshold = 200, 0.66
+	default:
+		limitLength, threshold = 100, 0.66
+	}
+
+	// Check if text of this node is within limit
+	text := trim(dom.TextContent(element))
+	textLength := utf8.RuneCountInString(text)
+	if textLength < limitLength {
+		// Collect link info
+		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		nNonEmptyLinks := len(nonEmptyLinks)
+		if nNonEmptyLinks == 0 {
+			return nonEmptyLinks, true
+		}
+
+		// Check if links data surpass threshold
+		if float64(linkLength) >= threshold*float64(textLength) ||
+			float64(nShortLinks)/float64(nNonEmptyLinks) >= threshold {
+			return nonEmptyLinks, true
+		}
+	}
+
+	return nil, false
+}
+
+// linkDensityTestTables check whether a table will be removed because
+// it's rich in links (probably boilerplate)
+func linkDensityTestTables(table *html.Node) bool {
+	// Fetch links in table
+	links := dom.GetElementsByTagName(table, "a")
+	if len(links) == 0 {
+		return false
+	}
+
+	// Check text length
+	text := trim(dom.TextContent(table))
+	textLength := utf8.RuneCountInString(text)
+	if textLength > 250 {
+		// Collect link info
+		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		nNonEmptyLinks := len(nonEmptyLinks)
+		if nNonEmptyLinks == 0 {
+			return true
+		}
+
+		if (textLength <= 1000 && float64(linkLength) > float64(textLength)*0.8) ||
+			(textLength > 1000 && float64(linkLength) > float64(textLength)*0.5) {
+			return true
+		}
+
+		if float64(nShortLinks) > float64(len(links))*0.66 {
+			return true
+		}
+	}
+
+	return false
+}
+
+// collectLinkInfo collects heuristics on link text.
+func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+	for _, link := range links {
+		text := trim(dom.TextContent(link))
+		textLength := utf8.RuneCountInString(text)
+		if textLength == 0 {
+			continue
+		}
+
+		linkLength += textLength
+		if textLength < 100 {
+			nShortLinks++
+		}
+
+		nonEmptyLinks = append(nonEmptyLinks, link)
+	}
+
+	return
+}
+
+// processNode converts, formats, and probes potential text elements (light format).
+func processNode(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
+	tagName := dom.TagName(element)
+	if tagName == "done" {
+		return nil
+	}
+
+	text, tail := etree.Text(element), etree.Tail(element)
+	if len(dom.Children(element)) == 0 && text == "" && tail == "" {
+		return nil
+	}
+
+	// Trim
+	text, tail = trim(text), trim(tail)
+	etree.SetText(element, text)
+	etree.SetTail(element, tail)
+
+	// Adapt content string
+	if (tagName != "br" && tagName != "hr") && text == "" && tail != "" {
+		etree.SetText(element, tail)
+		text = tail
+	}
+
+	// Content checks
+	if text != "" || tail != "" {
+		if textFilter(element) {
+			return nil
+		}
+
+		if cache != nil && deduplicate && duplicateTest(element, cache) {
+			return nil
+		}
+	}
+
+	return element
 }

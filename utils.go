@@ -1,6 +1,13 @@
 package trafilatura
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
+
+var (
+	rxImageExtension = regexp.MustCompile(`(?i)([^\s]+(\.(jpe?g|png|gif|bmp)))`)
+)
 
 func trim(s string) string {
 	s = strings.TrimSpace(s)
@@ -37,6 +44,10 @@ func getRune(s string, idx int) rune {
 	}
 
 	return -1
+}
+
+func isImageFile(imageSrc string) bool {
+	return imageSrc != "" && rxImageExtension.MatchString(imageSrc)
 }
 
 // doNothing is placeholder function to store unused variables

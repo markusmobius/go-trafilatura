@@ -70,6 +70,10 @@ func StripElements(tree *html.Node, keepTail bool, tags ...string) {
 // text content and descendants. It will also remove the tail text of the element unless
 // you explicitly set the keepTail argument to true.
 func Remove(element *html.Node, keepTail ...bool) {
+	if element.Parent == nil {
+		return
+	}
+
 	if len(keepTail) == 0 || !keepTail[0] {
 		for _, tailNode := range TailNodes(element) {
 			tailNode.Parent.RemoveChild(tailNode)

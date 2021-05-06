@@ -3,6 +3,8 @@ package trafilatura
 const (
 	cacheSize = 4096
 
+	minExtractedSize = 200
+
 	minDuplicateCheckSize = 100
 	maxDuplicateCount     = 2
 )
@@ -43,6 +45,10 @@ var tagCatalog = sliceToMap(
 	"ul", "ol", "dl",
 	"p", "pre", "q",
 )
+
+var formatTagCatalog = sliceToMap(
+	"em", "i", "b", "strong", "u", "kbd",
+	"samp", "tt", "var", "sub", "sup")
 
 func sliceToMap(strings ...string) map[string]struct{} {
 	result := make(map[string]struct{})

@@ -34,15 +34,32 @@ var MetaTagsRules = []Rule{
 	metaTagsRule4,
 }
 
-var CommentsRule = []Rule{
+var CommentsRules = []Rule{
 	commentsRule1,
 	commentsRule2,
 	commentsRule3,
 	commentsRule4,
 }
 
-var DiscardedCommentsRule = []Rule{
+var DiscardedCommentsRules = []Rule{
 	discardedCommentsRule1,
 	discardedCommentsRule2,
 	discardedCommentsRule3,
+}
+
+var ContentRules = []Rule{
+	contentRule1,
+	contentRule2,
+	contentRule3,
+	contentRule4,
+	contentRule5,
+	contentRule6,
+	contentRule7,
+}
+
+var DiscardedContentRules = []Rule{
+	discardedContentRule1,
+	discardedContentRule2,
+	discardedContentRule3,
+	discardedContentRule4,
 }

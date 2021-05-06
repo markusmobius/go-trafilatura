@@ -2,8 +2,8 @@
 """
 Module bundling functions related to HTML and text processing.
 """
-## This file is available from https://github.com/adbar/trafilatura
-## under GNU GPL v3 license
+# This file is available from https://github.com/adbar/trafilatura
+# under GNU GPL v3 license
 
 # import csv
 import gzip
@@ -35,24 +35,29 @@ LOGGER = logging.getLogger(__name__)
 # customize headers
 RETRY_STRATEGY = urllib3.util.Retry(
     total=0,
-    redirect=2, # raise_on_redirect=False,
+    redirect=2,  # raise_on_redirect=False,
     connect=0,
     backoff_factor=TIMEOUT*2,
-    status_forcelist=[429, 499, 500, 502, 503, 504, 509, 520, 521, 522, 523, 524, 525, 526, 527, 530, 598],
+    status_forcelist=[429, 499, 500, 502, 503, 504, 509,
+                      520, 521, 522, 523, 524, 525, 526, 527, 530, 598],
     # unofficial: https://en.wikipedia.org/wiki/List_of_HTTP_status_codes#Unofficial_codes
 )
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # cert_reqs='CERT_REQUIRED', ca_certs=certifi.where()
-HTTP_POOL = urllib3.PoolManager(retries=RETRY_STRATEGY, timeout=TIMEOUT, ca_certs=certifi.where(), num_pools=50)
-NO_CERT_POOL = urllib3.PoolManager(retries=RETRY_STRATEGY, timeout=TIMEOUT, cert_reqs='CERT_NONE', num_pools=50)
+HTTP_POOL = urllib3.PoolManager(
+    retries=RETRY_STRATEGY, timeout=TIMEOUT, ca_certs=certifi.where(), num_pools=50)
+NO_CERT_POOL = urllib3.PoolManager(
+    retries=RETRY_STRATEGY, timeout=TIMEOUT, cert_reqs='CERT_NONE', num_pools=50)
 
-USER_AGENT = 'trafilatura/' + __version__ + ' (+https://github.com/adbar/trafilatura)'
+USER_AGENT = 'trafilatura/' + __version__ + \
+    ' (+https://github.com/adbar/trafilatura)'
 DEFAULT_HEADERS = {
     'User-Agent': USER_AGENT,
 }
 
 # collect_ids=False, default_doctype=False, huge_tree=True,
-HTML_PARSER = html.HTMLParser(remove_comments=True, remove_pis=True, encoding='utf-8')
+HTML_PARSER = html.HTMLParser(
+    remove_comments=True, remove_pis=True, encoding='utf-8')
 RECOVERY_PARSER = html.HTMLParser(remove_comments=True, remove_pis=True)
 
 UNICODE_WHITESPACE = re.compile(
@@ -63,7 +68,7 @@ UNICODE_WHITESPACE = re.compile(
 )
 
 NO_TAG_SPACE = re.compile(r'(?<![p{P}>])\n')
-SPACE_TRIMMING = re.compile(r'\s+', flags=re.UNICODE|re.MULTILINE)
+SPACE_TRIMMING = re.compile(r'\s+', flags=re.UNICODE | re.MULTILINE)
 
 NOPRINT_TRANS_TABLE = {
     i: None for i in range(0, sys.maxunicode + 1)
@@ -95,17 +100,19 @@ def isutf8(data):
 
 def detect_encoding(bytesobject):
     """Read the first chunk of input and return its encoding"""
-    #https://github.com/scrapy/w3lib/blob/master/w3lib/encoding.py
+    # https://github.com/scrapy/w3lib/blob/master/w3lib/encoding.py
     # unicode-test
     if isutf8(bytesobject):
         return 'UTF-8'
     # try one of the installed detectors on first part
     guess = chardet.detect(bytesobject[:1999])
-    LOGGER.debug('guessed encoding: %s, confidence: %s', guess['encoding'], guess['confidence'])
+    LOGGER.debug('guessed encoding: %s, confidence: %s',
+                 guess['encoding'], guess['confidence'])
     # fallback on full response
     if guess is None or (guess['confidence'] is not None and guess['confidence'] < 0.95):
         guess = chardet.detect(bytesobject)
-        LOGGER.debug('second-guessed encoding: %s, confidence: %s', guess['encoding'], guess['confidence'])
+        LOGGER.debug('second-guessed encoding: %s, confidence: %s',
+                     guess['encoding'], guess['confidence'])
     return guess['encoding']
 
 
@@ -132,17 +139,17 @@ def decode_response(response):
     if guessed_encoding is not None:
         try:
             htmltext = resp_content.decode(guessed_encoding)
-        except (LookupError, UnicodeDecodeError): # VISCII: lookup
+        except (LookupError, UnicodeDecodeError):  # VISCII: lookup
             LOGGER.warning('wrong encoding detected: %s', guessed_encoding)
     else:
         LOGGER.error('no encoding detected: %s', guessed_encoding)
     # force decoding # ascii instead?
     if htmltext is None:
         htmltext = str(resp_content, encoding='utf-8', errors='replace')
-        #try:
+        # try:
         #    # frequent error
         #    htmltext = resp_content.decode('cp1252').encode('utf-8')
-        #except UnicodeDecodeError:
+        # except UnicodeDecodeError:
         #    htmltext = str(resp_content, encoding='utf-8', errors='replace')
     return htmltext
 
@@ -164,7 +171,7 @@ def _determine_headers(config):
         if myagents is not None:
             rnumber = randint(0, len(myagents) - 1)
             headers = {
-            'User-Agent': myagents[rnumber],
+                'User-Agent': myagents[rnumber],
             }
         else:
             headers = DEFAULT_HEADERS
@@ -177,9 +184,11 @@ def _send_request(url, no_ssl, config):
         # read by streaming chunks (stream=True, iter_content=xx)
         # so we can stop downloading as soon as MAX_FILE_SIZE is reached
         if no_ssl is False:
-            response = HTTP_POOL.request('GET', url, headers=_determine_headers(config))
+            response = HTTP_POOL.request(
+                'GET', url, headers=_determine_headers(config))
         else:
-            response = NO_CERT_POOL.request('GET', url, headers=_determine_headers(config))
+            response = NO_CERT_POOL.request(
+                'GET', url, headers=_determine_headers(config))
     except urllib3.exceptions.NewConnectionError as err:
         LOGGER.error('connection refused: %s %s', url, err)
         return ''  # raise error instead?
@@ -192,7 +201,7 @@ def _send_request(url, no_ssl, config):
         LOGGER.error('retrying after SSLError: %s', url)
         return _send_request(url, True, config)
     except Exception as err:
-        logging.error('unknown error: %s %s', url, err) # sys.exc_info()[0]
+        logging.error('unknown error: %s %s', url, err)  # sys.exc_info()[0]
     else:
         return response
     # catchall
@@ -207,7 +216,8 @@ def _handle_response(url, response, decode, config):
         LOGGER.error('too small/incorrect for URL %s', url)
         return ''  # raise error instead?
     elif len(response.data) > config.getint('DEFAULT', 'MAX_FILE_SIZE'):
-        LOGGER.error('too large: length %s for URL %s', len(response.data), url)
+        LOGGER.error('too large: length %s for URL %s',
+                     len(response.data), url)
         return ''  # raise error instead?
     else:
         if decode is True:
@@ -278,7 +288,8 @@ def load_html(htmlobject):
         except ValueError:
             # try to parse a bytestring
             try:
-                tree = html.fromstring(htmlobject.encode('utf8'), parser=HTML_PARSER)
+                tree = html.fromstring(
+                    htmlobject.encode('utf8'), parser=HTML_PARSER)
             except Exception as err:
                 LOGGER.error('parser bytestring %s', err)
         except Exception as err:
@@ -289,9 +300,10 @@ def load_html(htmlobject):
     # further test: is it (well-formed) HTML at all?
     if tree is not None and check_flag is True:
         if len(tree) < 2:
-            LOGGER.error('parsed tree length: %s, wrong data type or not valid HTML', len(tree))
+            LOGGER.error(
+                'parsed tree length: %s, wrong data type or not valid HTML', len(tree))
             tree = None
-    #if tree is None:
+    # if tree is None:
     #    if isinstance(htmlobject, bytes) or isinstance(htmlobject, str):
     #        # more robust parsing
     #        tree = fromsoup(htmlobject)
@@ -308,13 +320,13 @@ def txttocsv(text, comments, docmeta):
     tsv_output = \
         '{url}\t{fingerprint}\t{hostname}\t{doctitle}\t{docdate}\t{text}\t{comments}\n' \
         .format(
-        url=docmeta['url'],
-        fingerprint=docmeta['fingerprint'],
-        hostname=docmeta['hostname'],
-        doctitle=docmeta['title'],
-        docdate=docmeta['date'],
-        text=text,
-        comments=comments
+            url=docmeta['url'],
+            fingerprint=docmeta['fingerprint'],
+            hostname=docmeta['hostname'],
+            doctitle=docmeta['title'],
+            docdate=docmeta['date'],
+            text=text,
+            comments=comments
         )
     # add id up front if provided
     if docmeta['id'] is not None:
@@ -349,7 +361,7 @@ def sanitize(text):
     '''Convert text and discard incompatible and invalid characters'''
     try:
         #returnlines = []
-        #for line in text.splitlines():
+        # for line in text.splitlines():
         #    returnlines.append(line_processing(line))
         # return '\n'.join(list(filter(None.__ne__, returnlines)))
         return '\n'.join([l for l in (line_processing(l) for l in text.splitlines()) if l is not None])
@@ -366,14 +378,6 @@ def trim(string):
         return SPACE_TRIMMING.sub(r' ', NO_TAG_SPACE.sub(r' ', string)).strip(' \t\n\r\v')
     except TypeError:
         return None
-
-
-def is_image_file(imagesrc):
-    '''Check if the observed string corresponds to a valid image extension,
-       return False otherwise'''
-    if imagesrc is not None and IMAGE_EXTENSION.search(imagesrc):
-        return True
-    return False
 
 
 def fix_relative_urls(baseurl, url):
@@ -401,4 +405,3 @@ def filter_urls(linklist, urlfilter):
     if urlfilter is not None:
         linklist = [l for l in linklist if urlfilter in l]
     return sorted(set(linklist))
-
