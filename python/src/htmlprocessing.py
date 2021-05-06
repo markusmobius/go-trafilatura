@@ -3,8 +3,8 @@
 Functions to process nodes in HTML code.
 """
 
-## This file is available from https://github.com/adbar/trafilatura
-## under GNU GPL v3 license
+# This file is available from https://github.com/adbar/trafilatura
+# under GNU GPL v3 license
 
 import logging
 import re
@@ -39,52 +39,9 @@ HTML_CLEANER.style = False
 #HTML_CLEANER.kill_tags = MANUALLY_CLEANED
 
 
-def tree_cleaning(tree, include_tables, include_images=False):
-    '''Prune the tree by discarding unwanted elements'''
-    # determine cleaning strategy
-    cleaning_list, stripping_list = \
-        MANUALLY_CLEANED.copy(), MANUALLY_STRIPPED.copy()
-    if include_tables is False:
-        cleaning_list.append('table')
-    if include_images is True:
-        # Many websites have <img> inside <figure> or <picture> or <source> tag
-        cleaning_list = [e for e in cleaning_list if e
-                         not in ('figure', 'picture', 'source')]
-        stripping_list.remove('img')
-    # delete targeted elements
-    for expression in cleaning_list:
-        for element in tree.getiterator(expression):
-            try:
-                element.drop_tree() # faster when applicable
-            except AttributeError:
-                element.getparent().remove(element)
-    HTML_CLEANER.kill_tags, HTML_CLEANER.remove_tags = cleaning_list, stripping_list
-    # save space and processing time
-    return HTML_CLEANER.clean_html(prune_html(tree))
-
-
-def prune_html(tree):
-    '''Delete selected empty elements'''
-    for element in tree.xpath(".//*[not(node())]"):
-        if element.tag in CUT_EMPTY_ELEMS:
-            try:
-                element.drop_tree()
-            except AttributeError:
-                element.getparent().remove(element)
-    return tree
-
-
 def discard_unwanted(tree):
     '''Delete unwanted sections'''
     for expr in DISCARD_XPATH:
-        for subtree in tree.xpath(expr):
-            subtree.getparent().remove(subtree)
-    return tree
-
-
-def discard_unwanted_comments(tree):
-    '''delete unwanted comment sections'''
-    for expr in COMMENTS_DISCARD_XPATH:
         for subtree in tree.xpath(expr):
             subtree.getparent().remove(subtree)
     return tree
@@ -117,20 +74,22 @@ def link_density_test(element):
         else:
             if element.getnext() is None:
                 limitlen, threshold = 200, 0.66
-            #elif re.search(r'[.?!]', elemtext):
+            # elif re.search(r'[.?!]', elemtext):
             #    limitlen, threshold = 150, 0.66
             else:
                 limitlen, threshold = 100, 0.66
         if elemlen < limitlen:
-            linklen, elemnum, shortelems, mylist = collect_link_info(links_xpath)
+            linklen, elemnum, shortelems, mylist = collect_link_info(
+                links_xpath)
             if elemnum == 0:
                 return True, mylist
-            #if len(set(mylist))/len(mylist) <= 0.5:
+            # if len(set(mylist))/len(mylist) <= 0.5:
             #    return True, mylist
-            LOGGER.debug('list link text/total: %s/%s – short elems/total: %s/%s', linklen, elemlen, shortelems, elemnum)
+            LOGGER.debug('list link text/total: %s/%s – short elems/total: %s/%s',
+                         linklen, elemlen, shortelems, elemnum)
             if linklen >= threshold*elemlen or shortelems/elemnum >= threshold:
                 return True, mylist
-            #print(mylist)
+            # print(mylist)
     return False, mylist
 
 
@@ -145,11 +104,11 @@ def link_density_test_tables(element):
             linklen, elemnum, shortelems, _ = collect_link_info(links_xpath)
             if elemnum == 0:
                 return True
-            #if len(set(mylist))/len(mylist) <= 0.5:
+            # if len(set(mylist))/len(mylist) <= 0.5:
             #    return True
             LOGGER.debug('table link text: %s / total: %s', linklen, elemlen)
             if (elemlen < 1000 and linklen > 0.8*elemlen) or (elemlen > 1000 and linklen > 0.5*elemlen):
-            #if linklen > 0.5 * elemlen:
+                # if linklen > 0.5 * elemlen:
                 return True
             if shortelems > len(links_xpath) * 0.66:
                 return True
@@ -188,7 +147,7 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
                     elem.set('target', elem.get('href'))
                 else:
                     del elem.attrib[attribute]
-            #if elem.attrib['href']:
+            # if elem.attrib['href']:
             #    del elem.attrib['href']
     # head tags + delete attributes
     for elem in tree.iter('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
@@ -204,7 +163,8 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
         elem.tag = 'quote'
     # include_formatting
     if include_formatting is False:
-        etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u', 'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
+        etree.strip_tags(tree, 'em', 'i', 'b', 'strong', 'u',
+                         'kbd', 'samp', 'tt', 'var', 'sub', 'sup')
     else:
         # italics
         for elem in tree.iter('em', 'i'):
@@ -234,39 +194,6 @@ def convert_tags(tree, include_formatting=False, include_tables=False, include_i
         elem.tag = 'del'
         elem.set('rend', 'overstrike')
     return tree
-
-
-def handle_textnode(element, comments_fix=True, deduplicate=True, config=DEFAULT_CONFIG):
-    '''Convert, format, and probe potential text elements'''
-    if element.text is None and element.tail is None:
-        return None
-    # lb bypass
-    if comments_fix is False and element.tag == 'lb':
-        element.tail = trim(element.tail)
-        # if textfilter(element) is True:
-        #     return None
-        # duplicate_test(subelement)?
-        return element
-    if element.text is None:
-        # try the tail
-        # LOGGER.debug('using tail for element %s', element.tag)
-        element.text = element.tail
-        element.tail = ''
-        # handle differently for br/lb
-        if comments_fix is True and element.tag == 'lb':
-            element.tag = 'p'
-    # trim
-    element.text = trim(element.text)
-    if element.tail:
-        element.tail = trim(element.tail)
-    if element.text and re.search(r'\w', element.text):  # text_content()?
-        if textfilter(element) is True:
-            return None
-        if deduplicate is True and duplicate_test(element, config) is True:
-            return None
-    else:
-        return None
-    return element
 
 
 def process_node(element, deduplicate=True, config=DEFAULT_CONFIG):

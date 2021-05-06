@@ -38,3 +38,7 @@ func getRune(s string, idx int) rune {
 
 	return -1
 }
+
+// doNothing is placeholder function to store unused variables
+// so Go formatter doesn't complain.
+func doNothing(i ...interface{}) {}

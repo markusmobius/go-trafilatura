@@ -62,14 +62,21 @@ func StripElements(tree *html.Node, keepTail bool, tags ...string) {
 
 	// Remove each element
 	for _, element := range elements {
-		if !keepTail {
-			for _, tailNode := range TailNodes(element) {
-				tailNode.Parent.RemoveChild(tailNode)
-			}
-		}
-
-		element.Parent.RemoveChild(element)
+		Remove(element, keepTail)
 	}
+}
+
+// Remove will removes the element and its entire subtree, including all of its attributes,
+// text content and descendants. It will also remove the tail text of the element unless
+// you explicitly set the keepTail argument to true.
+func Remove(element *html.Node, keepTail ...bool) {
+	if len(keepTail) == 0 || !keepTail[0] {
+		for _, tailNode := range TailNodes(element) {
+			tailNode.Parent.RemoveChild(tailNode)
+		}
+	}
+
+	element.Parent.RemoveChild(element)
 }
 
 // ToString encode an element to string representation of its structure.

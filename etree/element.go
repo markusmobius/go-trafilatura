@@ -2,6 +2,7 @@ package etree
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
@@ -84,6 +85,11 @@ func SetTail(element *html.Node, tail string) {
 	// Remove the old tails
 	dom.RemoveNodes(TailNodes(element), nil)
 
+	// If the new tail is blank, stop
+	if tail == "" {
+		return
+	}
+
 	// Insert the new tail
 	newTail := dom.CreateTextNode(tail)
 	if element.NextSibling != nil {
@@ -107,51 +113,47 @@ func TailNodes(element *html.Node) []*html.Node {
 	return nodes
 }
 
-// Append appends single subelement into the node. Don't use it
-// inside loop because the behavior will be different compared
-// to Python lxml. For these case, use Extend instead.
+// Append appends single subelement into the node.
 func Append(node, subelement *html.Node) {
+	// Fetch the tail nodes of the subelement
+	tailNodes := TailNodes(subelement)
+
 	dom.AppendChild(node, subelement)
+	for _, tail := range tailNodes {
+		dom.AppendChild(node, tail)
+	}
 }
 
 // Extend appends subelements into the node.
 func Extend(node *html.Node, subelements ...*html.Node) {
-	// Find the node's last child as reference
-	referenceNode := node.LastChild
+	for _, subelement := range subelements {
+		Append(node, subelement)
+	}
+}
 
-	// Prepare  function for appending element
-	var append func(*html.Node)
-	if referenceNode == nil {
-		append = func(child *html.Node) {
-			dom.PrependChild(node, child)
+// IterText loops over this element and all subelements in document order,
+// and returns all inner text. Similar with dom.TextContent, except here we
+// add whitespaces when element level changed.
+func IterText(node *html.Node) string {
+	var buffer bytes.Buffer
+	var finder func(*html.Node, int)
+	var lastLevel int
+
+	finder = func(n *html.Node, level int) {
+		if n.Type == html.TextNode {
+			if level != lastLevel {
+				lastLevel = level
+				buffer.WriteString(" ")
+			}
+			buffer.WriteString(n.Data)
 		}
-	} else {
-		append = func(child *html.Node) {
-			// Detach child from its family
-			var detachedChild *html.Node
 
-			if child.Parent != nil {
-				detachedChild = dom.Clone(child, true)
-				child.Parent.RemoveChild(child)
-			} else {
-				detachedChild = child
-			}
-
-			// Put the child after reference node
-			if referenceNode.NextSibling == nil {
-				dom.AppendChild(node, detachedChild)
-			} else {
-				node.InsertBefore(detachedChild, referenceNode.NextSibling)
-			}
+		for child := n.FirstChild; child != nil; child = child.NextSibling {
+			finder(child, level+1)
 		}
 	}
 
-	// Process new elements backward
-	for i := len(subelements) - 1; i >= 0; i-- {
-		tailNodes := TailNodes(subelements[i])
-		for j := len(tailNodes) - 1; j >= 0; j-- {
-			append(tailNodes[j])
-		}
-		append(subelements[i])
-	}
+	finder(node, 0)
+	result := buffer.String()
+	return strings.TrimSpace(result)
 }

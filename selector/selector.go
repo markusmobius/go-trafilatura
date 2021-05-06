@@ -33,3 +33,16 @@ var MetaTagsRules = []Rule{
 	metaTagsRule3,
 	metaTagsRule4,
 }
+
+var CommentsRule = []Rule{
+	commentsRule1,
+	commentsRule2,
+	commentsRule3,
+	commentsRule4,
+}
+
+var DiscardedCommentsRule = []Rule{
+	discardedCommentsRule1,
+	discardedCommentsRule2,
+	discardedCommentsRule3,
+}
