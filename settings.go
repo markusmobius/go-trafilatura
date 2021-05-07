@@ -48,7 +48,14 @@ var tagCatalog = sliceToMap(
 
 var formatTagCatalog = sliceToMap(
 	"em", "i", "b", "strong", "u", "kbd",
-	"samp", "tt", "var", "sub", "sup")
+	"samp", "tt", "var", "sub", "sup",
+)
+
+var tagsToSanitize = sliceToMap(
+	"aside", "audio", "button", "fieldset", "figure", "footer", "iframe",
+	"img", "image", "input", "label", "link", "nav", "noindex", "noscript",
+	"object", "option", "select", "source", "svg", "time",
+)
 
 func sliceToMap(strings ...string) map[string]struct{} {
 	result := make(map[string]struct{})

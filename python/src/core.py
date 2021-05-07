@@ -35,69 +35,6 @@ from .xpaths import BODY_XPATH, COMMENTS_XPATH  # , REMOVE_COMMENTS_XPATH
 LOGGER = logging.getLogger(__name__)
 
 
-def compare_extraction(tree, backup_tree, url, body, text, len_text, target_language, include_formatting, include_links, include_images, config):
-    '''Decide whether to choose own or external extraction
-       based on a series of heuristics'''
-    # bypass
-    # if len_text > MIN_EXTRACTED_SIZE*10:
-    #    return body, text, len_text
-    # try with readability
-    temppost_algo = try_readability(backup_tree, url)
-    algo_text = trim(' '.join(temppost_algo.itertext()))
-    len_algo = len(algo_text)
-    # compare
-    LOGGER.debug('extracted length: %s (algorithm) %s (extraction)',
-                 len_algo, len_text)
-    # conditions to use alternative algorithms
-    if len_algo in (0, len_text):
-        algo_flag = False
-    elif len_text == 0 and len_algo > 0:
-        algo_flag = True
-    elif len_text > 2*len_algo:
-        algo_flag = False
-    elif len_algo > 2*len_text:
-        algo_flag = True
-    elif not body.xpath('//p//text()') and len_algo > config.getint('DEFAULT', 'MIN_EXTRACTED_SIZE')*2:
-        algo_flag = True  # borderline case
-    else:
-        LOGGER.debug('extraction values: %s %s for %s',
-                     len_text, len_algo, url)
-        algo_flag = False
-    # apply decision
-    if algo_flag is True:
-        body, text, len_text = temppost_algo, algo_text, len_algo
-        LOGGER.info('using generic algorithm: %s', url)
-    else:
-        LOGGER.info('using custom extraction: %s', url)
-    # override faulty extraction # len_text < MIN_EXTRACTED_SIZE*10
-    if body.xpath(SANITIZED_XPATH):
-        body2, text2, len_text2, jt_result = justext_rescue(
-            tree, url, target_language, body, 0, '')
-        if jt_result is True:  # and not len_text > 2*len_text2:
-            # MIN_EXTRACTED_SIZE:
-            LOGGER.debug('using justext, length: %s', len_text2)
-            body, text, len_text = body2, text2, len_text2
-        else:
-            # post-processing: remove unwanted sections
-            body, text, len_text = sanitize_tree(
-                body, include_formatting, include_links, include_images)
-    # try with justext
-    elif len_text < config.getint('DEFAULT', 'MIN_EXTRACTED_SIZE'):
-        LOGGER.error('not enough text %s', url)
-        body, text, len_text, jt_result = justext_rescue(
-            tree, url, target_language, body, len_text, text)
-        LOGGER.debug('justext length %s', len_text)
-        if jt_result is False:
-            # post-processing: remove unwanted sections
-            body, text, len_text = sanitize_tree(
-                body, include_formatting, include_links, include_images)
-    else:
-        if algo_flag is True:
-            body, text, len_text = sanitize_tree(
-                body, include_formatting, include_links, include_images)
-    return body, text, len_text
-
-
 def baseline(filecontent):
     """Use baseline extraction function targeting text paragraphs and/or JSON metadata.
 

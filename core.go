@@ -85,6 +85,11 @@ func Extract(r io.Reader, opts Options) error {
 	postBody, tmpBodyText, sureThing := extractContent(doc, cache, opts)
 	doNothing(postBody, tmpBodyText, sureThing)
 
+	// Use fallback if necessary
+	if !opts.NoFallback {
+		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
+	}
+
 	return nil
 }
 
@@ -719,4 +724,57 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	etree.Extend(resultBody, processedElems...)
+}
+
+// compareExtraction decide whether to choose own or external extraction
+// based on a series of heuristics. In original Trafilatura, they use
+// python-readability and justext, while here we use go-readability and
+// go-domdistiller. Since there are difference in implementation between
+// them, here we do it a bit differently compared to the original code.
+func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+	// Convert url to string
+	var originalUrl string
+	if opts.OriginalURL != nil {
+		originalUrl = opts.OriginalURL.String()
+	}
+
+	// Try readability and dom-distiller
+	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl)
+	if err != nil {
+		logrus.Warnf("readability failed: %v", err)
+	}
+
+	distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl)
+	if err != nil {
+		logrus.Warnf("dom-distiller failed: %v", err)
+	}
+
+	// Pick the final extract
+	var finalExtract *html.Node
+	switch {
+	case readabilityExtract != nil && distillerExtract == nil:
+		finalExtract = readabilityExtract
+	case readabilityExtract == nil && distillerExtract != nil:
+		finalExtract = distillerExtract
+	case readabilityExtract != nil && distillerExtract != nil:
+		distillerText := trim(etree.IterText(distillerExtract, " "))
+		readabilityText := trim(etree.IterText(readabilityExtract, " "))
+
+		lenDistillerText := utf8.RuneCountInString(distillerText)
+		lenReadabilityText := utf8.RuneCountInString(readabilityText)
+		if lenReadabilityText >= lenDistillerText {
+			finalExtract = readabilityExtract
+		} else {
+			finalExtract = distillerExtract
+		}
+	default:
+		finalExtract = originalExtract
+	}
+
+	// Sanitize the tree
+	sanitizeTree(finalExtract, opts)
+
+	// Return data
+	finalText := trim(etree.IterText(finalExtract, " "))
+	return finalExtract, finalText
 }
