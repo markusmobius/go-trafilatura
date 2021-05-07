@@ -71,24 +71,21 @@ func removeHtmlCommentNode(doc *html.Node) {
 
 // pruneHTML deletes selected empty elements
 func pruneHTML(doc *html.Node) {
-	subElements := dom.GetElementsByTagName(doc, "*")
-	for i := len(subElements) - 1; i >= 0; i-- {
-		tagName := dom.TagName(subElements[i])
+	for _, subElement := range dom.GetElementsByTagName(doc, "*") {
+		tagName := dom.TagName(subElement)
 		if _, exist := emptyTagsToRemove[tagName]; !exist {
 			continue
 		}
 
-		if len(dom.ChildNodes(subElements[i])) == 0 {
-			etree.Remove(subElements[i])
+		if len(dom.ChildNodes(subElement)) == 0 {
+			etree.Remove(subElement)
 		}
 	}
 }
 
 // discardUnwanted deletes unwanted sections.
 func discardUnwanted(tree *html.Node) {
-	subElements := dom.GetElementsByTagName(tree, "*")
-	for i := len(subElements) - 1; i >= 0; i-- {
-		subElement := subElements[i]
+	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
 		for _, rule := range selector.DiscardedContentRules {
 			if rule(subElement) {
 				etree.Remove(subElement)
@@ -100,9 +97,7 @@ func discardUnwanted(tree *html.Node) {
 
 // discardUnwantedComments deletes unwanted comment sections.
 func discardUnwantedComments(tree *html.Node) {
-	subElements := dom.GetElementsByTagName(tree, "*")
-	for i := len(subElements) - 1; i >= 0; i-- {
-		subElement := subElements[i]
+	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
 		for _, rule := range selector.DiscardedCommentsRules {
 			if rule(subElement) {
 				etree.Remove(subElement)
