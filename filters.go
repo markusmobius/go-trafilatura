@@ -82,7 +82,7 @@ func textCharsTest(s string) bool {
 // duplicateTest checks for duplicate text within cache
 func duplicateTest(element *html.Node, cache *Cache) bool {
 	var isDuplicate bool
-	testString := trim(etree.IterText(element))
+	testString := trim(etree.IterText(element, " "))
 
 	if utf8.RuneCountInString(testString) > minDuplicateCheckSize {
 		cacheVal, _ := cache.Get(testString)

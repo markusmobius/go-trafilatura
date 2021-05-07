@@ -134,7 +134,7 @@ func Extend(node *html.Node, subelements ...*html.Node) {
 // IterText loops over this element and all subelements in document order,
 // and returns all inner text. Similar with dom.TextContent, except here we
 // add whitespaces when element level changed.
-func IterText(node *html.Node) string {
+func IterText(node *html.Node, separator string) string {
 	var buffer bytes.Buffer
 	var finder func(*html.Node, int)
 	var lastLevel int
@@ -143,7 +143,7 @@ func IterText(node *html.Node) string {
 		if n.Type == html.TextNode {
 			if level != lastLevel {
 				lastLevel = level
-				buffer.WriteString(" ")
+				buffer.WriteString(separator)
 			}
 			buffer.WriteString(n.Data)
 		}

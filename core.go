@@ -133,7 +133,7 @@ func extractComments(doc *html.Node, cache *Cache, deduplicate bool) (*html.Node
 		}
 	}
 
-	tmpComments := etree.IterText(commentsBody)
+	tmpComments := etree.IterText(commentsBody, " ")
 	return commentsBody, tmpComments
 }
 
@@ -262,12 +262,12 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 	}
 
 	// Try parsing wild <p> elements if nothing found or text too short
-	tmpText := trim(etree.IterText(resultBody))
+	tmpText := trim(etree.IterText(resultBody, " "))
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if len(dom.Children(resultBody)) > 0 || tmpTextLength < minExtractedSize {
 		recoverWildText(doc, resultBody, potentialTags, cache, opts.Deduplicate)
-		tmpText = trim(etree.IterText(resultBody))
+		tmpText = trim(etree.IterText(resultBody, " "))
 	} else {
 		sureThing = true
 	}
@@ -397,7 +397,7 @@ func handleLists(element *html.Node, cache *Cache, deduplicate bool) *html.Node 
 	}
 
 	// Test if it has children and text. Avoid double tags??
-	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement)) {
+	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement, "")) {
 		return processedElement
 	}
 
@@ -418,7 +418,7 @@ func handleQuotes(element *html.Node, cache *Cache, deduplicate bool) *html.Node
 		child.Data = "done"
 	}
 
-	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement)) {
+	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement, "")) {
 		etree.StripTags(processedElement, "blockquote", "pre", "q")
 		return processedElement
 	}
