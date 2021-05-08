@@ -1,8 +1,13 @@
 package trafilatura
 
 import (
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 )
 
 var (
@@ -53,3 +58,22 @@ func isImageFile(imageSrc string) bool {
 // doNothing is placeholder function to store unused variables
 // so Go formatter doesn't complain.
 func doNothing(i ...interface{}) {}
+
+// loadMockFile is used to load HTML document from specified mock file.
+func loadMockFile(mockFiles map[string]string, url string) *html.Node {
+	// Open file
+	path := mockFiles[url]
+	path = filepath.Join("test-files", path)
+	f, err := os.Open(path)
+	if err != nil {
+		logrus.Panicln(err)
+	}
+
+	// Parse HTML
+	doc, err := html.Parse(f)
+	if err != nil {
+		logrus.Panicln(err)
+	}
+
+	return doc
+}
