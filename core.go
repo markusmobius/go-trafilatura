@@ -20,6 +20,7 @@ type ExtractResult struct {
 	CommentsNode *html.Node
 	ContentText  string
 	CommentsText string
+	Metadata     Metadata
 }
 
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
@@ -147,6 +148,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		ContentText:  tmpBodyText,
 		CommentsNode: commentsBody,
 		CommentsText: tmpComments,
+		Metadata:     metadata,
 	}, nil
 }
 
