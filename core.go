@@ -1,11 +1,13 @@
 package trafilatura
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/abadojack/whatlanggo"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/etree"
 	"github.com/markusmobius/go-trafilatura/selector"
@@ -13,19 +15,26 @@ import (
 	"golang.org/x/net/html"
 )
 
-func Extract(r io.Reader, opts Options) error {
+type ExtractResult struct {
+	ContentNode  *html.Node
+	CommentsNode *html.Node
+	ContentText  string
+	CommentsText string
+}
+
+func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// Prepare cache for detecting text duplicate
 	cache := NewCache(cacheSize)
 
 	// Parse HTML
 	doc, err := html.Parse(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// HTML language check
 	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts.TargetLanguage) {
-		return fmt.Errorf("web page language is not %s", opts.TargetLanguage)
+		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
 	// If fallback extractor is enabled, backup the doc first
@@ -43,22 +52,22 @@ func Extract(r io.Reader, opts Options) error {
 
 		// Stop extraction if URL is in blacklist
 		if metadata.URL != "" && strIn(metadata.URL, opts.URLBlacklist...) {
-			return fmt.Errorf("%s is in blacklist", metadata.URL)
+			return nil, fmt.Errorf("%s is in blacklist", metadata.URL)
 		}
 
 		// Check if essential metadata is missing
 		if opts.HasEssentialMetadata {
 			if metadata.Title == "" {
-				return fmt.Errorf("title is required")
+				return nil, fmt.Errorf("title is required")
 			}
 
 			if metadata.URL == "" {
-				return fmt.Errorf("url is required")
+				return nil, fmt.Errorf("url is required")
 			}
 
 			// TODO: need to port htmldate
 			// if metadata.Date == "" {
-			// 	return fmt.Errorf("date is required")
+			// 	return nil, fmt.Errorf("date is required")
 			// }
 		}
 	}
@@ -74,7 +83,7 @@ func Extract(r io.Reader, opts Options) error {
 	var tmpComments string
 	var lenComments int
 	var commentsBody *html.Node
-	doNothing(lenComments, commentsBody)
+	doNothing(commentsBody)
 
 	if opts.IncludeComments {
 		commentsBody, tmpComments = extractComments(doc, cache, opts.Deduplicate)
@@ -88,9 +97,57 @@ func Extract(r io.Reader, opts Options) error {
 	// Use fallback if necessary
 	if !opts.NoFallback {
 		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
+		// Add baseline as additional fallback
+		if len(dom.Children(postBody)) == 0 {
+			postBody, tmpBodyText = baseline(docBackup)
+		}
+	} else {
+		// Rescue: try to use original/dirty tree
+		lenText := utf8.RuneCountInString(tmpBodyText)
+		if !sureThing && lenText < minExtractedSize {
+			postBody, tmpBodyText = baseline(docBackup)
+		}
 	}
 
-	return nil
+	// Tree size sanity check
+	if opts.MaxTreeSize > 0 {
+		if len(dom.Children(postBody)) > opts.MaxTreeSize {
+			etree.StripTags(postBody, "h1", "h2", "h3", "h4", "h5", "h6")
+			if nChildren := len(dom.Children(postBody)); nChildren > opts.MaxTreeSize {
+				return nil, fmt.Errorf("output tree to long, discarding file : %d", nChildren)
+			}
+		}
+	}
+
+	// Size checks
+	if lenComments < minExtractedCommentSize {
+		logrus.Warnf("not enough comments: %d", opts.OriginalURL)
+	}
+
+	lenText := utf8.RuneCountInString(tmpBodyText)
+	if lenText < minOutputSize && lenComments < minOutputCommentSize {
+		return nil, fmt.Errorf("text and comments are not long enough: %d %d", lenText, lenComments)
+	}
+
+	// Check duplicates at body level
+	if opts.Deduplicate && duplicateTest(postBody, cache) {
+		return nil, fmt.Errorf("extracted body has been duplicated")
+	}
+
+	// Sanity check on language
+	if opts.TargetLanguage != "" {
+		lang := getLanguage(tmpBodyText, tmpComments)
+		if lang != opts.TargetLanguage {
+			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
+		}
+	}
+
+	return &ExtractResult{
+		ContentNode:  postBody,
+		ContentText:  tmpBodyText,
+		CommentsNode: commentsBody,
+		CommentsText: tmpComments,
+	}, nil
 }
 
 // extractComments try and extract comments out of potential sections in the HTML.
@@ -777,4 +834,106 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	// Return data
 	finalText := trim(etree.IterText(finalExtract, " "))
 	return finalExtract, finalText
+}
+
+// baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
+func baseline(doc *html.Node) (*html.Node, string) {
+	postBody := etree.Element("body")
+	if doc == nil {
+		return postBody, ""
+	}
+
+	// Scrape JSON+LD for article body
+	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`) {
+		// Get the json text inside the script
+		jsonLdText := dom.TextContent(script)
+		jsonLdText = strings.TrimSpace(jsonLdText)
+		if jsonLdText == "" {
+			continue
+		}
+
+		// Decode JSON text, assuming it is an object
+		data := map[string]interface{}{}
+		err := json.Unmarshal([]byte(jsonLdText), &data)
+		if err != nil {
+			continue
+		}
+
+		// Find article body recursively
+		var articleBody string
+		var findArticleBody func(obj map[string]interface{})
+
+		findArticleBody = func(obj map[string]interface{}) {
+			for key, value := range obj {
+				switch v := value.(type) {
+				case string:
+					v = trim(v)
+					if strings.ToLower(key) == "articlebody" && v != "" {
+						articleBody = v
+						return
+					}
+
+				case map[string]interface{}:
+					findArticleBody(v)
+
+				case []interface{}:
+					for _, item := range v {
+						itemObject, isObject := item.(map[string]interface{})
+						if isObject {
+							findArticleBody(itemObject)
+						}
+					}
+				}
+			}
+		}
+
+		findArticleBody(data)
+		if articleBody != "" {
+			p := etree.SubElement(postBody, "p")
+			etree.SetText(p, articleBody)
+			return postBody, articleBody
+		}
+	}
+
+	// Scrape from article tag
+	articleElement := dom.QuerySelector(doc, "article")
+	if articleElement != nil {
+		tmpText := trim(dom.TextContent(articleElement))
+		lenText := utf8.RuneCountInString(tmpText)
+		if lenText > 0 {
+			p := etree.SubElement(postBody, "p")
+			etree.SetText(p, tmpText)
+			return postBody, tmpText
+		}
+	}
+
+	// Scrape from text paragraphs
+	results := make(map[string]struct{})
+	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
+		entry := dom.TextContent(element)
+		if _, exist := results[entry]; !exist {
+			p := etree.SubElement(postBody, "p")
+			etree.SetText(p, entry)
+			results[entry] = struct{}{}
+		}
+	}
+
+	tmpText := trim(etree.IterText(postBody, "\n"))
+	return postBody, tmpText
+}
+
+// getLanguage returns the language of the text.
+func getLanguage(contentText, commentsText string) string {
+	lenContent := utf8.RuneCountInString(contentText)
+	lenComments := utf8.RuneCountInString(commentsText)
+
+	var langTest string
+	if lenComments > lenContent {
+		langTest = commentsText
+	} else {
+		langTest = contentText
+	}
+
+	lang := whatlanggo.DetectLang(langTest)
+	return lang.Iso6391()
 }

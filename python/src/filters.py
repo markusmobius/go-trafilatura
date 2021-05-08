@@ -27,27 +27,6 @@ LRU_TEST = LRUCache(maxsize=LRU_SIZE)
 # COMMENTS_BLACKLIST = ('( Abmelden / Ändern )') # Fill in your details below|Trage deine Daten unten|Kommentar verfassen|Bitte logge dich|Hinterlasse einen Kommentar| to %s| mit %s)
 
 
-def language_filter(temp_text, temp_comments, target_language, docmeta):
-    '''Run external component (if installed) for language identification'''
-    # sanity check on language
-    if target_language is not None:
-        if LANGID_FLAG is True:
-            # comments
-            if len(temp_comments) > len(temp_text):
-                langtest = temp_comments
-            # default
-            else:
-                langtest = temp_text
-            result = cld3.get_language(langtest)
-            if result.language != target_language:
-                LOGGER.warning('wrong language: %s %s %s',
-                               result, docmeta['id'], docmeta['url'])
-                return True
-        else:
-            LOGGER.warning('Detector not installed, no language detection run')
-    return False
-
-
 def content_fingerprint(string):
     '''Calculate a hash value for meaningful bits of the content'''
     teststring = ' '.join(re.findall(r'\w{5,}', string.lower()))

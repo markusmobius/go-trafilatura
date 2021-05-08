@@ -59,7 +59,7 @@ type Options struct {
 	HasEssentialMetadata bool
 
 	// Discard documents with too many elements.
-	MaxTreeSize bool
+	MaxTreeSize int
 
 	// Provide a blacklist of URLs to filter out documents.
 	URLBlacklist []string

@@ -3,6 +3,7 @@ module github.com/markusmobius/go-trafilatura
 go 1.16
 
 require (
+	github.com/abadojack/whatlanggo v1.0.1
 	github.com/go-shiori/dom v0.0.0-20210507091519-e6b911f28256
 	github.com/go-shiori/go-readability v0.0.0-20210507092010-f59b24a92870
 	github.com/markusmobius/go-domdistiller v0.0.0-20210507092251-8b6b2020101d
