@@ -1,17 +1,5 @@
 package trafilatura
 
-const (
-	cacheSize = 4096
-
-	minExtractedSize        = 200
-	minExtractedCommentSize = 10
-	minOutputSize           = 10
-	minOutputCommentSize    = 10
-
-	minDuplicateCheckSize = 100
-	maxDuplicateCount     = 2
-)
-
 var tagsToClean = sliceToMap(
 	// important
 	"aside", "embed", "footer", "form", "head", "iframe", "menu", "object", "script",

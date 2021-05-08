@@ -24,8 +24,13 @@ type ExtractResult struct {
 }
 
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
+	//  Set default config
+	if opts.Config == nil {
+		opts.Config = DefaultConfig()
+	}
+
 	// Prepare cache for detecting text duplicate
-	cache := NewCache(cacheSize)
+	cache := NewCache(opts.Config.CacheSize)
 
 	// Parse HTML
 	doc, err := html.Parse(r)
@@ -87,7 +92,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	doNothing(commentsBody)
 
 	if opts.IncludeComments {
-		commentsBody, tmpComments = extractComments(doc, cache, opts.Deduplicate)
+		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
 	}
 
@@ -105,7 +110,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	} else {
 		// Rescue: try to use original/dirty tree
 		lenText := utf8.RuneCountInString(tmpBodyText)
-		if !sureThing && lenText < minExtractedSize {
+		if !sureThing && lenText < opts.Config.MinExtractedSize {
 			postBody, tmpBodyText = baseline(docBackup)
 		}
 	}
@@ -121,17 +126,17 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	}
 
 	// Size checks
-	if lenComments < minExtractedCommentSize {
+	if lenComments < opts.Config.MinExtractedCommentSize {
 		logrus.Warnf("not enough comments: %s", opts.OriginalURL)
 	}
 
 	lenText := utf8.RuneCountInString(tmpBodyText)
-	if lenText < minOutputSize && lenComments < minOutputCommentSize {
+	if lenText < opts.Config.MinOutputSize && lenComments < opts.Config.MinOutputCommentSize {
 		return nil, fmt.Errorf("text and comments are not long enough: %d %d", lenText, lenComments)
 	}
 
 	// Check duplicates at body level
-	if opts.Deduplicate && duplicateTest(postBody, cache) {
+	if opts.Deduplicate && duplicateTest(postBody, cache, opts) {
 		return nil, fmt.Errorf("extracted body has been duplicated")
 	}
 
@@ -153,7 +158,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 }
 
 // extractComments try and extract comments out of potential sections in the HTML.
-func extractComments(doc *html.Node, cache *Cache, deduplicate bool) (*html.Node, string) {
+func extractComments(doc *html.Node, cache *Cache, opts Options) (*html.Node, string) {
 	// Prepare final container
 	commentsBody := etree.Element("body")
 
@@ -183,7 +188,7 @@ func extractComments(doc *html.Node, cache *Cache, deduplicate bool) (*html.Node
 		// Extract comments
 		var processedElems []*html.Node
 		for _, elem := range dom.GetElementsByTagName(subTree, "*") {
-			processed := processCommentsNode(elem, potentialTags, cache, deduplicate)
+			processed := processCommentsNode(elem, potentialTags, cache, opts)
 			if processed != nil {
 				processedElems = append(processedElems, processed)
 			}
@@ -201,14 +206,14 @@ func extractComments(doc *html.Node, cache *Cache, deduplicate bool) (*html.Node
 	return commentsBody, tmpComments
 }
 
-func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cache *Cache, deduplicate bool) *html.Node {
+func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
 	// Make sure node is one of the potential tags
 	if _, isPotential := potentialTags[dom.TagName(elem)]; !isPotential {
 		return nil
 	}
 
 	// Make sure node is not empty and not duplicated
-	processedNode := handleTextNode(elem, cache, true, deduplicate)
+	processedNode := handleTextNode(elem, cache, true, opts)
 	if processedNode != nil {
 		processedNode.Attr = nil
 		return processedNode
@@ -288,7 +293,7 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 			}
 		}
 
-		if utf8.RuneCountInString(paragraphText) < minExtractedSize*2 {
+		if utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*2 {
 			potentialTags["div"] = struct{}{}
 		}
 
@@ -303,7 +308,7 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 		// Populate result body
 		var processedElems []*html.Node
 		for _, elem := range dom.GetElementsByTagName(subTree, "*") {
-			processed := handleTextElem(elem, potentialTags, cache, opts.Deduplicate)
+			processed := handleTextElem(elem, potentialTags, cache, opts)
 			if processed != nil {
 				processedElems = append(processedElems, processed)
 			}
@@ -329,8 +334,8 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 	tmpText := trim(etree.IterText(resultBody, " "))
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
-	if len(dom.Children(resultBody)) > 0 || tmpTextLength < minExtractedSize {
-		recoverWildText(doc, resultBody, potentialTags, cache, opts.Deduplicate)
+	if len(dom.Children(resultBody)) > 0 || tmpTextLength < opts.Config.MinExtractedSize {
+		recoverWildText(doc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
 	} else {
 		sureThing = true
@@ -382,19 +387,19 @@ func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) 
 }
 
 // handleTextElem process text element and determine how to deal with its content.
-func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *Cache, deduplicate bool) *html.Node {
+func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
 	switch dom.TagName(element) {
 	case "ul", "ol", "dl":
-		return handleLists(element, cache, deduplicate)
+		return handleLists(element, cache, opts)
 	case "blockquote", "pre", "q", "code":
-		return handleQuotes(element, cache, deduplicate)
+		return handleQuotes(element, cache, opts)
 	case "h1", "h2", "h3", "h4", "h5", "h6":
-		return handleTitles(element, cache, deduplicate)
+		return handleTitles(element, cache, opts)
 	case "p":
-		return handleParagraphs(element, potentialTags, cache, deduplicate)
+		return handleParagraphs(element, potentialTags, cache, opts)
 	case "br", "hr":
 		if textCharsTest(etree.Tail(element)) {
-			element = processNode(element, cache, deduplicate)
+			element = processNode(element, cache, opts)
 			if element != nil {
 				newElement := etree.Element("p")
 				etree.SetText(newElement, etree.Tail(element))
@@ -405,21 +410,21 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 		return handleFormatting(element)
 	case "table":
 		if _, exist := potentialTags["table"]; exist {
-			return handleTable(element, cache, deduplicate)
+			return handleTable(element, cache, opts)
 		}
 	case "img":
 		if _, exist := potentialTags["img"]; exist {
 			return handleImage(element)
 		}
 	default:
-		return handleOtherElement(element, potentialTags, cache, deduplicate)
+		return handleOtherElement(element, potentialTags, cache, opts)
 	}
 
 	return nil
 }
 
 // handleLists process lists elements
-func handleLists(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
+func handleLists(element *html.Node, cache *Cache, opts Options) *html.Node {
 	processedElement := etree.Element(dom.TagName(element))
 
 	if text := etree.Text(element); text != "" {
@@ -430,7 +435,7 @@ func handleLists(element *html.Node, cache *Cache, deduplicate bool) *html.Node 
 		newChild := dom.CreateElement(dom.TagName(child))
 
 		if len(dom.Children(child)) == 0 {
-			processedChild := processNode(child, cache, deduplicate)
+			processedChild := processNode(child, cache, opts)
 			if processedChild != nil {
 				etree.SetText(newChild, etree.Text(processedChild))
 				etree.SetTail(newChild, etree.Tail(processedChild))
@@ -438,7 +443,7 @@ func handleLists(element *html.Node, cache *Cache, deduplicate bool) *html.Node 
 			}
 		} else {
 			for _, subElement := range etree.Iter(child) {
-				processedSubChild := handleTextNode(subElement, cache, false, deduplicate)
+				processedSubChild := handleTextNode(subElement, cache, false, opts)
 				if processedSubChild != nil {
 					subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
 					etree.SetText(subChildElement, etree.Text(processedSubChild))
@@ -469,11 +474,11 @@ func handleLists(element *html.Node, cache *Cache, deduplicate bool) *html.Node 
 }
 
 // handleQuotes process quotes elements.
-func handleQuotes(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
+func handleQuotes(element *html.Node, cache *Cache, opts Options) *html.Node {
 	processedElement := etree.Element(dom.TagName(element))
 
 	for _, child := range etree.Iter(element) {
-		processedChild := processNode(child, cache, deduplicate)
+		processedChild := processNode(child, cache, opts)
 		if processedChild != nil {
 			newSub := etree.SubElement(processedElement, dom.TagName(child))
 			etree.SetText(newSub, etree.Text(processedChild))
@@ -491,14 +496,14 @@ func handleQuotes(element *html.Node, cache *Cache, deduplicate bool) *html.Node
 }
 
 // handleTitles process head elements (titles).
-func handleTitles(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
+func handleTitles(element *html.Node, cache *Cache, opts Options) *html.Node {
 	tail := etree.Tail(element)
 	if tail != "" && rxWords.MatchString(tail) {
 		logrus.Warnf("tail in title, stripping: %s", tail)
 	}
 
 	etree.SetTail(element, "")
-	title := processNode(element, cache, deduplicate)
+	title := processNode(element, cache, opts)
 	if title != nil && textCharsTest(etree.Text(element)) {
 		return title
 	}
@@ -507,13 +512,13 @@ func handleTitles(element *html.Node, cache *Cache, deduplicate bool) *html.Node
 }
 
 // handleParagraphs process paragraphs (p) elements along with their children, trim and clean the content.
-func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cache *Cache, deduplicate bool) *html.Node {
+func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
 	// Clear attributes
 	element.Attr = nil
 
 	// Handle paragraph without children
 	if len(dom.Children(element)) == 0 {
-		return processNode(element, cache, deduplicate)
+		return processNode(element, cache, opts)
 	}
 
 	// Prepare tag maps
@@ -529,7 +534,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 			continue
 		}
 
-		processedChild := handleTextNode(child, cache, false, deduplicate)
+		processedChild := handleTextNode(child, cache, false, opts)
 		if processedChild != nil {
 			// Needing attention for nested <p>
 			if childTag == "p" {
@@ -572,7 +577,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 					}
 				}
 			} else if childTag == "br" || childTag == "hr" { // handle line breaks
-				if tmp := processNode(child, cache, deduplicate); tmp != nil {
+				if tmp := processNode(child, cache, opts); tmp != nil {
 					etree.SetTail(processedChild, etree.Tail(tmp))
 				}
 			}
@@ -647,7 +652,7 @@ func handleFormatting(element *html.Node) *html.Node {
 }
 
 // handleTable process single table element.
-func handleTable(tableElement *html.Node, cache *Cache, deduplicate bool) *html.Node {
+func handleTable(tableElement *html.Node, cache *Cache, opts Options) *html.Node {
 	newTable := etree.Element(("table"))
 	newRow := etree.Element("tr")
 	i := 0
@@ -667,7 +672,7 @@ func handleTable(tableElement *html.Node, cache *Cache, deduplicate bool) *html.
 				newRow = etree.Element("tr")
 			}
 		} else if subElementTag == "td" || subElementTag == "th" {
-			processedCell := processNode(subElement, cache, deduplicate)
+			processedCell := processNode(subElement, cache, opts)
 			if processedCell == nil || !textCharsTest(etree.Text(processedCell)) {
 				continue
 			}
@@ -739,7 +744,7 @@ func handleImage(element *html.Node) *html.Node {
 }
 
 // handleOtherElement handle diverse or unknown elements in the scope of relevant tags.
-func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, cache *Cache, deduplicate bool) *html.Node {
+func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
 	// Delete non potential element
 	tagName := dom.TagName(element)
 	if _, exist := potentialTags[tagName]; !exist {
@@ -747,7 +752,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	}
 
 	if tagName == "div" {
-		processedElement := handleTextNode(element, cache, false, deduplicate)
+		processedElement := handleTextNode(element, cache, false, opts)
 		if processedElement != nil {
 			processedElement.Attr = nil
 			if dom.TagName(processedElement) == "div" {
@@ -761,7 +766,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	return nil
 }
 
-func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *Cache, deduplicate bool) {
+func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) {
 	// Prune
 	discardUnwanted(doc)
 
@@ -776,7 +781,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	tagsToProcess := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
 
 	for _, element := range etree.Iter(doc, tagsToProcess...) {
-		processedElement := handleTextElem(element, potentialTags, cache, deduplicate)
+		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
 		}
@@ -798,12 +803,12 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	}
 
 	// Try readability and dom-distiller
-	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl)
+	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl, opts)
 	if err != nil {
 		logrus.Warnf("readability failed: %v", err)
 	}
 
-	distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl)
+	distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl, opts)
 	if err != nil {
 		logrus.Warnf("dom-distiller failed: %v", err)
 	}

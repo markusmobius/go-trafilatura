@@ -108,7 +108,7 @@ func discardUnwantedComments(tree *html.Node) {
 }
 
 // handleTextNode converts, formats and probes potential text elements.
-func handleTextNode(node *html.Node, cache *Cache, fixComments, deduplicate bool) *html.Node {
+func handleTextNode(node *html.Node, cache *Cache, fixComments bool, opts Options) *html.Node {
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
@@ -145,7 +145,7 @@ func handleTextNode(node *html.Node, cache *Cache, fixComments, deduplicate bool
 			return nil
 		}
 
-		if deduplicate && cache != nil && duplicateTest(node, cache) {
+		if opts.Deduplicate && cache != nil && duplicateTest(node, cache, opts) {
 			return nil
 		}
 	} else {
@@ -252,7 +252,7 @@ func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyL
 }
 
 // processNode converts, formats, and probes potential text elements (light format).
-func processNode(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
+func processNode(element *html.Node, cache *Cache, opts Options) *html.Node {
 	tagName := dom.TagName(element)
 	if tagName == "done" {
 		return nil
@@ -280,7 +280,7 @@ func processNode(element *html.Node, cache *Cache, deduplicate bool) *html.Node 
 			return nil
 		}
 
-		if cache != nil && deduplicate && duplicateTest(element, cache) {
+		if cache != nil && opts.Deduplicate && duplicateTest(element, cache, opts) {
 			return nil
 		}
 	}

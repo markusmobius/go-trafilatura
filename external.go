@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func tryReadability(originalExtract, doc *html.Node, url string) (*html.Node, error) {
+func tryReadability(originalExtract, doc *html.Node, url string, opts Options) (*html.Node, error) {
 	// Extract using go-readability
 	docHtml := dom.OuterHTML(doc)
 	r := strings.NewReader(docHtml)
@@ -28,14 +28,14 @@ func tryReadability(originalExtract, doc *html.Node, url string) (*html.Node, er
 		return nil, fmt.Errorf("can't find any content")
 	}
 
-	if alternativeIsBetter(originalExtract, readabilityExtract) {
+	if alternativeIsBetter(originalExtract, readabilityExtract, opts) {
 		return readabilityExtract, nil
 	}
 
 	return nil, nil
 }
 
-func tryDomDistiller(originalExtract, doc *html.Node, url string) (*html.Node, error) {
+func tryDomDistiller(originalExtract, doc *html.Node, url string, opts Options) (*html.Node, error) {
 	// Parse URL
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
@@ -61,14 +61,14 @@ func tryDomDistiller(originalExtract, doc *html.Node, url string) (*html.Node, e
 	}
 
 	// Check if dom distiller is better
-	if alternativeIsBetter(originalExtract, distillerExtract) {
+	if alternativeIsBetter(originalExtract, distillerExtract, opts) {
 		return distillerExtract, nil
 	}
 
 	return nil, nil
 }
 
-func alternativeIsBetter(originalExtract, alternativeExtract *html.Node) bool {
+func alternativeIsBetter(originalExtract, alternativeExtract *html.Node, opts Options) bool {
 	originalText := trim(etree.IterText(originalExtract, " "))
 	alternativeText := trim(etree.IterText(alternativeExtract, " "))
 
@@ -84,7 +84,7 @@ func alternativeIsBetter(originalExtract, alternativeExtract *html.Node) bool {
 		return false
 	case lenAlt > 2*lenOri:
 		return true
-	case lenOri == 0 && lenAlt > minExtractedSize:
+	case lenOri == 0 && lenAlt > opts.Config.MinExtractedSize:
 		return true
 	default:
 		return false

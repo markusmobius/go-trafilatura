@@ -15,8 +15,43 @@ const (
 	HTML
 )
 
+// Config is advanced setting to fine tune the extraction result.
+// You can use it to specify the minimal size of the extracted content
+// and how many duplicate text allowed. However, for most of the time
+// the default config should be good enough.
+type Config struct {
+	// Deduplication config
+	CacheSize             int
+	MaxDuplicateCount     int
+	MinDuplicateCheckSize int
+
+	// Extraction size setting
+	MinExtractedSize        int
+	MinExtractedCommentSize int
+	MinOutputSize           int
+	MinOutputCommentSize    int
+}
+
+// DefaultConfig returns the default configuration value.
+func DefaultConfig() *Config {
+	return &Config{
+		CacheSize:             4096,
+		MinDuplicateCheckSize: 100,
+		MaxDuplicateCount:     2,
+
+		MinExtractedSize:        200,
+		MinExtractedCommentSize: 10,
+		MinOutputSize:           10,
+		MinOutputCommentSize:    10,
+	}
+}
+
 // Options is configuration for the extractor.
 type Options struct {
+	// Config is the advanced configuration to fine tune the
+	// extraction result. Keep it as nil to use default config.
+	Config *Config
+
 	// Optional ID for the extracted metadata.
 	RecordID int64
 

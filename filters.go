@@ -80,13 +80,13 @@ func textCharsTest(s string) bool {
 }
 
 // duplicateTest checks for duplicate text within cache
-func duplicateTest(element *html.Node, cache *Cache) bool {
+func duplicateTest(element *html.Node, cache *Cache, opts Options) bool {
 	var isDuplicate bool
 	testString := trim(etree.IterText(element, " "))
 
-	if utf8.RuneCountInString(testString) > minDuplicateCheckSize {
+	if utf8.RuneCountInString(testString) > opts.Config.MinDuplicateCheckSize {
 		cacheVal, _ := cache.Get(testString)
-		if cacheVal > maxDuplicateCount {
+		if cacheVal > opts.Config.MaxDuplicateCount {
 			isDuplicate = true
 		}
 		cache.Put(testString, cacheVal+1)
