@@ -121,7 +121,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 	// Size checks
 	if lenComments < minExtractedCommentSize {
-		logrus.Warnf("not enough comments: %d", opts.OriginalURL)
+		logrus.Warnf("not enough comments: %s", opts.OriginalURL)
 	}
 
 	lenText := utf8.RuneCountInString(tmpBodyText)
@@ -492,7 +492,7 @@ func handleQuotes(element *html.Node, cache *Cache, deduplicate bool) *html.Node
 func handleTitles(element *html.Node, cache *Cache, deduplicate bool) *html.Node {
 	tail := etree.Tail(element)
 	if tail != "" && rxWords.MatchString(tail) {
-		logrus.Warnln("tail in title, stripping: %s", tail)
+		logrus.Warnf("tail in title, stripping: %s", tail)
 	}
 
 	etree.SetTail(element, "")
