@@ -72,11 +72,11 @@ func Test_ExoticTags(t *testing.T) {
 	etree.Append(element, second)
 
 	converted := handleParagraphs(element, map[string]struct{}{"p": {}}, nil, zeroOpts)
-	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted, false))
+	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
 	// Trailing line break
 	etree.SubElement(element, "br")
-	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted, false))
+	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
 	// Malformed lists (common error)
 	lists := etree.FromString(`
@@ -87,7 +87,7 @@ func Test_ExoticTags(t *testing.T) {
 	</ul>`)
 
 	handledLists := handleLists(lists, nil, zeroOpts)
-	strResult := etree.ToString(handledLists, false)
+	strResult := etree.ToString(handledLists)
 	assert.Equal(t, 3, strings.Count(strResult, "List item"))
 	assert.Contains(t, strResult, "Description")
 }
@@ -138,7 +138,7 @@ func Test_Cache(t *testing.T) {
 
 func Test_Formatting(t *testing.T) {
 	fnHtml := func(r *ExtractResult) string {
-		return etree.ToString(r.ContentNode, false)
+		return etree.ToString(r.ContentNode)
 	}
 
 	// Simple
@@ -187,7 +187,7 @@ func Test_Formatting(t *testing.T) {
 	etree.SetTail(element, "And a tail.")
 
 	converted := handleFormatting(element)
-	assert.Equal(t, etree.ToString(converted, false), "<p><b>Here is the text.</b>And a tail.</p>")
+	assert.Equal(t, etree.ToString(converted), "<p><b>Here is the text.</b>And a tail.</p>")
 }
 
 func Test_Baseline(t *testing.T) {

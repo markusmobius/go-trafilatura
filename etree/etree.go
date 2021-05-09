@@ -84,7 +84,7 @@ func Remove(element *html.Node, keepTail ...bool) {
 }
 
 // ToString encode an element to string representation of its structure.
-func ToString(tree *html.Node, prettify bool) string {
+func ToString(tree *html.Node, prettify ...bool) string {
 	// Create temporary container
 	container := dom.CreateElement("tmp")
 
@@ -103,7 +103,7 @@ func ToString(tree *html.Node, prettify bool) string {
 
 	// Convert to string
 	str := dom.InnerHTML(container)
-	if prettify {
+	if len(prettify) > 0 && prettify[0] {
 		str = gohtml.Format(str)
 	}
 
