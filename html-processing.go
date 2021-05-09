@@ -112,7 +112,7 @@ func handleTextNode(node *html.Node, cache *Cache, fixComments bool, opts Option
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
-	if text == "" || tail == "" {
+	if text == "" && tail == "" {
 		return nil
 	}
 

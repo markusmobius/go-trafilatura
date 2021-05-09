@@ -48,6 +48,18 @@ var tagsToSanitize = sliceToMap(
 	"object", "option", "select", "source", "svg", "time",
 )
 
+var validTagCatalog = sliceToMap(
+	"a", "abbr", "address", "area", "b", "base", "bdo", "blockquote", "body", "br", "button",
+	"caption", "cite", "code", "col", "colgroup", "dd", "del", "dfn", "div", "dl", "dt", "em",
+	"fieldset", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "hr", "html", "i", "iframe",
+	"img", "input", "ins", "kbd", "label", "legend", "li", "link", "map", "menu", "meta",
+	"noscript", "object", "ol", "optgroup", "option", "p", "param", "pre", "q", "s", "samp",
+	"script", "select", "small", "span", "strong", "style", "sub", "sup", "table", "tbody",
+	"td", "textarea", "tfoot", "th", "thead", "title", "tr", "u", "ul", "var", "article",
+	"aside", "audio", "canvas", "command", "datalist", "details", "embed", "figcaption",
+	"figure", "footer", "header", "mark", "meter", "nav", "output", "progress", "rp", "rt",
+	"ruby", "section", "source", "time", "track", "video", "wbr")
+
 func sliceToMap(strings ...string) map[string]struct{} {
 	result := make(map[string]struct{})
 	for _, s := range strings {

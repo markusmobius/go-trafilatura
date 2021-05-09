@@ -21,7 +21,10 @@ var (
 func checkHtmlLanguage(doc *html.Node, targetLanguage string) bool {
 	htmlNode := doc
 	if dom.TagName(htmlNode) != "html" {
-		htmlNode = dom.QuerySelector(doc, "html")
+		htmlNodes := dom.GetElementsByTagName(doc, "html")
+		if len(htmlNodes) > 0 {
+			htmlNode = htmlNodes[0]
+		}
 	}
 
 	if htmlNode != nil {

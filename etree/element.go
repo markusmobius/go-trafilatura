@@ -86,7 +86,7 @@ func SetTail(element *html.Node, tail string) {
 	dom.RemoveNodes(TailNodes(element), nil)
 
 	// If the new tail is blank, stop
-	if tail == "" {
+	if tail == "" || element.Parent == nil {
 		return
 	}
 

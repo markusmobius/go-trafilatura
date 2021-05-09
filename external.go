@@ -121,4 +121,23 @@ func sanitizeTree(tree *html.Node, opts Options) {
 	}
 
 	pruneHTML(tree)
+
+	// Sanitize
+	var sanitizationList []string
+	uniqueTags := make(map[string]struct{})
+	for _, node := range dom.GetElementsByTagName(tree, "*") {
+		tagName := dom.TagName(node)
+		if _, exist := uniqueTags[tagName]; exist {
+			continue
+		}
+
+		uniqueTags[tagName] = struct{}{}
+		if _, exist := validTagCatalog[tagName]; !exist {
+			sanitizationList = append(sanitizationList, tagName)
+		}
+	}
+
+	if len(sanitizationList) > 0 {
+		etree.StripTags(tree, sanitizationList...)
+	}
 }

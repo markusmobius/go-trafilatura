@@ -410,7 +410,7 @@ func testGetMetadataFromHTML(rawHTML string) Metadata {
 }
 
 func testGetMetadataFromURL(url string) Metadata {
-	doc := loadMockFile(metadataMockFiles, url)
+	doc := parseMockFile(metadataMockFiles, url)
 	return extractMetadata(doc, nil)
 }
 

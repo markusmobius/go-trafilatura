@@ -89,7 +89,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	var tmpComments string
 	var lenComments int
 	var commentsBody *html.Node
-	doNothing(commentsBody)
 
 	if opts.IncludeComments {
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
@@ -98,7 +97,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 	// Extract content
 	postBody, tmpBodyText, sureThing := extractContent(doc, cache, opts)
-	doNothing(postBody, tmpBodyText, sureThing)
 
 	// Use fallback if necessary
 	if !opts.NoFallback {
@@ -118,7 +116,10 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// Tree size sanity check
 	if opts.MaxTreeSize > 0 {
 		if len(dom.Children(postBody)) > opts.MaxTreeSize {
-			etree.StripTags(postBody, "h1", "h2", "h3", "h4", "h5", "h6")
+			for tag := range formatTagCatalog {
+				etree.StripTags(postBody, tag)
+			}
+
 			if nChildren := len(dom.Children(postBody)); nChildren > opts.MaxTreeSize {
 				return nil, fmt.Errorf("output tree to long, discarding file : %d", nChildren)
 			}
@@ -334,7 +335,7 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 	tmpText := trim(etree.IterText(resultBody, " "))
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
-	if len(dom.Children(resultBody)) > 0 || tmpTextLength < opts.Config.MinExtractedSize {
+	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
 		recoverWildText(doc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
 	} else {
@@ -547,7 +548,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 				continue
 			}
 
-			newSub := etree.Element(dom.TagName(child))
+			newSub := etree.Element(childTag)
 
 			// Handle formatting
 			if _, exist := formattingTags[childTag]; exist {
