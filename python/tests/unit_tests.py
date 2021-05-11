@@ -52,37 +52,6 @@ MOCK_PAGES = {
 }
 
 
-def load_mock_page(url, xml_flag=False, langcheck=None, tei_output=False):
-    '''load mock page from samples'''
-    try:
-        with open(os.path.join(TEST_DIR, 'cache', MOCK_PAGES[url]), 'r') as inputf:
-            htmlstring = inputf.read()
-    # encoding/windows fix for the tests
-    except UnicodeDecodeError:
-        # read as binary
-        with open(os.path.join(TEST_DIR, 'cache', MOCK_PAGES[url]), 'rb') as inputf:
-            htmlbinary = inputf.read()
-        guessed_encoding = chardet.detect(htmlbinary)['encoding']
-        if guessed_encoding is not None:
-            try:
-                htmlstring = htmlbinary.decode(guessed_encoding)
-            except UnicodeDecodeError:
-                htmlstring = htmlbinary
-        else:
-            print('Encoding error')
-    output_format = 'txt'
-    if xml_flag is True:
-        output_format = 'xml'
-    if tei_output is True:
-        output_format = 'tei'
-    result = extract(htmlstring, url,
-                     record_id='0000',
-                     no_fallback=False,
-                     output_format=output_format,
-                     target_language=langcheck)
-    return result
-
-
 def test_input():
     '''test if loaded strings/trees are handled properly'''
     assert utils.load_html(123) is None

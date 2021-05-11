@@ -72,10 +72,10 @@ type Options struct {
 	TargetLanguage string
 
 	// Specify whether to extract comments along with the main text.
-	IncludeComments bool
+	ExcludeComments bool
 
 	// Take into account information within the HTML <table> element.
-	IncludeTables bool
+	ExcludeTables bool
 
 	// Take images into account (experimental).
 	IncludeImages bool

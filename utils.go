@@ -1,19 +1,22 @@
 package trafilatura
 
 import (
+	"bytes"
 	"io"
-	nurl "net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/sirupsen/logrus"
+	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 var (
 	rxImageExtension = regexp.MustCompile(`(?i)([^\s]+(\.(jpe?g|png|gif|bmp)))`)
+	rxCharset        = regexp.MustCompile(`(?i)charset\s*=\s*([^;\s"]+)`)
 )
 
 // trim removes unnecessary spaces within a text string.
@@ -62,57 +65,62 @@ func isImageFile(imageSrc string) bool {
 // so Go formatter doesn't complain.
 func doNothing(i ...interface{}) {}
 
-// openMockFile is used to open HTML document from specified mock file.
-// Make sure to close the reader later.
-func openMockFile(mockFiles map[string]string, url string) io.ReadCloser {
-	// Open file
-	path := mockFiles[url]
-	path = filepath.Join("test-files", path)
-
-	f, err := os.Open(path)
-	if err != nil {
-		logrus.Panicln(err)
-	}
-
-	return f
+func isSoftHyphen(r rune) bool {
+	return r == '\u00AD'
 }
 
-// parseMockFile open then convert a mock file into html.Node.
-func parseMockFile(mockFiles map[string]string, url string) *html.Node {
-	f := openMockFile(mockFiles, url)
-	defer f.Close()
+// parseHTML parses a reader and try to convert the character encoding into UTF-8.
+func parseHTML(r io.Reader) (*html.Node, error) {
+	// Prepare tee for reusing reader
+	buffer := bytes.NewBuffer(nil)
+	tee := io.TeeReader(r, buffer)
 
-	doc, err := html.Parse(f)
+	// Parse HTML normally
+	doc, err := html.Parse(tee)
 	if err != nil {
-		logrus.Panicln(err)
+		return nil, err
 	}
 
-	return doc
-}
+	// Look for charset in <meta> elements
+	var customCharset string
+	for _, meta := range dom.GetElementsByTagName(doc, "meta") {
+		// Look in charset
+		charsetAttr := dom.GetAttribute(meta, "charset")
+		if charsetAttr != "" {
+			customCharset = strings.TrimSpace(charsetAttr)
+			break
+		}
 
-// extractMockFile open then extract content from a mock file.
-func extractMockFile(mockFiles map[string]string, url string) *ExtractResult {
-	// Open mock file
-	f := openMockFile(mockFiles, url)
-	defer f.Close()
-
-	// Parse URL
-	parsedURL, err := nurl.ParseRequestURI(url)
-	if err != nil {
-		logrus.Panicln(err)
+		// Look in http-equiv="Content-Type"
+		content := dom.GetAttribute(meta, "content")
+		httpEquiv := dom.GetAttribute(meta, "http-equiv")
+		if httpEquiv == "Content-Type" && content != "" {
+			matches := rxCharset.FindStringSubmatch(content)
+			if len(matches) > 0 {
+				customCharset = matches[1]
+				break
+			}
+		}
 	}
 
-	// Extract
-	opts := Options{OriginalURL: parsedURL}
-	result, err := Extract(f, opts)
-	if err != nil {
-		logrus.Panicln(err)
+	// If there are no custom charset specified, assume it's utf-8
+	if customCharset == "" {
+		customCharset = "utf-8"
 	}
 
-	return result
-}
+	// Encode HTML in UTF-8 encoding.
+	// While on it, remove soft hyphen that might be found in German articles.
+	e, _ := charset.Lookup(customCharset)
+	transformer := transform.Chain(e.NewDecoder(),
+		norm.NFD,
+		runes.Remove(runes.Predicate(isSoftHyphen)),
+		norm.NFC)
 
-func docFromStr(str string) *html.Node {
-	doc, _ := html.Parse(strings.NewReader(str))
-	return doc
+	r = transform.NewReader(buffer, transformer)
+	doc, err = html.Parse(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return doc, nil
 }

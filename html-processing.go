@@ -13,12 +13,12 @@ import (
 var rxWords = regexp.MustCompile(`\w`)
 
 // docCleaning cleans the document by discarding unwanted elements
-func docCleaning(doc *html.Node, includeTables, includeImages bool) {
+func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
 	// Determine cleaning strategy
 	cleaningList := duplicateMap(tagsToClean)
 	strippingList := duplicateMap(tagsToStrip)
 
-	if !includeTables {
+	if excludeTables {
 		cleaningList["table"] = struct{}{}
 	}
 

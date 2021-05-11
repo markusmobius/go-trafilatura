@@ -4,7 +4,6 @@ import (
 	"fmt"
 	nurl "net/url"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
@@ -17,22 +16,12 @@ func tryReadability(originalExtract, doc *html.Node, url string, opts Options) (
 	// Extract using go-readability
 	docHtml := dom.OuterHTML(doc)
 	r := strings.NewReader(docHtml)
-	contentBody, err := readability.FromReader(r, url)
+	article, err := readability.FromReader(r, url)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if readability is better
-	readabilityExtract := contentBody.Node
-	if readabilityExtract == nil {
-		return nil, fmt.Errorf("can't find any content")
-	}
-
-	if alternativeIsBetter(originalExtract, readabilityExtract, opts) {
-		return readabilityExtract, nil
-	}
-
-	return nil, nil
+	return article.Node, nil
 }
 
 func tryDomDistiller(originalExtract, doc *html.Node, url string, opts Options) (*html.Node, error) {
@@ -60,35 +49,7 @@ func tryDomDistiller(originalExtract, doc *html.Node, url string, opts Options) 
 		return nil, fmt.Errorf("can't find any content")
 	}
 
-	// Check if dom distiller is better
-	if alternativeIsBetter(originalExtract, distillerExtract, opts) {
-		return distillerExtract, nil
-	}
-
-	return nil, nil
-}
-
-func alternativeIsBetter(originalExtract, alternativeExtract *html.Node, opts Options) bool {
-	originalText := trim(etree.IterText(originalExtract, " "))
-	alternativeText := trim(etree.IterText(alternativeExtract, " "))
-
-	lenOri := utf8.RuneCountInString(originalText)
-	lenAlt := utf8.RuneCountInString(alternativeText)
-
-	switch {
-	case lenAlt == 0 || lenAlt == lenOri:
-		return false
-	case lenOri == 0 && lenAlt > 0:
-		return true
-	case lenOri > 2*lenAlt:
-		return false
-	case lenAlt > 2*lenOri:
-		return true
-	case lenOri == 0 && lenAlt > opts.Config.MinExtractedSize:
-		return true
-	default:
-		return false
-	}
+	return distillerExtract, nil
 }
 
 // sanitizeTree converts and sanitize the output from the generic

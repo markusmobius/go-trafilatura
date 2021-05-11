@@ -171,13 +171,12 @@ func Test_Formatting(t *testing.T) {
 	// Line breaks
 	r = strings.NewReader(`<html><body><p><br/></p></body></html>`)
 	result, _ = Extract(r, zeroOpts)
-	fmt.Println(fnHtml(result))
 	assert.Contains(t, fnHtml(result), "<p></p>")
 	assert.Equal(t, "", dom.TextContent(result.ContentNode))
 
 	r = strings.NewReader(`<html><body><p><br/>Here is the text.</p></body></html>`)
 	result, _ = Extract(r, zeroOpts)
-	assert.Contains(t, fnHtml(result), "<p>Here is the text.</p>")
+	assert.Contains(t, fnHtml(result), "<p><br/>Here is the text.</p>")
 	assert.Equal(t, "Here is the text.", dom.TextContent(result.ContentNode))
 
 	// Handle formatting tails

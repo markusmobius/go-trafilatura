@@ -33,7 +33,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	cache := NewCache(opts.Config.CacheSize)
 
 	// Parse HTML
-	doc, err := html.Parse(r)
+	doc, err := parseHTML(r)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +43,8 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
-	// If fallback extractor is enabled, backup the doc first
-	var docBackup *html.Node
-	if !opts.NoFallback {
-		docBackup = dom.Clone(doc, true)
-	}
-	doNothing(docBackup)
+	// Backup the doc first
+	docBackup := dom.Clone(doc, true)
 
 	// Extract metadata if necessary
 	var metadata Metadata
@@ -79,7 +75,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	}
 
 	// Clean document
-	docCleaning(doc, opts.IncludeTables, opts.IncludeImages)
+	docCleaning(doc, opts.ExcludeTables, opts.IncludeImages)
 
 	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
 	// into the one that suitable for XML. However, since we prefer the results
@@ -90,7 +86,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	var lenComments int
 	var commentsBody *html.Node
 
-	if opts.IncludeComments {
+	if !opts.ExcludeComments {
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
 	}
@@ -109,7 +105,13 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		// Rescue: try to use original/dirty tree
 		lenText := utf8.RuneCountInString(tmpBodyText)
 		if !sureThing && lenText < opts.Config.MinExtractedSize {
-			postBody, tmpBodyText = baseline(docBackup)
+			baselineBody, baselineText := baseline(docBackup)
+
+			// Make sure baseline is not worse than the original
+			lenBaselineText := utf8.RuneCountInString(baselineText)
+			if lenBaselineText > lenText {
+				postBody, tmpBodyText = baselineBody, baselineText
+			}
 		}
 	}
 
@@ -232,7 +234,7 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 	// Prepare potential tags
 	potentialTags := duplicateMap(tagCatalog)
 
-	if opts.IncludeTables {
+	if !opts.ExcludeTables {
 		potentialTags["table"] = struct{}{}
 	}
 
@@ -322,7 +324,9 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 			switch dom.TagName(finalChildren[i]) {
 			case "h1", "h2", "h3", "h4", "h5", "h6":
 				etree.Remove(finalChildren[i])
+				continue
 			}
+			break
 		}
 
 		// Exit the loop if the result has children
@@ -527,7 +531,8 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	formattingTags["a"] = struct{}{}
 
 	// Handle with children
-	processedElement := etree.Element(dom.TagName(element))
+	tmpContainer := etree.Element("div")
+	processedElement := etree.SubElement(tmpContainer, dom.TagName(element))
 
 	for _, child := range etree.Iter(element) {
 		childTag := dom.TagName(child)
@@ -548,7 +553,8 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 				continue
 			}
 
-			newSub := etree.Element(childTag)
+			newSubContainer := etree.Element("div")
+			newSub := etree.SubElement(newSubContainer, childTag)
 
 			// Handle formatting
 			if _, exist := formattingTags[childTag]; exist {
@@ -803,45 +809,67 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		originalUrl = opts.OriginalURL.String()
 	}
 
-	// Try readability and dom-distiller
+	// Try readability
 	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl, opts)
 	if err != nil {
 		logrus.Warnf("readability failed: %v", err)
+		readabilityExtract = etree.Element("div")
 	}
 
-	distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl, opts)
-	if err != nil {
-		logrus.Warnf("dom-distiller failed: %v", err)
-	}
+	readabilityText := trim(etree.IterText(readabilityExtract, " "))
+	lenReadability := utf8.RuneCountInString(readabilityText)
 
-	// Pick the final extract
-	var finalExtract *html.Node
+	// Compare
+	originalText := trim(etree.IterText(originalExtract, " "))
+	lenOriginal := utf8.RuneCountInString(originalText)
+	logrus.Infof("extracted length: %d (readability) %d (original)", lenReadability, lenOriginal)
+
+	// Check whether to use alternative algorithms
+	var useReadability bool
 	switch {
-	case readabilityExtract != nil && distillerExtract == nil:
-		finalExtract = readabilityExtract
-	case readabilityExtract == nil && distillerExtract != nil:
-		finalExtract = distillerExtract
-	case readabilityExtract != nil && distillerExtract != nil:
-		distillerText := trim(etree.IterText(distillerExtract, " "))
-		readabilityText := trim(etree.IterText(readabilityExtract, " "))
-
-		lenDistillerText := utf8.RuneCountInString(distillerText)
-		lenReadabilityText := utf8.RuneCountInString(readabilityText)
-		if lenReadabilityText >= lenDistillerText {
-			finalExtract = readabilityExtract
-		} else {
-			finalExtract = distillerExtract
-		}
+	case lenReadability == 0 || lenReadability == lenOriginal:
+		useReadability = false
+	case lenOriginal == 0 && lenReadability > 0:
+		useReadability = true
+	case lenOriginal > 2*lenReadability:
+		useReadability = false
+	case lenReadability > 2*lenOriginal:
+		useReadability = true
+	case lenOriginal == 0 && lenReadability > opts.Config.MinExtractedSize:
+		useReadability = true
 	default:
-		finalExtract = originalExtract
+		logrus.Infof("extraction values: %d %d for %s", lenOriginal, lenReadability, originalUrl)
+		useReadability = false
+	}
+
+	// Apply decision
+	if useReadability {
+		originalExtract = readabilityExtract
+		originalText = readabilityText
+		lenOriginal = lenReadability
+		logrus.Infof("using readability algorithm: %s", originalUrl)
+	} else {
+		logrus.Infof("using dom-distiller algorithm: %s", originalUrl)
+	}
+
+	// Try dom-distiller
+	if lenOriginal < opts.Config.MinExtractedSize {
+		logrus.Warnf("not enough text: %s", originalUrl)
+
+		distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl, opts)
+		if err != nil {
+			logrus.Warnf("dom-distiller failed: %v", err)
+		} else {
+			originalExtract = distillerExtract
+		}
 	}
 
 	// Sanitize the tree
-	sanitizeTree(finalExtract, opts)
+	sanitizeTree(originalExtract, opts)
 
 	// Return data
-	finalText := trim(etree.IterText(finalExtract, " "))
-	return finalExtract, finalText
+	finalText := trim(etree.IterText(originalExtract, " "))
+	return originalExtract, finalText
 }
 
 // baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
