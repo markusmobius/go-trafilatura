@@ -526,110 +526,76 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		return processNode(element, cache, opts)
 	}
 
-	// Prepare tag maps
-	formattingTags := duplicateMap(formatTagCatalog)
-	formattingTags["a"] = struct{}{}
-
 	// Handle with children
-	tmpContainer := etree.Element("div")
-	processedElement := etree.SubElement(tmpContainer, dom.TagName(element))
-
-	for _, child := range etree.Iter(element) {
+	processedElements := make(map[*html.Node]struct{})
+	for _, child := range dom.GetElementsByTagName(element, "*") {
 		childTag := dom.TagName(child)
+
+		// Make sure child is potential element
 		if _, exist := potentialTags[childTag]; !exist {
+			etree.Remove(child)
 			continue
 		}
 
-		processedChild := handleTextNode(child, cache, false, opts)
-		if processedChild != nil {
-			// Needing attention for nested <p>
-			if childTag == "p" {
-				childText := trim(etree.Text(child))
-				if elemText := etree.Text(processedElement); elemText != "" {
-					etree.SetText(processedElement, elemText+" "+childText)
-				} else {
-					etree.SetText(processedElement, childText)
-				}
-				continue
+		// If necessary remove duplicate child
+		if opts.Deduplicate && cache != nil && duplicateTest(child, cache, opts) {
+			etree.Remove(child)
+			continue
+		}
+
+		switch childTag {
+		case "p": // nested <p>
+			etree.SetText(child, " "+etree.Text(child))
+			etree.Strip(child)
+
+		case "a": // links
+			childHref := trim(dom.GetAttribute(child, "href"))
+			childTarget := trim(dom.GetAttribute(child, "target"))
+			child.Attr = nil
+
+			if childHref != "" {
+				dom.SetAttribute(child, "href", childHref)
 			}
 
-			newSubContainer := etree.Element("div")
-			newSub := etree.SubElement(newSubContainer, childTag)
-
-			// Handle formatting
-			if _, exist := formattingTags[childTag]; exist {
-				if children := dom.Children(child); len(children) > 0 {
-					for _, item := range children {
-						itemText := etree.Text(item)
-						if textCharsTest(itemText) {
-							etree.SetText(item, " "+itemText)
-						}
-
-						etree.StripTags(child, dom.TagName(item))
-					}
-				}
-
-				if childTag == "a" {
-					etree.SetText(newSub, etree.Text(processedChild))
-					etree.SetTail(newSub, etree.Tail(processedChild))
-
-					childTarget := trim(dom.GetAttribute(child, "target"))
-					if childTarget != "" {
-						dom.SetAttribute(newSub, "target", childTarget)
-					}
-
-					childHref := trim(dom.GetAttribute(child, "href"))
-					if childHref != "" { // it shouldn't be here
-						dom.SetAttribute(newSub, "href", childHref)
-					}
-				}
-			} else if childTag == "br" || childTag == "hr" { // handle line breaks
-				if tmp := processNode(child, cache, opts); tmp != nil {
-					etree.SetTail(processedChild, etree.Tail(tmp))
-				}
+			if childTarget != "" {
+				dom.SetAttribute(child, "target", childTarget)
 			}
+		}
 
-			// Prepare text
-			processedChildText := etree.Text(processedChild)
-			processedChildTail := etree.Tail(processedChild)
-			if !textCharsTest(processedChildText) {
-				etree.SetText(processedChild, "")
-				processedChildText = ""
-			}
+		processedElements[child] = struct{}{}
+	}
 
-			// Handle if there are already children
-			if len(dom.Children(processedElement)) > 0 {
-				if textCharsTest(processedChildTail) {
-					etree.SetTail(newSub, processedChildText+processedChildTail)
-				} else {
-					etree.SetTail(newSub, processedChildText)
-				}
-			} else {
-				etree.SetText(newSub, processedChildText)
-				etree.SetTail(newSub, processedChildTail)
-			}
-
-			etree.Append(processedElement, newSub)
-			child.Data = "done"
+	// Remove empty elements. Do it backward, to make sure all children
+	// is removed before its parent.
+	children := dom.GetElementsByTagName(element, "*")
+	for i := len(children) - 1; i >= 0; i-- {
+		isEmpty := !textCharsTest(etree.Text(children[i]))
+		isVoidElement := dom.IsVoidElement(children[i])
+		if isEmpty && !isVoidElement {
+			etree.Strip(children[i])
 		}
 	}
 
-	// Finish
-	processedElementText := etree.Text(processedElement)
-	processedElementChildren := dom.Children(processedElement)
-
-	if len(processedElementChildren) > 0 || processedElementText != "" {
-		// Clean trailing line break
-		if len(processedElementChildren) > 0 {
-			lastChild := processedElementChildren[len(processedElementChildren)-1]
-			lastChildTag := dom.TagName(lastChild)
-			lastChildTail := etree.Tail(lastChild)
-
-			if (lastChildTag == "br" || lastChildTag == "hr") && lastChildTail == "" {
-				etree.Remove(lastChild)
-			}
+	// Clean trailing line break
+	for _, br := range dom.QuerySelectorAll(element, "br,hr") {
+		if br.NextSibling == nil || etree.Tail(br) == "" {
+			etree.Remove(br)
 		}
+	}
 
+	// Clone the element to return
+	processedElement := dom.Clone(element, true)
+	etree.SetTail(processedElement, etree.Tail(element))
+
+	// Mark processed elements as done
+	for elem := range processedElements {
+		elem.Data = "done"
+	}
+
+	// Finish
+	elementText := etree.Text(processedElement)
+	elementChildren := dom.Children(processedElement)
+	if len(elementChildren) > 0 || elementText != "" {
 		return processedElement
 	}
 

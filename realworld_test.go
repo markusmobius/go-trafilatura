@@ -14,8 +14,7 @@ func Test_Extract(t *testing.T) {
 			strings.Contains(result.CommentsText, str)
 	}
 
-	var result *ExtractResult
-	result = extractMockFile(rwMockFiles, "https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/")
+	result := extractMockFile(rwMockFiles, "https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/")
 	assert.False(t, resContains(result, "Impressum"))
 	assert.True(t, resContains(result, "Die GEMA dreht völlig am Zeiger!"))
 
@@ -339,7 +338,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "https://novalanalove.com/ear-candy/")
 	assert.True(t, resContains(result, "Earcuff: Zoeca"))
 	assert.True(t, resContains(result, "mit längeren Ohrringen (:"))
-	// For unknon reason our implementation can't find this substring.
+	// For unknown reason our implementation can't find this substring.
 	// assert.True(t, resContains(result, "Kreole: Stella Hoops"))
 	assert.False(t, resContains(result, "Jetzt heißt es schnell sein:"))
 	assert.False(t, resContains(result, "Diese Website speichert Cookies"))
@@ -348,7 +347,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "http://www.franziska-elea.de/2019/02/10/das-louis-vuitton-missgeschick/")
 	assert.True(t, resContains(result, "Zuerst dachte ich, ich könnte das"))
 	assert.True(t, resContains(result, "x Franzi"))
-	// assert.True(t, resContains(result, "Flauschjacke: Bershka"))
+	assert.True(t, resContains(result, "Flauschjacke: Bershka"))
 	assert.False(t, resContains(result, "Palm Springs Mini (links)"))
 	assert.False(t, resContains(result, "Diese Website verwendet Akismet"))
 	assert.False(t, resContains(result, "New York, New York"))
@@ -465,7 +464,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Catherine Classic Lac 602"))
 
 	result = extractMockFile(rwMockFiles, "https://erp-news.info/erp-interview-mit-um-digitale-assistenten-und-kuenstliche-intelligenz-ki/")
-	// assert.True(t, resContains(result, "Einblicke in die Vision zukünftiger Softwaregenerationen."))
+	assert.True(t, resContains(result, "Einblicke in die Vision zukünftiger Softwaregenerationen"))
 	assert.True(t, resContains(result, "Frage 4: Welche Rolle spielt Big Data in Bezug auf Assistenz-Systeme und KI?"))
 	assert.True(t, resContains(result, "von The unbelievable Machine Company (*um) zur Verfügung gestellt."))
 	assert.False(t, resContains(result, "Matthias Weber ist ERP-Experte mit langjähriger Berufserfahrung."))
@@ -524,7 +523,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Die Geschichte beginnt am 26. Oktober"))
 	assert.True(t, resContains(result, "Es stützt seine Version."))
 	// TODO: In original Trafilatura it asserted to be true.
-	// However, IMHO this test should return false.
+	// However, IMHO this test should return false, so here I set it to false.
 	assert.False(t, resContains(result, "und Vorteile sichern!"))
 	assert.False(t, resContains(result, "Verschickt"))
 

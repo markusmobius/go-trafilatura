@@ -33,19 +33,7 @@ func StripTags(tree *html.Node, tags ...string) {
 	}
 
 	for _, element := range elements {
-		// Make sure element has parent
-		if element.Parent == nil {
-			continue
-		}
-
-		// Move children to parent
-		for _, child := range dom.ChildNodes(element) {
-			clone := dom.Clone(child, true)
-			element.Parent.InsertBefore(clone, element)
-		}
-
-		// Remove the element itself
-		element.Parent.RemoveChild(element)
+		Strip(element)
 	}
 }
 
@@ -80,6 +68,23 @@ func Remove(element *html.Node, keepTail ...bool) {
 		}
 	}
 
+	element.Parent.RemoveChild(element)
+}
+
+// Strip will removes the element but not their text/tail content or descendants.
+// Instead, it will merge the text content and children of the element into its parent.
+func Strip(element *html.Node) {
+	if element.Parent == nil {
+		return
+	}
+
+	// Move children to parent
+	for _, child := range dom.ChildNodes(element) {
+		clone := dom.Clone(child, true)
+		element.Parent.InsertBefore(clone, element)
+	}
+
+	// Remove the element itself
 	element.Parent.RemoveChild(element)
 }
 

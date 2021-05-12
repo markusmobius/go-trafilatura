@@ -169,12 +169,12 @@ func IterText(node *html.Node, separator string) string {
 	finder = func(n *html.Node, level int) {
 		if n.Type == html.TextNode {
 			if level != lastLevel {
-				lastLevel = level
 				buffer.WriteString(separator)
 			}
 			buffer.WriteString(n.Data)
 		}
 
+		lastLevel = level
 		for child := n.FirstChild; child != nil; child = child.NextSibling {
 			finder(child, level+1)
 		}

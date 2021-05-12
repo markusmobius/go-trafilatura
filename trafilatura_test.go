@@ -22,6 +22,7 @@ var (
 	}
 
 	zeroOpts = Options{
+		NoFallback: true,
 		Config: &Config{
 			MinOutputSize:    0,
 			MinExtractedSize: 0,
@@ -76,6 +77,7 @@ func Test_ExoticTags(t *testing.T) {
 
 	// Trailing line break
 	etree.SubElement(element, "br")
+	converted = handleParagraphs(element, map[string]struct{}{"p": {}}, nil, zeroOpts)
 	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
 	// Malformed lists (common error)
@@ -149,12 +151,12 @@ func Test_Formatting(t *testing.T) {
 	// Nested
 	r = strings.NewReader("<html><body><p><b>This here is in bold and <i>italic</i> font.</b></p></body></html>")
 	result, _ = Extract(r, zeroOpts)
-	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold and italic font.</b></p>")
+	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold and <i>italic</i> font.</b></p>")
 
 	// Empty
 	r = strings.NewReader("<html><body><p><b><i></i></b></p></body></html>")
 	result, _ = Extract(r, zeroOpts)
-	assert.Contains(t, fnHtml(result), "<p></p>")
+	assert.Contains(t, fnHtml(result), "<body></body>")
 
 	// Wild div
 	r = strings.NewReader("<html><body><article><div><strong>Wild text</strong></div></article></body></html>")
@@ -171,12 +173,10 @@ func Test_Formatting(t *testing.T) {
 	// Line breaks
 	r = strings.NewReader(`<html><body><p><br/></p></body></html>`)
 	result, _ = Extract(r, zeroOpts)
-	assert.Contains(t, fnHtml(result), "<p></p>")
 	assert.Equal(t, "", dom.TextContent(result.ContentNode))
 
 	r = strings.NewReader(`<html><body><p><br/>Here is the text.</p></body></html>`)
 	result, _ = Extract(r, zeroOpts)
-	assert.Contains(t, fnHtml(result), "<p><br/>Here is the text.</p>")
 	assert.Equal(t, "Here is the text.", dom.TextContent(result.ContentNode))
 
 	// Handle formatting tails
@@ -223,7 +223,7 @@ func Test_Language(t *testing.T) {
 }
 
 func Test_Filters(t *testing.T) {
-	// // Helper function
+	// Helper function
 	rRepeatElement := func(element string, repeat int) io.Reader {
 		str := fmt.Sprintf("<html><body>%s</body></html>", strings.Repeat(element, repeat))
 		return strings.NewReader(str)
