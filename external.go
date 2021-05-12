@@ -73,8 +73,13 @@ func sanitizeTree(tree *html.Node, opts Options) {
 	// Handle links
 	strippingList := duplicateMap(tagsToStrip)
 	strippingList["span"] = struct{}{}
+
 	if !opts.IncludeLinks {
 		strippingList["a"] = struct{}{}
+	}
+
+	if opts.IncludeImages {
+		delete(strippingList, "img")
 	}
 
 	for tagName := range strippingList {
