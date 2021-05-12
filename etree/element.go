@@ -167,7 +167,9 @@ func IterText(node *html.Node, separator string) string {
 	var lastLevel int
 
 	finder = func(n *html.Node, level int) {
-		if n.Type == html.TextNode {
+		if n.Type == html.ElementNode && dom.IsVoidElement(n) {
+			buffer.WriteString(separator)
+		} else if n.Type == html.TextNode {
 			if level != lastLevel {
 				buffer.WriteString(separator)
 			}
