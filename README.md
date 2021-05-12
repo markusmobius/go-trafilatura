@@ -8,9 +8,137 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 19 files with 3,423 lines of code that haven’t been ported, so there is still long way to go.
+This package is still in development and the port process is still not finished. There are 14 files with 2,293 lines of code that haven’t been ported, so there is still long way to go. Fortunately, it seems most of those leftover Python codes can be left alone because the functionality already available in Go or not useful for our purpose.
+
+As it is right now, the content extractor already functional and can be used within Go code, as can be seen in this [example](examples/from-url.go) :
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+	nurl "net/url"
+	"time"
+
+	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-trafilatura"
+	"github.com/sirupsen/logrus"
+)
+
+var (
+	httpClient = &http.Client{Timeout: 30 * time.Second}
+)
+
+func main() {
+	// Prepare URL
+	url := "https://arstechnica.com/science/2021/05/rare-flesh-eating-black-fungus-rides-covids-coattails-in-india/"
+	parsedURL, err := nurl.ParseRequestURI(url)
+	if err != nil {
+		logrus.Fatalf("failed to parse url: %v", err)
+	}
+
+	// Fetch article
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		logrus.Fatalf("failed to fetch the page: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Extract content
+	opts := trafilatura.Options{
+		IncludeImages: true,
+		OriginalURL:   parsedURL,
+	}
+
+	result, err := trafilatura.Extract(resp.Body, opts)
+	if err != nil {
+		logrus.Fatalf("failed to extract: %v", err)
+	}
+
+	// Print result
+	fmt.Println(dom.OuterHTML(result.ContentNode))
+}
+```
+
+There are some difference between this port and the original Trafilatura:
+
+- In the original, metadata from JSON+LD is extracted using regular expressions while in this port it's done using a JSON parser. This way, our metadata extraction should be more correct, however the code is a bit more complex.
+- In the original, they use `python-readability` and `justext` as fallback extractors. In this port we use `go-readability` and `go-domdistiller` instead. Thanks to this, while rare, there will be some difference in extraction result between our port and the original. This is why there are some differences in the real world tests between the original and our port.
+- The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
+
+What's not done yet:
+
+- Restructure code to make it more similar with the original Trafilatura.
+- Improve documentation.
+- Make the log less verbose.
+- Implement CLI for the extractor.
+- Implement some QoL features like batch url downloads and sitemap scraping. However, since this is an additional features, I think it should be implemented in CLI instead of in the package.
+- Port `comparison.py` to compare between `go-trafilatura`, `go-readability` and `go-domdistiller`. However, I think it should be done in separate repository.
+- Port `htmldate`. It's a medium library which consists of around 900 lines of Python code (excluding unit tests), whose sole purpose is to extract publishing date of a web page. 
+
+	I do wonder whether it's worth it to port the entire library, since it's only used for metadata extraction, only called twice in the whole code, and doesn't affect the extracted content in any way.
+
+- The original Trafilatura uses `cld3` to detect language of the web page. In this port, we use `whatlanggo` as alternative, and from the test so far it works nicely and quite accurate. The only issue that have been occured so far is it's struggle a bit when the sample text is too short (less than 50 characters), yet works properly after the sample text is increased a bit. Need more investigation.
+
+	Personally, I believe it's good enough especially since language detection is only used to discard web page that doesn't match with our target language. And, just like `htmldate`, this language detection also doesn't affect the extracted content.
+
+- Since Trafilatura is still actively developed, we might need to catch up to the latest Trafilatura version.
 
 ## Changelog
+
+### 12 May 2021
+
+- Modify paragraphs handling since our output is in HTML, not XML like the original Trafilatura.
+- Put whitespace in place of void element when writing text using `etree.IterText`.
+- Dont strip image elements when sanitizing extraction result.
+- Add initial example.
+
+### 11 May 2021
+
+- Implement real world test from `tests/realworld_test.py`. In the original Trafilatura, in this test the extraction is done while enabling fallback extractors. However, since the fallback extractors in the original Trafilatura is different with the one that used in this port, obviously the result is different as well which make the test can't be ported as is.
+
+	To solve this, I've changed the test in the original Trafilatura to disable the fallback extractors. This way the test is more focused on the capability of Trafilatura alone, which make the test is compatible and can be ported.
+
+### 10 May 2021
+
+- Since our port use `go-readability` as one of its fallback, here we updated it to more recent version of Readability.js.
+- Fix external `dom` package to not appending child to void elements (elements that can't have any children, eg `<br/>`).
+
+### 9 May 2021
+
+- Now `Extract` also returns metadata along the extracted content.
+- Add advanced config in extraction `Options`.
+- Minor change  in `etree.ToString` to make it more readable.
+- Implement unit tests.
+
+### 8 May 2021
+
+- Finished implementing `Extract` function. At this point the port is kind of finished, but it's still not tested, so there is still a long way to go.
+- Restructure test files.
+
+### 7 May 2021
+
+- Fix implementation of `IterText` in `etree` package.
+- Implement fallback extraction using `go-readability` and `go-domdistiller`.
+
+### 6 May 2021
+
+- Restructure selector files.
+- Implement comments extraction.
+- Implement content extraction.
+
+### 5 May 2021
+
+- Port some of LXML functionality to `etree` package.
+- Fix major issue when appending or replacing node in external `dom` package. Apparently this issue goes unnoticed in both `go-readability` and `go-domdistiller`.
+- Restart porting process from zero 😢.
+- Reimplement `cache`.
+- Reimplement metadata extractor.
+
+### 4 May 2021
+
+- No code today. Looks like I've made a wrong assumptions about LXML library that used by the original Trafilatura. In functionality it's really similar with `dom` package, however there are several difference in how it works. Might need to port some codes.
 
 ### 3 May 2021
 

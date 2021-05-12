@@ -43,5 +43,6 @@ func main() {
 		logrus.Fatalf("failed to extract: %v", err)
 	}
 
+	// Print result
 	fmt.Println(dom.OuterHTML(result.ContentNode))
 }
