@@ -71,7 +71,6 @@ What's not done yet:
 
 - Restructure code to make it more similar with the original Trafilatura.
 - Improve documentation.
-- Make the log less verbose.
 - Implement CLI for the extractor.
 - Implement some QoL features like batch url downloads and sitemap scraping. However, since this is an additional features, I think it should be implemented in CLI instead of in the package.
 - Port `comparison.py` to compare between `go-trafilatura`, `go-readability` and `go-domdistiller`. However, I think it should be done in separate repository.
@@ -86,6 +85,10 @@ What's not done yet:
 - Since Trafilatura is still actively developed, we might need to catch up to the latest Trafilatura version.
 
 ## Changelog
+
+### 16 May 2021
+
+- Make the log less verbose.
 
 ### 12 May 2021
 

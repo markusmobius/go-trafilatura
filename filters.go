@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/etree"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -18,7 +17,7 @@ var (
 
 // checkHtmlLanguage checks HTML meta-elements for language information and
 // split the result in case there are several language.
-func checkHtmlLanguage(doc *html.Node, targetLanguage string) bool {
+func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 	htmlNode := doc
 	if dom.TagName(htmlNode) != "html" {
 		htmlNodes := dom.GetElementsByTagName(doc, "html")
@@ -30,7 +29,7 @@ func checkHtmlLanguage(doc *html.Node, targetLanguage string) bool {
 	if htmlNode != nil {
 		langAttr := dom.GetAttribute(htmlNode, "lang")
 		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
-			if lang == targetLanguage {
+			if lang == opts.TargetLanguage {
 				return true
 			}
 		}
@@ -40,13 +39,13 @@ func checkHtmlLanguage(doc *html.Node, targetLanguage string) bool {
 	for _, metaNode := range metaNodes {
 		metaContent := dom.GetAttribute(metaNode, "content")
 		for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
-			if lang == targetLanguage {
+			if lang == opts.TargetLanguage {
 				return true
 			}
 		}
 	}
 
-	logrus.Warnln("language detection failed")
+	logWarn(opts, "language detection failed")
 	return false
 }
 

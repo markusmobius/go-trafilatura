@@ -98,4 +98,7 @@ type Options struct {
 
 	// Provide a blacklist of URLs to filter out documents.
 	URLBlacklist []string
+
+	// EnableLog specify whether log should be enabled or not.
+	EnableLog bool
 }

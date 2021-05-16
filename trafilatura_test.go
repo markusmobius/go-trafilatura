@@ -270,16 +270,19 @@ func Test_Filters(t *testing.T) {
 	assert.Nil(t, result)
 
 	doc := docFromStr(`<html lang="de_DE, en_US"><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, "de"))
+	assert.True(t, checkHtmlLanguage(doc, opts))
 
+	opts.TargetLanguage = "it"
 	doc = docFromStr(`<html lang="en"><body></body></html>`)
-	assert.False(t, checkHtmlLanguage(doc, "it"))
+	assert.False(t, checkHtmlLanguage(doc, opts))
 
+	opts.TargetLanguage = "en"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, "en"))
+	assert.True(t, checkHtmlLanguage(doc, opts))
 
+	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`)
-	assert.False(t, checkHtmlLanguage(doc, "de"))
+	assert.False(t, checkHtmlLanguage(doc, opts))
 }
 
 func Test_External(t *testing.T) {

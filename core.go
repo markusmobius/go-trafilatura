@@ -11,7 +11,6 @@ import (
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/etree"
 	"github.com/markusmobius/go-trafilatura/selector"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -39,7 +38,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	}
 
 	// HTML language check
-	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts.TargetLanguage) {
+	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
@@ -130,7 +129,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 	// Size checks
 	if lenComments < opts.Config.MinExtractedCommentSize {
-		logrus.Warnf("not enough comments: %s", opts.OriginalURL)
+		logWarn(opts, "not enough comments: %s", opts.OriginalURL)
 	}
 
 	lenText := utf8.RuneCountInString(tmpBodyText)
@@ -504,7 +503,7 @@ func handleQuotes(element *html.Node, cache *Cache, opts Options) *html.Node {
 func handleTitles(element *html.Node, cache *Cache, opts Options) *html.Node {
 	tail := etree.Tail(element)
 	if tail != "" && rxWords.MatchString(tail) {
-		logrus.Warnf("tail in title, stripping: %s", tail)
+		logWarn(opts, "tail in title, stripping: %s", tail)
 	}
 
 	etree.SetTail(element, "")
@@ -533,6 +532,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 		// Make sure child is potential element
 		if _, exist := potentialTags[childTag]; !exist {
+			logWarn(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
 			etree.Remove(child)
 			continue
 		}
@@ -545,6 +545,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 		switch childTag {
 		case "p": // nested <p>
+			logWarn(opts, "extra p within p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
 			etree.SetText(child, " "+etree.Text(child))
 			etree.Strip(child)
 
@@ -599,6 +600,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		return processedElement
 	}
 
+	logWarn(opts, "discarding p-child: %s", trim(etree.ToString(processedElement)))
 	return nil
 }
 
@@ -736,10 +738,13 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		}
 	}
 
+	logWarn(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
 	return nil
 }
 
 func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) {
+	logInfo(opts, "recovering wild text elements")
+
 	// Prune
 	discardUnwanted(doc)
 
@@ -778,7 +783,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	// Try readability
 	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl, opts)
 	if err != nil {
-		logrus.Warnf("readability failed: %v", err)
+		logWarn(opts, "readability failed: %v", err)
 		readabilityExtract = etree.Element("div")
 	}
 
@@ -788,7 +793,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	// Compare
 	originalText := trim(etree.IterText(originalExtract, " "))
 	lenOriginal := utf8.RuneCountInString(originalText)
-	logrus.Infof("extracted length: %d (readability) %d (original)", lenReadability, lenOriginal)
+	logInfo(opts, "extracted length: %d (readability) %d (original)", lenReadability, lenOriginal)
 
 	// Check whether to use alternative algorithms
 	var useReadability bool
@@ -804,7 +809,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	case lenOriginal == 0 && lenReadability > opts.Config.MinExtractedSize:
 		useReadability = true
 	default:
-		logrus.Infof("extraction values: %d %d for %s", lenOriginal, lenReadability, originalUrl)
+		logInfo(opts, "extraction values: %d %d for %s", lenOriginal, lenReadability, originalUrl)
 		useReadability = false
 	}
 
@@ -813,18 +818,18 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		originalExtract = readabilityExtract
 		originalText = readabilityText
 		lenOriginal = lenReadability
-		logrus.Infof("using readability algorithm: %s", originalUrl)
+		logInfo(opts, "using readability algorithm: %s", originalUrl)
 	} else {
-		logrus.Infof("using dom-distiller algorithm: %s", originalUrl)
+		logInfo(opts, "using dom-distiller algorithm: %s", originalUrl)
 	}
 
 	// Try dom-distiller
 	if lenOriginal < opts.Config.MinExtractedSize {
-		logrus.Warnf("not enough text: %s", originalUrl)
+		logWarn(opts, "not enough text, using dom-distiller: %s", originalUrl)
 
 		distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl, opts)
 		if err != nil {
-			logrus.Warnf("dom-distiller failed: %v", err)
+			logWarn(opts, "dom-distiller failed: %v", err)
 		} else {
 			originalExtract = distillerExtract
 		}
