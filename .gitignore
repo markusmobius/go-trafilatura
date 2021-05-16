@@ -1,15 +1,9 @@
-# Binaries for programs and plugins
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
+# Config
+.vscode
 
-# Test binary, built with `go test -c`
-*.test
+# Binary
+/go-trafilatura
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Test files in root dir
+/*.html
+/*.txt

@@ -5,16 +5,6 @@ import (
 	"time"
 )
 
-// ExtractFormat is enum to specify the format for extraction result.
-type ExtractFormat uint8
-
-const (
-	Json ExtractFormat = 1 << iota
-	Text
-	CSV
-	HTML
-)
-
 // Config is advanced setting to fine tune the extraction result.
 // You can use it to specify the minimal size of the extracted content
 // and how many duplicate text allowed. However, for most of the time
@@ -52,51 +42,47 @@ type Options struct {
 	// extraction result. Keep it as nil to use default config.
 	Config *Config
 
-	// Optional ID for the extracted metadata.
+	// RecordID is optional ID for the extracted metadata.
 	RecordID int64
 
-	// Optional time for the extracted metadata.
+	// ExtractionTime is optional data for the extracted metadata.
 	ExtractionTime time.Time
 
-	// Original URL of the page.
+	// OriginalURL is the original URL of the page. Might be overwritten by URL in metadata.
 	OriginalURL *nurl.URL
 
-	// Specify whether to skip alternative extraction using go-readability
-	// and go-domdistiller.
-	NoFallback bool
-
-	// Specify whether to extract comments along with the main text.
-	OutputFormat ExtractFormat
-
-	// Only process web page that uses the specified language (ISO 639-1 format).
+	// TargetLanguage is ISO 639-1 language code to make the extractor only process web page that
+	// uses the specified language.
 	TargetLanguage string
 
-	// Specify whether to extract comments along with the main text.
+	// NoFallback specify whether to skip fallback extractor using readability and dom-distiller.
+	NoFallback bool
+
+	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool
 
-	// Take into account information within the HTML <table> element.
+	// ExcludeTables specify whether to exclude information within the HTML <table> element.
 	ExcludeTables bool
 
-	// Take images into account (experimental).
+	// IncludeImages specify whether the extraction result will include images (experimental).
 	IncludeImages bool
 
-	// Keep structural elements related to formatting, which will be present in HTML
-	// format and will be converted to markdown in others.
-	IncludeFormatting bool
-
-	// Keep links along with their targets (experimental).
+	// IncludeLinks specify whether the extraction result will include links along with their
+	// targets (experimental).
 	IncludeLinks bool
 
-	// Specify whether to remove duplicate segments and documents.
+	// Deduplicate specify whether to remove duplicate segments and sections.
 	Deduplicate bool
 
-	// Only keep documents featuring all essential metadata (date, title, url).
+	// HasEssentialMetadata make the extractor only keep documents featuring all essential
+	// metadata (date, title, url).
 	HasEssentialMetadata bool
 
-	// Discard documents with too many elements.
+	// MaxTreeSize specify max number of elements inside a document.
+	// Document that surpass this value will be discarded.
 	MaxTreeSize int
 
-	// Provide a blacklist of URLs to filter out documents.
+	// URLBlacklist is list of URLs to filter out documents.
 	URLBlacklist []string
 
 	// EnableLog specify whether log should be enabled or not.

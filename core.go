@@ -45,32 +45,28 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// Backup the doc first
 	docBackup := dom.Clone(doc, true)
 
-	// Extract metadata if necessary
-	var metadata Metadata
-	if opts.OutputFormat != Text {
-		// Fetch metadata
-		metadata = extractMetadata(doc, opts.OriginalURL)
+	// Fetch metadata
+	metadata := extractMetadata(doc, opts.OriginalURL)
 
-		// Stop extraction if URL is in blacklist
-		if metadata.URL != "" && strIn(metadata.URL, opts.URLBlacklist...) {
-			return nil, fmt.Errorf("%s is in blacklist", metadata.URL)
+	// Stop extraction if URL is in blacklist
+	if metadata.URL != "" && strIn(metadata.URL, opts.URLBlacklist...) {
+		return nil, fmt.Errorf("%s is in blacklist", metadata.URL)
+	}
+
+	// Check if essential metadata is missing
+	if opts.HasEssentialMetadata {
+		if metadata.Title == "" {
+			return nil, fmt.Errorf("title is required")
 		}
 
-		// Check if essential metadata is missing
-		if opts.HasEssentialMetadata {
-			if metadata.Title == "" {
-				return nil, fmt.Errorf("title is required")
-			}
-
-			if metadata.URL == "" {
-				return nil, fmt.Errorf("url is required")
-			}
-
-			// TODO: need to port htmldate
-			// if metadata.Date == "" {
-			// 	return nil, fmt.Errorf("date is required")
-			// }
+		if metadata.URL == "" {
+			return nil, fmt.Errorf("url is required")
 		}
+
+		// TODO: need to port htmldate
+		// if metadata.Date == "" {
+		// 	return nil, fmt.Errorf("date is required")
+		// }
 	}
 
 	// Clean document
