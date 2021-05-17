@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -20,12 +19,13 @@ func main() {
 		Use:   "go-trafilatura [flags] [source]",
 		Run:   rootCmdHandler,
 		Short: "extract readable content from a HTML file or url",
-		Long: "Extract readable content from a HTML file or url.\n" +
-			"It also has supports for batch download url either\n" +
-			"from a file, RSS feeds and sitemap.",
+		Long: "Extract readable content from a specified source which can be either a HTML file or url.\n" +
+			"It also has supports for batch download url either from a file which contains list of url,\n" +
+			"RSS feeds and sitemap.",
 		Args: cobra.ExactArgs(1),
 	}
 
+	rootCmd.Flags().StringP("format", "f", "", "output format for the extract result, either 'html' (default), 'txt' or 'json'")
 	rootCmd.Flags().StringP("language", "l", "", "target language (ISO 639-1 codes)")
 	rootCmd.Flags().Bool("no-fallback", false, "disable fallback extraction using readability and dom-distiller")
 	rootCmd.Flags().Bool("no-comments", false, "exclude comments  extraction result")
@@ -46,6 +46,7 @@ func main() {
 func rootCmdHandler(cmd *cobra.Command, args []string) {
 	// Fetch arguments
 	source := args[0]
+	outputFormat, _ := cmd.Flags().GetString("format")
 	language, _ := cmd.Flags().GetString("language")
 	noFallback, _ := cmd.Flags().GetBool("no-fallback")
 	noComments, _ := cmd.Flags().GetBool("no-comments")
@@ -74,14 +75,12 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	var err error
 	var result *trafilatura.ExtractResult
 
-	if fileExists(source) {
+	switch {
+	case fileExists(source):
 		result, err = processFile(source, opts)
-	} else {
-		validURL, errURL := nurl.ParseRequestURI(source)
-		if errURL != nil {
-			logrus.Fatalf("URL is not valid: %v", err)
-		}
-		result, err = processURL(validURL, timeout, opts)
+	case isValidURL(source):
+		parsedURL, _ := nurl.ParseRequestURI(source)
+		result, err = processURL(parsedURL, timeout, opts)
 	}
 
 	if err != nil {
@@ -93,8 +92,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	}
 
 	// Print result
-	fmt.Println(dom.OuterHTML(result.ContentNode))
-	fmt.Println(dom.OuterHTML(result.CommentsNode))
+	writeOutput(os.Stdout, result, outputFormat)
 }
 
 func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {

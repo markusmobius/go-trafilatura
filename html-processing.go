@@ -287,3 +287,25 @@ func processNode(element *html.Node, cache *Cache, opts Options) *html.Node {
 
 	return element
 }
+
+// postCleaning is used to clean the extracted content from useless attribute.
+// This is additional function that doesn't exist in original.
+func postCleaning(doc *html.Node) {
+	for _, element := range etree.Iter(doc) {
+		newAttr := []html.Attribute{}
+		for _, attr := range element.Attr {
+			if attr.Key == "id" || attr.Key == "class" {
+				continue
+			}
+
+			_, isStyling := presentationalAttributes[attr.Key]
+			if isStyling {
+				continue
+			}
+
+			newAttr = append(newAttr, attr)
+		}
+
+		element.Attr = newAttr
+	}
+}

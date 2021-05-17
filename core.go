@@ -146,6 +146,12 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		}
 	}
 
+	// Post cleaning: remove attributes
+	postCleaning(postBody)
+	if commentsBody != nil {
+		postCleaning(commentsBody)
+	}
+
 	return &ExtractResult{
 		ContentNode:  postBody,
 		ContentText:  tmpBodyText,
@@ -201,7 +207,11 @@ func extractComments(doc *html.Node, cache *Cache, opts Options) (*html.Node, st
 	}
 
 	tmpComments := etree.IterText(commentsBody, " ")
-	return commentsBody, tmpComments
+	if tmpComments != "" {
+		return commentsBody, tmpComments
+	}
+
+	return nil, ""
 }
 
 func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {

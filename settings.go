@@ -60,6 +60,10 @@ var validTagCatalog = sliceToMap(
 	"figure", "footer", "header", "mark", "meter", "nav", "output", "progress", "rp", "rt",
 	"ruby", "section", "source", "time", "track", "video", "wbr")
 
+var presentationalAttributes = sliceToMap(
+	"align", "background", "bgcolor", "border", "cellpadding",
+	"cellspacing", "frame", "hspace", "rules", "style", "valign", "vspace")
+
 func sliceToMap(strings ...string) map[string]struct{} {
 	result := make(map[string]struct{})
 	for _, s := range strings {
