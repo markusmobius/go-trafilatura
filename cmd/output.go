@@ -10,11 +10,27 @@ import (
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
 	"github.com/markusmobius/go-trafilatura/etree"
+	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
 )
 
-func writeOutput(w io.Writer, result *trafilatura.ExtractResult, format string) {
-	switch format {
+func outputExt(cmd *cobra.Command) string {
+	outputFormat, _ := cmd.Flags().GetString("format")
+
+	switch outputFormat {
+	case "txt":
+		return ".txt"
+	case "json":
+		return ".json"
+	default:
+		return ".html"
+	}
+}
+
+func writeOutput(w io.Writer, result *trafilatura.ExtractResult, cmd *cobra.Command) {
+	outputFormat, _ := cmd.Flags().GetString("format")
+
+	switch outputFormat {
 	case "txt":
 		writeText(w, result)
 	case "json":

@@ -70,5 +70,5 @@ func extractDomainURL(url string) string {
 		return ""
 	}
 
-	return parsedURL.Host
+	return parsedURL.Hostname()
 }

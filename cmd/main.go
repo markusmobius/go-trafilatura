@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	nurl "net/url"
@@ -15,6 +16,7 @@ import (
 )
 
 func main() {
+	// Create root command
 	rootCmd := &cobra.Command{
 		Use:   "go-trafilatura [flags] [source]",
 		Run:   rootCmdHandler,
@@ -25,18 +27,25 @@ func main() {
 		Args: cobra.ExactArgs(1),
 	}
 
-	rootCmd.Flags().StringP("format", "f", "", "output format for the extract result, either 'html' (default), 'txt' or 'json'")
-	rootCmd.Flags().StringP("language", "l", "", "target language (ISO 639-1 codes)")
-	rootCmd.Flags().Bool("no-fallback", false, "disable fallback extraction using readability and dom-distiller")
-	rootCmd.Flags().Bool("no-comments", false, "exclude comments  extraction result")
-	rootCmd.Flags().Bool("no-tables", false, "include tables in extraction result")
-	rootCmd.Flags().Bool("images", false, "include images in extraction result (experimental)")
-	rootCmd.Flags().Bool("links", false, "keep links in extraction result (experimental)")
-	rootCmd.Flags().Bool("deduplicate", false, "filter out duplicate segments and sections")
-	rootCmd.Flags().Bool("has-metadata", false, "only output documents with title, URL and date")
-	rootCmd.Flags().BoolP("verbose", "v", false, "enable log message")
-	rootCmd.Flags().IntP("timeout", "t", 30, "timeout for downloading web page in seconds")
+	// Register persistent flags
+	flags := rootCmd.PersistentFlags()
+	flags.StringP("format", "f", "", "output format for the extract result, either 'html' (default), 'txt' or 'json'")
+	flags.StringP("language", "l", "", "target language (ISO 639-1 codes)")
+	flags.Bool("no-fallback", false, "disable fallback extraction using readability and dom-distiller")
+	flags.Bool("no-comments", false, "exclude comments  extraction result")
+	flags.Bool("no-tables", false, "include tables in extraction result")
+	flags.Bool("images", false, "include images in extraction result (experimental)")
+	flags.Bool("links", false, "keep links in extraction result (experimental)")
+	flags.Bool("deduplicate", false, "filter out duplicate segments and sections")
+	flags.Bool("has-metadata", false, "only output documents with title, URL and date")
+	flags.BoolP("verbose", "v", false, "enable log message")
+	flags.IntP("timeout", "t", 30, "timeout for downloading web page in seconds")
+	flags.Bool("skip-tls", false, "skip X.509 (TLS) certificate verification")
 
+	// Add sub commands
+	rootCmd.AddCommand(batchCmd())
+
+	// Execute
 	err := rootCmd.Execute()
 	if err != nil {
 		logrus.Fatalln(err)
@@ -44,34 +53,11 @@ func main() {
 }
 
 func rootCmdHandler(cmd *cobra.Command, args []string) {
-	// Fetch arguments
-	source := args[0]
-	outputFormat, _ := cmd.Flags().GetString("format")
-	language, _ := cmd.Flags().GetString("language")
-	noFallback, _ := cmd.Flags().GetBool("no-fallback")
-	noComments, _ := cmd.Flags().GetBool("no-comments")
-	noTables, _ := cmd.Flags().GetBool("no-tables")
-	includeImages, _ := cmd.Flags().GetBool("images")
-	includeLinks, _ := cmd.Flags().GetBool("links")
-	deduplicate, _ := cmd.Flags().GetBool("deduplicate")
-	hasMetadata, _ := cmd.Flags().GetBool("has-metadata")
-	verbose, _ := cmd.Flags().GetBool("verbose")
-	timeout, _ := cmd.Flags().GetInt("timeout")
-
-	// Create extraction options
-	opts := trafilatura.Options{
-		TargetLanguage:       language,
-		NoFallback:           noFallback,
-		ExcludeComments:      noComments,
-		ExcludeTables:        noTables,
-		IncludeImages:        includeImages,
-		IncludeLinks:         includeLinks,
-		Deduplicate:          deduplicate,
-		HasEssentialMetadata: hasMetadata,
-		EnableLog:            verbose,
-	}
-
 	// Process source
+	source := args[0]
+	opts := createExtractorOptions(cmd)
+	httpClient := createHttpClient(cmd)
+
 	var err error
 	var result *trafilatura.ExtractResult
 
@@ -80,7 +66,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 		result, err = processFile(source, opts)
 	case isValidURL(source):
 		parsedURL, _ := nurl.ParseRequestURI(source)
-		result, err = processURL(parsedURL, timeout, opts)
+		result, err = processURL(httpClient, parsedURL, opts)
 	}
 
 	if err != nil {
@@ -92,7 +78,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	}
 
 	// Print result
-	writeOutput(os.Stdout, result, outputFormat)
+	writeOutput(os.Stdout, result, cmd)
 }
 
 func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
@@ -124,12 +110,7 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 	return result, nil
 }
 
-func processURL(url *nurl.URL, timeout int, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
-	// Prepare HTTP client
-	client := http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
-	}
-
+func processURL(client *http.Client, url *nurl.URL, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
 	// Download URL
 	strURL := url.String()
 	logrus.Println("downloading", strURL)
@@ -158,4 +139,35 @@ func processURL(url *nurl.URL, timeout int, opts trafilatura.Options) (*trafilat
 	}
 
 	return result, nil
+}
+
+func createExtractorOptions(cmd *cobra.Command) trafilatura.Options {
+	var opts trafilatura.Options
+
+	flags := cmd.Flags()
+	opts.NoFallback, _ = flags.GetBool("no-fallback")
+	opts.TargetLanguage, _ = flags.GetString("language")
+	opts.ExcludeComments, _ = flags.GetBool("no-comments")
+	opts.ExcludeTables, _ = flags.GetBool("no-tables")
+	opts.IncludeImages, _ = flags.GetBool("images")
+	opts.IncludeLinks, _ = flags.GetBool("links")
+	opts.Deduplicate, _ = flags.GetBool("deduplicate")
+	opts.HasEssentialMetadata, _ = flags.GetBool("has-metadata")
+	opts.EnableLog, _ = flags.GetBool("verbose")
+	return opts
+}
+
+func createHttpClient(cmd *cobra.Command) *http.Client {
+	flags := cmd.Flags()
+	timeout, _ := flags.GetInt("timeout")
+	skipTls, _ := flags.GetBool("skip-tls")
+
+	return &http.Client{
+		Timeout: time.Duration(timeout) * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: skipTls,
+			},
+		},
+	}
 }

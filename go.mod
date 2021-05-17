@@ -12,6 +12,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4
 	golang.org/x/net v0.0.0-20210510095157-81045d8b478c
+	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4
 	golang.org/x/sys v0.0.0-20210507161434-a76c4d0a0096 // indirect
 	golang.org/x/text v0.3.6
 )
