@@ -229,18 +229,12 @@ func Test_Filters(t *testing.T) {
 		return strings.NewReader(str)
 	}
 
-	// URL blacklist
-	opts := Options{URLBlacklist: []string{"https://example.org"}}
-	r := strings.NewReader(`<html><head><link rel="canonical" href="https://example.org"/></head><body></body></html>`)
-	result, _ := Extract(r, opts)
-	assert.Nil(t, result)
-
 	// Recursion limit
 	p1 := "<p>abc</p>"
 	p2 := "<p><i>abc</i></p>"
-	opts = Options{MaxTreeSize: 500}
+	opts := Options{MaxTreeSize: 500}
 
-	result, _ = Extract(rRepeatElement(p1, 50), opts)
+	result, _ := Extract(rRepeatElement(p1, 50), opts)
 	assert.NotNil(t, result)
 
 	result, _ = Extract(rRepeatElement(p1, 501), opts)
