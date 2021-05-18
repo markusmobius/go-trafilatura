@@ -86,9 +86,20 @@ What's not done yet:
 
 ## Changelog
 
+### 18 May 2021
+
+- In CLI, implement sitemap finder and downloader.
+
+### 17 May 2021
+
+- In CLI, add support for several type of output.
+- In CLI, add subcommand for batch download from file that contains list of url.
+
+
 ### 16 May 2021
 
 - Make the log less verbose.
+- Implement initial CLI.
 
 ### 12 May 2021
 
