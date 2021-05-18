@@ -40,6 +40,7 @@ func sitemapCmd() *cobra.Command {
 	flags.String("exclude", "", "regular expression for excluded url")
 	flags.StringArray("domains", nil, "list of allowed domains")
 	flags.StringArray("no-domains", nil, "list of excluded domains")
+	flags.Bool("url-only", false, "only print page urls without downloading or processing them")
 
 	return cmd
 }
@@ -54,6 +55,7 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 	allowedDomains, _ := flags.GetStringArray("domains")
 	excludedDomains, _ := flags.GetStringArray("no-domains")
 	outputDir, _ := flags.GetString("output")
+	urlOnly, _ := flags.GetBool("url-only")
 
 	// Find sitemap URL
 	httpClient := createHttpClient(cmd)
@@ -102,6 +104,14 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 	}).downloadURLs(context.Background(), sitemapURLs)
 
 	logrus.Printf("found %d page URLs", len(pageURLs))
+
+	// If user only want to print URLs, stop
+	if urlOnly {
+		for _, url := range pageURLs {
+			fmt.Println(url.String())
+		}
+		return
+	}
 
 	// Make sure output dir exist
 	os.MkdirAll(outputDir, os.ModePerm)
