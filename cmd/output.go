@@ -27,20 +27,20 @@ func outputExt(cmd *cobra.Command) string {
 	}
 }
 
-func writeOutput(w io.Writer, result *trafilatura.ExtractResult, cmd *cobra.Command) {
+func writeOutput(w io.Writer, result *trafilatura.ExtractResult, cmd *cobra.Command) error {
 	outputFormat, _ := cmd.Flags().GetString("format")
 
 	switch outputFormat {
 	case "txt":
-		writeText(w, result)
+		return writeText(w, result)
 	case "json":
-		writeJSON(w, result)
+		return writeJSON(w, result)
 	default:
-		writeHTML(w, result)
+		return writeHTML(w, result)
 	}
 }
 
-func writeText(w io.Writer, result *trafilatura.ExtractResult) {
+func writeText(w io.Writer, result *trafilatura.ExtractResult) error {
 	buffer := bytes.NewBuffer(nil)
 	buffer.WriteString(result.ContentText)
 
@@ -51,15 +51,16 @@ func writeText(w io.Writer, result *trafilatura.ExtractResult) {
 		buffer.WriteString(result.ContentText)
 	}
 
-	io.Copy(w, buffer)
+	_, err := io.Copy(w, buffer)
+	return err
 }
 
-func writeJSON(w io.Writer, result *trafilatura.ExtractResult) {
+func writeJSON(w io.Writer, result *trafilatura.ExtractResult) error {
 	data := jsonExtractResult(*result)
-	json.NewEncoder(w).Encode(data)
+	return json.NewEncoder(w).Encode(data)
 }
 
-func writeHTML(w io.Writer, result *trafilatura.ExtractResult) {
+func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
 	// Create base document
 	doc, _ := html.Parse(bytes.NewBuffer(nil))
 	head := dom.QuerySelector(doc, "head")
@@ -119,7 +120,8 @@ func writeHTML(w io.Writer, result *trafilatura.ExtractResult) {
 	}
 
 	// Print as HTML
-	fmt.Fprint(w, dom.OuterHTML(doc))
+	_, err := fmt.Fprint(w, dom.OuterHTML(doc))
+	return err
 }
 
 type jsonExtractResult trafilatura.ExtractResult

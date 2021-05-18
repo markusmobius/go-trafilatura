@@ -48,11 +48,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// Fetch metadata
 	metadata := extractMetadata(doc, opts.OriginalURL)
 
-	// Stop extraction if URL is in blacklist
-	if metadata.URL != "" && strIn(metadata.URL, opts.URLBlacklist...) {
-		return nil, fmt.Errorf("%s is in blacklist", metadata.URL)
-	}
-
 	// Check if essential metadata is missing
 	if opts.HasEssentialMetadata {
 		if metadata.Title == "" {

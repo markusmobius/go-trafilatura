@@ -11,17 +11,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/markusmobius/go-trafilatura"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
 
 func batchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "batch [flags] [file]",
-		Short: "Download and extract page from list of urls that specified in the file",
-		Long: "Download and extract page from list of urls that specified in the file.\n" +
+		Short: "Download and extract pages from list of urls that specified in the file",
+		Long: "Download and extract pages from list of urls that specified in the file.\n" +
 			"The file is text file that contains a list of url. The extract result will\n" +
 			"be saved in format of \"<line number>-<domain name>.html\". To specify custom\n" +
 			"name, write it in the same line as url, separated with tab: e.g. \"<URL>[tab]<Name>\"",
@@ -40,10 +40,9 @@ func batchCmd() *cobra.Command {
 func batchCmdHandler(cmd *cobra.Command, args []string) {
 	// Parse arguments
 	flags := cmd.Flags()
+	delay, _ := flags.GetInt("delay")
 	nThread, _ := flags.GetInt("parallel")
-	intDelay, _ := flags.GetInt("delay")
 	outputDir, _ := flags.GetString("output")
-	delay := time.Duration(intDelay) * time.Second
 
 	// Parse input file
 	urls, names, err := parseBatchFile(cmd, args[0])
@@ -55,48 +54,30 @@ func batchCmdHandler(cmd *cobra.Command, args []string) {
 		logrus.Fatalf("no valid url found")
 	}
 
-	// Prepare extractor options and http client
-	opts := createExtractorOptions(cmd)
-	httpClient := createHttpClient(cmd)
+	// Make sure output dir exist
+	os.MkdirAll(outputDir, os.ModePerm)
 
 	// Download and process concurrently
-	g, ctx := errgroup.WithContext(context.Background())
-	sem := semaphore.NewWeighted(int64(nThread))
+	fnWrite := func(result *trafilatura.ExtractResult, url *nurl.URL, idx int) error {
+		name := names[idx]
+		dst, err := os.Create(fp.Join(outputDir, name))
+		if err != nil {
+			return err
+		}
+		defer dst.Close()
 
-	for i, url := range urls {
-		url, name := url, names[i]
-
-		g.Go(func() error {
-			// Acquire semaphore to limit concurrent download
-			err := sem.Acquire(ctx, 1)
-			if err != nil {
-				return nil
-			}
-			defer sem.Release(1)
-
-			// Process URL
-			result, err := processURL(httpClient, url, opts)
-			if err != nil {
-				return err
-			}
-
-			// Create destination file
-			dst, err := os.Create(fp.Join(outputDir, name))
-			if err != nil {
-				return err
-			}
-			defer dst.Close()
-
-			// Write output to file
-			writeOutput(dst, result, cmd)
-
-			// Add delay (to prevent too many request to target server)
-			time.Sleep(delay)
-			return nil
-		})
+		return writeOutput(dst, result, cmd)
 	}
 
-	err = g.Wait()
+	err = (&batchDownloader{
+		httpClient:     createHttpClient(cmd),
+		extractOptions: createExtractorOptions(cmd),
+		semaphore:      semaphore.NewWeighted(int64(nThread)),
+		delay:          time.Duration(delay) * time.Second,
+		cancelOnError:  false,
+		writeFunc:      fnWrite,
+	}).downloadURLs(context.Background(), urls)
+
 	if err != nil {
 		logrus.Fatalf("process failed: %v", err)
 	}
@@ -157,8 +138,8 @@ func parseBatchFile(cmd *cobra.Command, path string) ([]*nurl.URL, []string, err
 		}
 
 		nameIdx++
-		domainName := strings.ReplaceAll(url.Hostname(), ".", "-")
-		newName := fmt.Sprintf(numberFormat+"-%s%s", nameIdx, domainName, nameExt)
+		newName := nameFromURL(url)
+		newName = fmt.Sprintf(numberFormat+"-%s%s", nameIdx, newName, nameExt)
 		dstNames[i] = newName
 	}
 

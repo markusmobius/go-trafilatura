@@ -5,6 +5,9 @@ import (
 	"net/http"
 	nurl "net/url"
 	"os"
+	"path"
+	"regexp"
+	"strings"
 )
 
 func fileExists(path string) bool {
@@ -35,4 +38,35 @@ func getFileContentType(r io.Reader) (string, error) {
 
 	contentType := http.DetectContentType(buffer)
 	return contentType, nil
+}
+
+func sliceToMap(strings ...string) map[string]struct{} {
+	result := make(map[string]struct{})
+	for _, s := range strings {
+		result[s] = struct{}{}
+	}
+	return result
+}
+
+func rxFromString(str string) (*regexp.Regexp, error) {
+	if str == "" {
+		return nil, nil
+	}
+
+	return regexp.Compile(str)
+}
+
+func nameFromURL(url *nurl.URL) string {
+	urlPath := strings.Trim(url.Path, "/")
+	domain := strings.TrimPrefix(url.Hostname(), "www.")
+
+	newName := strings.ReplaceAll(domain, ".", "-")
+	if urlPath != "" {
+		urlPath = path.Base(urlPath)
+		urlPath = strings.ReplaceAll(urlPath, "/", "-")
+		urlPath = strings.ReplaceAll(urlPath, ".", "-")
+		newName += "-" + urlPath
+	}
+
+	return newName
 }

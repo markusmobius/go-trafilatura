@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	nurl "net/url"
 	"os"
@@ -43,7 +45,7 @@ func main() {
 	flags.Bool("skip-tls", false, "skip X.509 (TLS) certificate verification")
 
 	// Add sub commands
-	rootCmd.AddCommand(batchCmd())
+	rootCmd.AddCommand(batchCmd(), sitemapCmd())
 
 	// Execute
 	err := rootCmd.Execute()
@@ -78,7 +80,10 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	}
 
 	// Print result
-	writeOutput(os.Stdout, result, cmd)
+	err = writeOutput(os.Stdout, result, cmd)
+	if err != nil {
+		logrus.Fatalf("failed to write output: %v", err)
+	}
 }
 
 func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
@@ -90,8 +95,14 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 	defer f.Close()
 
 	// Make sure it's html
-	if fp.Ext(path) != ".html" {
-		contentType, err := getFileContentType(f)
+	var fReader io.Reader
+	if fp.Ext(path) == "html" {
+		fReader = f
+	} else {
+		buffer := bytes.NewBuffer(nil)
+		tee := io.TeeReader(f, buffer)
+
+		contentType, err := getFileContentType(tee)
 		if err != nil {
 			return nil, err
 		}
@@ -99,10 +110,12 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 		if !strings.Contains(contentType, "text/html") {
 			return nil, fmt.Errorf("%s is not html file: %s", path, contentType)
 		}
+
+		fReader = buffer
 	}
 
 	// Extract
-	result, err := trafilatura.Extract(f, opts)
+	result, err := trafilatura.Extract(fReader, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -122,13 +135,9 @@ func processURL(client *http.Client, url *nurl.URL, opts trafilatura.Options) (*
 	defer resp.Body.Close()
 
 	// Make sure it's html
-	contentType, err := getFileContentType(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
+	contentType := resp.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "text/html") {
-		return nil, fmt.Errorf("%s is not html: %s", strURL, contentType)
+		return nil, fmt.Errorf("page is not html: \"%s\"", contentType)
 	}
 
 	// Extract

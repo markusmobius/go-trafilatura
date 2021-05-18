@@ -82,9 +82,6 @@ type Options struct {
 	// Document that surpass this value will be discarded.
 	MaxTreeSize int
 
-	// URLBlacklist is list of URLs to filter out documents.
-	URLBlacklist []string
-
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 }

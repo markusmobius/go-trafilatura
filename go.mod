@@ -7,6 +7,7 @@ require (
 	github.com/go-shiori/dom v0.0.0-20210510042244-c74b4cff1404
 	github.com/go-shiori/go-readability v0.0.0-20210510103457-b331f36de46f
 	github.com/markusmobius/go-domdistiller v0.0.0-20210507092251-8b6b2020101d
+	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.0.0
 	github.com/stretchr/testify v1.6.1
