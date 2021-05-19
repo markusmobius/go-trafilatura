@@ -8,7 +8,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is still in development and the port process is still not finished. There are 14 files with 2,293 lines of code that haven’t been ported, so there is still long way to go. Fortunately, it seems most of those leftover Python codes can be left alone because the functionality already available in Go or not useful for our purpose.
+This package is still in development and the port process is finished. We only need to catch up to the latest commit in the original Trafilatura.
 
 As it is right now, the content extractor already functional and can be used within Go code, as can be seen in this [example](examples/from-url.go) :
 
@@ -70,9 +70,6 @@ There are some difference between this port and the original Trafilatura:
 What's not done yet:
 
 - Restructure code to make it more similar with the original Trafilatura.
-- Improve documentation.
-- Implement CLI for the extractor.
-- Implement some QoL features like batch url downloads and sitemap scraping. However, since this is an additional features, I think it should be implemented in CLI instead of in the package.
 - Port `comparison.py` to compare between `go-trafilatura`, `go-readability` and `go-domdistiller`. However, I think it should be done in separate repository.
 - Port `htmldate`. It's a medium library which consists of around 900 lines of Python code (excluding unit tests), whose sole purpose is to extract publishing date of a web page. 
 
@@ -90,6 +87,9 @@ What's not done yet:
 
 - In CLI, add flags to fetch only the urls from sitemap.
 - In CLI, implement feed finder and downloader.
+- In CLI, add flags for custom user agent.
+- Move `etree` and `selector` package to internal dir so it can't be reached by user.
+- Remove finished python codes.
 
 ### 18 May 2021
 
