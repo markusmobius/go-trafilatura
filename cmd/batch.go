@@ -43,6 +43,7 @@ func batchCmdHandler(cmd *cobra.Command, args []string) {
 	delay, _ := flags.GetInt("delay")
 	nThread, _ := flags.GetInt("parallel")
 	outputDir, _ := flags.GetString("output")
+	userAgent, _ := cmd.Flags().GetString("user-agent")
 
 	// Parse input file
 	urls, names, err := parseBatchFile(cmd, args[0])
@@ -70,6 +71,7 @@ func batchCmdHandler(cmd *cobra.Command, args []string) {
 	}
 
 	err = (&batchDownloader{
+		userAgent:      userAgent,
 		httpClient:     createHttpClient(cmd),
 		extractOptions: createExtractorOptions(cmd),
 		semaphore:      semaphore.NewWeighted(int64(nThread)),

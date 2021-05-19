@@ -13,9 +13,10 @@ import (
 )
 
 type batchDownloader struct {
-	httpClient     *http.Client
 	extractOptions trafilatura.Options
 	semaphore      *semaphore.Weighted
+	httpClient     *http.Client
+	userAgent      string
 	delay          time.Duration
 	cancelOnError  bool
 	writeFunc      func(*trafilatura.ExtractResult, *nurl.URL, int) error
@@ -35,7 +36,7 @@ func (bd *batchDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL) e
 			}
 
 			// Process URL
-			result, err := processURL(bd.httpClient, url, bd.extractOptions)
+			result, err := processURL(bd.httpClient, bd.userAgent, url, bd.extractOptions)
 			bd.semaphore.Release(1)
 			if err != nil {
 				if bd.cancelOnError {

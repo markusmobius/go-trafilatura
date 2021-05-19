@@ -17,6 +17,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	// defaultUserAgent is the default user agent to use, which is Firefox's.
+	defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
+)
+
 func main() {
 	// Create root command
 	rootCmd := &cobra.Command{
@@ -43,6 +48,7 @@ func main() {
 	flags.BoolP("verbose", "v", false, "enable log message")
 	flags.IntP("timeout", "t", 30, "timeout for downloading web page in seconds")
 	flags.Bool("skip-tls", false, "skip X.509 (TLS) certificate verification")
+	flags.StringP("user-agent", "u", defaultUserAgent, "set custom user agent")
 
 	// Add sub commands
 	rootCmd.AddCommand(batchCmd(), sitemapCmd(), feedCmd())
@@ -59,6 +65,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	source := args[0]
 	opts := createExtractorOptions(cmd)
 	httpClient := createHttpClient(cmd)
+	userAgent, _ := cmd.Flags().GetString("user-agent")
 
 	var err error
 	var result *trafilatura.ExtractResult
@@ -68,7 +75,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 		result, err = processFile(source, opts)
 	case isValidURL(source):
 		parsedURL, _ := nurl.ParseRequestURI(source)
-		result, err = processURL(httpClient, parsedURL, opts)
+		result, err = processURL(httpClient, userAgent, parsedURL, opts)
 	}
 
 	if err != nil {
@@ -123,12 +130,12 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 	return result, nil
 }
 
-func processURL(client *http.Client, url *nurl.URL, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
+func processURL(client *http.Client, userAgent string, url *nurl.URL, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
 	// Download URL
 	strURL := url.String()
 	logrus.Println("downloading", strURL)
 
-	resp, err := client.Get(strURL)
+	resp, err := download(client, userAgent, strURL)
 	if err != nil {
 		return nil, err
 	}
@@ -179,4 +186,19 @@ func createHttpClient(cmd *cobra.Command) *http.Client {
 			},
 		},
 	}
+}
+
+func download(client *http.Client, userAgent string, url string) (*http.Response, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

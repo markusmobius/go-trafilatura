@@ -19,8 +19,9 @@ type sitemapDownloader struct {
 	sync.RWMutex
 
 	cache      map[string]struct{}
-	httpClient *http.Client
 	semaphore  *semaphore.Weighted
+	httpClient *http.Client
+	userAgent  string
 	delay      time.Duration
 	filterFunc func(*nurl.URL) bool
 }
@@ -95,7 +96,7 @@ func (sd *sitemapDownloader) downloadURL(url *nurl.URL) ([]*nurl.URL, []*nurl.UR
 	strURL := url.String()
 	logrus.Println("downloading sitemap", strURL)
 
-	resp, err := sd.httpClient.Get(strURL)
+	resp, err := download(sd.httpClient, sd.userAgent, strURL)
 	if err != nil {
 		return nil, nil, err
 	}

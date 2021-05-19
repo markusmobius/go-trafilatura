@@ -37,7 +37,9 @@ func feedCmd() *cobra.Command {
 			"finder, so you can point the url into an ordinary web page then\n" +
 			"Trafilatura will attempt to find the feed.",
 		Args: cobra.ExactArgs(1),
-		Run:  feedCmdHandler,
+		Run: func(cmd *cobra.Command, args []string) {
+			newFeedCmdHandler(cmd).run(args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -53,7 +55,15 @@ func feedCmd() *cobra.Command {
 	return cmd
 }
 
-func feedCmdHandler(cmd *cobra.Command, args []string) {
+type feedCmdHandler struct {
+	userAgent       string
+	httpClient      *http.Client
+	pagesDownloader *batchDownloader
+	filterFunc      func(url *nurl.URL) bool
+	urlOnly         bool
+}
+
+func newFeedCmdHandler(cmd *cobra.Command) *feedCmdHandler {
 	// Parse flags
 	flags := cmd.Flags()
 	delay, _ := flags.GetInt("delay")
@@ -64,13 +74,10 @@ func feedCmdHandler(cmd *cobra.Command, args []string) {
 	excludedDomains, _ := flags.GetStringArray("no-domains")
 	outputDir, _ := flags.GetString("output")
 	urlOnly, _ := flags.GetBool("url-only")
+	userAgent, _ := cmd.Flags().GetString("user-agent")
 
-	// Find feed page
+	// Prepare http client
 	httpClient := createHttpClient(cmd)
-	feedPage, err := findFeedPage(httpClient, args[0])
-	if err != nil {
-		logrus.Fatalf("failed to find feed: %v", err)
-	}
 
 	// Prepare filter
 	mapAllowedDomains := sliceToMap(allowedDomains...)
@@ -103,26 +110,7 @@ func feedCmdHandler(cmd *cobra.Command, args []string) {
 		return true
 	}
 
-	// Parse feed page
-	pageURLs, err := parseFeedPage(feedPage, fnFilter)
-	if err != nil {
-		logrus.Fatalf("failed to parse feed: %v", err)
-	}
-
-	logrus.Printf("found %d page URLs", len(pageURLs))
-
-	// If user only want to print URLs, stop
-	if urlOnly {
-		for _, url := range pageURLs {
-			fmt.Println(url.String())
-		}
-		return
-	}
-
-	// Make sure output dir exist
-	os.MkdirAll(outputDir, os.ModePerm)
-
-	// Download and process pages concurrently
+	// Prepare pages downloader
 	nameExt := outputExt(cmd)
 	fnWrite := func(result *trafilatura.ExtractResult, url *nurl.URL, idx int) error {
 		name := nameFromURL(url)
@@ -142,21 +130,59 @@ func feedCmdHandler(cmd *cobra.Command, args []string) {
 		return writeOutput(dst, result, cmd)
 	}
 
-	err = (&batchDownloader{
-		httpClient:     createHttpClient(cmd),
+	pagesDownloader := &batchDownloader{
+		userAgent:      userAgent,
+		httpClient:     httpClient,
 		extractOptions: createExtractorOptions(cmd),
 		semaphore:      semaphore.NewWeighted(int64(nThread)),
 		delay:          time.Duration(delay) * time.Second,
 		cancelOnError:  false,
 		writeFunc:      fnWrite,
-	}).downloadURLs(context.Background(), pageURLs)
+	}
 
+	// Make sure output dir exist
+	os.MkdirAll(outputDir, os.ModePerm)
+
+	// Return handler
+	return &feedCmdHandler{
+		userAgent:       userAgent,
+		httpClient:      httpClient,
+		pagesDownloader: pagesDownloader,
+		filterFunc:      fnFilter,
+		urlOnly:         urlOnly,
+	}
+}
+
+func (fch *feedCmdHandler) run(args []string) {
+	// Find feed page
+	feedPage, err := fch.findFeedPage(args[0])
+	if err != nil {
+		logrus.Fatalf("failed to find feed: %v", err)
+	}
+
+	// Parse feed page
+	pageURLs, err := fch.parseFeedPage(feedPage)
+	if err != nil {
+		logrus.Fatalf("failed to parse feed: %v", err)
+	}
+	logrus.Printf("found %d page URLs", len(pageURLs))
+
+	// If user only want to print URLs, stop
+	if fch.urlOnly {
+		for _, url := range pageURLs {
+			fmt.Println(url.String())
+		}
+		return
+	}
+
+	// Download and process pages concurrently
+	err = fch.pagesDownloader.downloadURLs(context.Background(), pageURLs)
 	if err != nil {
 		logrus.Fatalf("download pages failed: %v", err)
 	}
 }
 
-func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
+func (fch *feedCmdHandler) findFeedPage(baseURL string) (io.Reader, error) {
 	// Make sure URL valid
 	parsedBaseURL, valid := validateURL(baseURL)
 	if !valid {
@@ -171,7 +197,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 	err := func() error {
 		// Downloading base URL
 		logrus.Println("downloading", baseURL)
-		resp, err := client.Get(baseURL)
+		resp, err := download(fch.httpClient, fch.userAgent, baseURL)
 		if err != nil {
 			return err
 		}
@@ -179,7 +205,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 
 		// If it's XML, we got the feed so return it
 		contentType := resp.Header.Get("Content-Type")
-		if contentIsFeed(contentType) {
+		if fch.contentIsFeed(contentType) {
 			_, err = io.Copy(buffer, resp.Body)
 			feedURL = baseURL
 			return err
@@ -190,7 +216,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 			return fmt.Errorf("page is not html: \"%s\"", contentType)
 		}
 
-		feedURL, err = findFeedUrlInHtml(resp.Body, parsedBaseURL)
+		feedURL, err = fch.findFeedUrlInHtml(resp.Body, parsedBaseURL)
 		return err
 	}()
 
@@ -212,7 +238,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 	err = func() error {
 		// Downloading feed URL
 		logrus.Println("downloading feed", feedURL)
-		resp, err := client.Get(feedURL)
+		resp, err := download(fch.httpClient, fch.userAgent, feedURL)
 		if err != nil {
 			return err
 		}
@@ -220,7 +246,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 
 		// Fail if it's not XML
 		contentType := resp.Header.Get("Content-Type")
-		if !contentIsFeed(contentType) {
+		if !fch.contentIsFeed(contentType) {
 			return fmt.Errorf("page is not feed: \"%s\"", contentType)
 		}
 
@@ -239,7 +265,7 @@ func findFeedPage(client *http.Client, baseURL string) (io.Reader, error) {
 	return buffer, nil
 }
 
-func parseFeedPage(r io.Reader, filterFunc func(*nurl.URL) bool) ([]*nurl.URL, error) {
+func (fch *feedCmdHandler) parseFeedPage(r io.Reader) ([]*nurl.URL, error) {
 	var pageURLs []*nurl.URL
 
 	// Parse doc
@@ -281,7 +307,7 @@ func parseFeedPage(r io.Reader, filterFunc func(*nurl.URL) bool) ([]*nurl.URL, e
 	uniqueTracker := make(map[string]struct{})
 
 	for _, url := range pageURLs {
-		if filterFunc != nil && !filterFunc(url) {
+		if fch.filterFunc != nil && !fch.filterFunc(url) {
 			continue
 		}
 
@@ -297,7 +323,7 @@ func parseFeedPage(r io.Reader, filterFunc func(*nurl.URL) bool) ([]*nurl.URL, e
 	return uniquePageURLs, nil
 }
 
-func findFeedUrlInHtml(r io.Reader, baseURL *nurl.URL) (string, error) {
+func (fch *feedCmdHandler) findFeedUrlInHtml(r io.Reader, baseURL *nurl.URL) (string, error) {
 	// Parse document
 	doc, err := html.Parse(r)
 	if err != nil {
@@ -325,7 +351,7 @@ func findFeedUrlInHtml(r io.Reader, baseURL *nurl.URL) (string, error) {
 	return "", nil
 }
 
-func contentIsFeed(contentType string) bool {
+func (fch *feedCmdHandler) contentIsFeed(contentType string) bool {
 	switch {
 	case strings.Contains(contentType, "text/xml"),
 		strings.Contains(contentType, "application/xml"),

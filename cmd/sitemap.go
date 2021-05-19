@@ -26,7 +26,9 @@ func sitemapCmd() *cobra.Command {
 			"Trafilatura supports simple sitemap finder, so you can point the url into\n" +
 			"an ordinary web page then Trafilatura will attempt to find the sitemap.",
 		Args: cobra.ExactArgs(1),
-		Run:  sitemapCmdHandler,
+		Run: func(cmd *cobra.Command, args []string) {
+			newSitemapCmdHandler(cmd).run(args)
+		},
 	}
 
 	flags := cmd.Flags()
@@ -42,7 +44,15 @@ func sitemapCmd() *cobra.Command {
 	return cmd
 }
 
-func sitemapCmdHandler(cmd *cobra.Command, args []string) {
+type sitemapCmdHandler struct {
+	userAgent         string
+	httpClient        *http.Client
+	sitemapDownloader *sitemapDownloader
+	pagesDownloader   *batchDownloader
+	urlOnly           bool
+}
+
+func newSitemapCmdHandler(cmd *cobra.Command) *sitemapCmdHandler {
 	// Parse flags
 	flags := cmd.Flags()
 	delay, _ := flags.GetInt("delay")
@@ -53,15 +63,12 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 	excludedDomains, _ := flags.GetStringArray("no-domains")
 	outputDir, _ := flags.GetString("output")
 	urlOnly, _ := flags.GetBool("url-only")
+	userAgent, _ := cmd.Flags().GetString("user-agent")
 
-	// Find sitemap URL
+	// Prepare http client
 	httpClient := createHttpClient(cmd)
-	sitemapURLs, err := findSitemapURLs(httpClient, args[0])
-	if err != nil {
-		logrus.Fatalf("failed to find sitemap: %v", err)
-	}
 
-	// Download all sitemaps recursively, concurrently
+	// Prepare sitemap downloader
 	mapAllowedDomains := sliceToMap(allowedDomains...)
 	mapExcludedDomains := sliceToMap(excludedDomains...)
 
@@ -92,28 +99,16 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 		return true
 	}
 
-	pageURLs := (&sitemapDownloader{
+	sDownloader := &sitemapDownloader{
 		cache:      make(map[string]struct{}),
 		httpClient: httpClient,
+		userAgent:  userAgent,
 		filterFunc: fnFilter,
 		delay:      time.Duration(delay) * time.Second,
 		semaphore:  semaphore.NewWeighted(int64(nThread)),
-	}).downloadURLs(context.Background(), sitemapURLs)
-
-	logrus.Printf("found %d page URLs", len(pageURLs))
-
-	// If user only want to print URLs, stop
-	if urlOnly {
-		for _, url := range pageURLs {
-			fmt.Println(url.String())
-		}
-		return
 	}
 
-	// Make sure output dir exist
-	os.MkdirAll(outputDir, os.ModePerm)
-
-	// Download and process pages concurrently
+	// Prepare pages downloader
 	nameExt := outputExt(cmd)
 	fnWrite := func(result *trafilatura.ExtractResult, url *nurl.URL, idx int) error {
 		name := nameFromURL(url)
@@ -133,21 +128,57 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 		return writeOutput(dst, result, cmd)
 	}
 
-	err = (&batchDownloader{
-		httpClient:     createHttpClient(cmd),
+	pagesDownloader := &batchDownloader{
+		userAgent:      userAgent,
+		httpClient:     httpClient,
 		extractOptions: createExtractorOptions(cmd),
 		semaphore:      semaphore.NewWeighted(int64(nThread)),
 		delay:          time.Duration(delay) * time.Second,
 		cancelOnError:  false,
 		writeFunc:      fnWrite,
-	}).downloadURLs(context.Background(), pageURLs)
+	}
 
+	// Make sure output dir exist
+	os.MkdirAll(outputDir, os.ModePerm)
+
+	// Return handler
+	return &sitemapCmdHandler{
+		userAgent:         userAgent,
+		httpClient:        httpClient,
+		sitemapDownloader: sDownloader,
+		pagesDownloader:   pagesDownloader,
+		urlOnly:           urlOnly,
+	}
+}
+
+func (sch *sitemapCmdHandler) run(args []string) {
+	// Find sitemap URL
+	sitemapURLs, err := sch.findSitemapURLs(args[0])
+	if err != nil {
+		logrus.Fatalf("failed to find sitemap: %v", err)
+	}
+
+	// Download all sitemaps recursively, concurrently
+	ctx := context.Background()
+	pageURLs := sch.sitemapDownloader.downloadURLs(ctx, sitemapURLs)
+	logrus.Printf("found %d page URLs", len(pageURLs))
+
+	// If user only want to print URLs, stop
+	if sch.urlOnly {
+		for _, url := range pageURLs {
+			fmt.Println(url.String())
+		}
+		return
+	}
+
+	// Download and process pages concurrently
+	err = sch.pagesDownloader.downloadURLs(ctx, pageURLs)
 	if err != nil {
 		logrus.Fatalf("download pages failed: %v", err)
 	}
 }
 
-func findSitemapURLs(client *http.Client, baseURL string) ([]*nurl.URL, error) {
+func (sch *sitemapCmdHandler) findSitemapURLs(baseURL string) ([]*nurl.URL, error) {
 	// Make sure URL valid
 	if !isValidURL(baseURL) {
 		return nil, fmt.Errorf("url is not valid")
@@ -168,7 +199,7 @@ func findSitemapURLs(client *http.Client, baseURL string) ([]*nurl.URL, error) {
 	parsedURL.RawQuery = nurl.Values{}.Encode()
 	parsedURL.Fragment = ""
 
-	sitemapURLs, err := findSitemapURLsInRobots(client, parsedURL.String())
+	sitemapURLs, err := sch.findSitemapURLsInRobots(parsedURL.String())
 	if err != nil {
 		logrus.Warnln("failed to look in robots.txt:", err)
 	}
@@ -182,10 +213,10 @@ func findSitemapURLs(client *http.Client, baseURL string) ([]*nurl.URL, error) {
 	return sitemapURLs, nil
 }
 
-func findSitemapURLsInRobots(client *http.Client, robotsURL string) ([]*nurl.URL, error) {
+func (sch *sitemapCmdHandler) findSitemapURLsInRobots(robotsURL string) ([]*nurl.URL, error) {
 	// Download URL
 	logrus.Println("downloading robots.txt:", robotsURL)
-	resp, err := client.Get(robotsURL)
+	resp, err := download(sch.httpClient, sch.userAgent, robotsURL)
 	if err != nil {
 		return nil, err
 	}
