@@ -69,7 +69,6 @@ There are some difference between this port and the original Trafilatura:
 
 What's not done yet:
 
-- Restructure code to make it more similar with the original Trafilatura.
 - Port `comparison.py` to compare between `go-trafilatura`, `go-readability` and `go-domdistiller`. However, I think it should be done in separate repository.
 - Port `htmldate`. It's a medium library which consists of around 900 lines of Python code (excluding unit tests), whose sole purpose is to extract publishing date of a web page. 
 
@@ -82,6 +81,10 @@ What's not done yet:
 - Since Trafilatura is still actively developed, we might need to catch up to the latest Trafilatura version.
 
 ## Changelog
+
+### 20 May 2021
+
+- Add license header in each file
 
 ### 19 May 2021
 
