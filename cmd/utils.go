@@ -15,17 +15,22 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func isValidURL(url string) bool {
+func validateURL(url string) (*nurl.URL, bool) {
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
-		return false
+		return nil, false
 	}
 
 	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
-		return false
+		return nil, false
 	}
 
-	return true
+	return parsedURL, true
+}
+
+func isValidURL(url string) bool {
+	_, valid := validateURL(url)
+	return valid
 }
 
 func getFileContentType(r io.Reader) (string, error) {
@@ -69,4 +74,46 @@ func nameFromURL(url *nurl.URL) string {
 	}
 
 	return newName
+}
+
+// createAbsoluteURL convert url to absolute path based on base.
+// However, if url is prefixed with hash (#), the url won't be changed.
+func createAbsoluteURL(url string, base *nurl.URL) string {
+	if url == "" || base == nil {
+		return url
+	}
+
+	// If it is hash tag, return as it is
+	if strings.HasPrefix(url, "#") {
+		return url
+	}
+
+	// If it is data URI, return as it is
+	if strings.HasPrefix(url, "data:") {
+		return url
+	}
+
+	// If it is javascript URI, return as it is
+	if strings.HasPrefix(url, "javascript:") {
+		return url
+	}
+
+	// If it is already an absolute URL, return as it is
+	tmp, err := nurl.ParseRequestURI(url)
+	if err == nil && tmp.Scheme != "" && tmp.Hostname() != "" {
+		return url
+	}
+
+	// Otherwise, resolve against base URI.
+	// Normalize URL first.
+	if !strings.HasPrefix(url, "/") {
+		url = path.Join(base.Path, url)
+	}
+
+	tmp, err = nurl.Parse(url)
+	if err != nil {
+		return url
+	}
+
+	return base.ResolveReference(tmp).String()
 }

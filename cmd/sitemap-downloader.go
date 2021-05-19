@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-shiori/dom"
+	betree "github.com/beevik/etree"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/html"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -23,7 +22,7 @@ type sitemapDownloader struct {
 	httpClient *http.Client
 	semaphore  *semaphore.Weighted
 	delay      time.Duration
-	filter     func(*nurl.URL) bool
+	filterFunc func(*nurl.URL) bool
 }
 
 func (sd *sitemapDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL) []*nurl.URL {
@@ -75,7 +74,7 @@ func (sd *sitemapDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL)
 	uniqueTracker := make(map[string]struct{})
 
 	for _, url := range pageURLs {
-		if !sd.filter(url) {
+		if sd.filterFunc != nil && !sd.filterFunc(url) {
 			continue
 		}
 
@@ -104,27 +103,30 @@ func (sd *sitemapDownloader) downloadURL(url *nurl.URL) ([]*nurl.URL, []*nurl.UR
 
 	// Make sure it's XML
 	contentType := resp.Header.Get("Content-Type")
-	if !strings.Contains(contentType, "text/xml") {
+	if !sd.contentIsXML(contentType) {
 		return nil, nil, fmt.Errorf("%s is not xml: \"%s\"", strURL, contentType)
 	}
 
 	// Parse
-	doc, err := html.Parse(resp.Body)
-	if err != nil {
+	doc := betree.NewDocument()
+	if _, err := doc.ReadFrom(resp.Body); err != nil {
 		return nil, nil, err
 	}
 
 	pageURLs := []*nurl.URL{}
 	sitemapURLs := []*nurl.URL{}
-	for _, loc := range dom.GetElementsByTagName(doc, "loc") {
-		text := dom.InnerHTML(loc)
-		text = rxCdata.ReplaceAllString(text, "$1")
-		if !isValidURL(text) {
+	for _, loc := range doc.FindElements("//loc") {
+		parsedURL, valid := validateURL(loc.Text())
+		if !valid {
 			continue
 		}
 
-		parsedURL, _ := nurl.ParseRequestURI(text)
-		switch dom.TagName(loc.Parent) {
+		parent := loc.Parent()
+		if parent == nil {
+			continue
+		}
+
+		switch parent.Tag {
 		case "url":
 			pageURLs = append(pageURLs, parsedURL)
 		case "sitemap":
@@ -150,4 +152,15 @@ func (sd *sitemapDownloader) markAsDownloaded(url *nurl.URL) {
 	sd.Lock()
 	sd.cache[url.String()] = struct{}{}
 	sd.Unlock()
+}
+
+func (sd *sitemapDownloader) contentIsXML(contentType string) bool {
+	switch {
+	case strings.Contains(contentType, "text/xml"),
+		strings.Contains(contentType, "application/xml"):
+		return true
+
+	default:
+		return false
+	}
 }

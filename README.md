@@ -86,6 +86,11 @@ What's not done yet:
 
 ## Changelog
 
+### 19 May 2021
+
+- In CLI, add flags to fetch only the urls from sitemap.
+- In CLI, implement feed finder and downloader.
+
 ### 18 May 2021
 
 - In CLI, implement sitemap finder and downloader.

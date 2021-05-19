@@ -113,11 +113,11 @@ func parseBatchFile(cmd *cobra.Command, path string) ([]*nurl.URL, []string, err
 		}
 
 		// Validate URL
-		if !isValidURL(url) {
+		parsedURL, valid := validateURL(url)
+		if !valid {
 			continue
 		}
 
-		parsedURL, _ := nurl.ParseRequestURI(url)
 		urls = append(urls, parsedURL)
 		dstNames = append(dstNames, name)
 	}

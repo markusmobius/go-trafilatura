@@ -45,7 +45,7 @@ func main() {
 	flags.Bool("skip-tls", false, "skip X.509 (TLS) certificate verification")
 
 	// Add sub commands
-	rootCmd.AddCommand(batchCmd(), sitemapCmd())
+	rootCmd.AddCommand(batchCmd(), sitemapCmd(), feedCmd())
 
 	// Execute
 	err := rootCmd.Execute()

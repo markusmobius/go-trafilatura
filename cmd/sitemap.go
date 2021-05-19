@@ -8,7 +8,6 @@ import (
 	nurl "net/url"
 	"os"
 	fp "path/filepath"
-	"regexp"
 	"strings"
 	"time"
 
@@ -18,8 +17,6 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 )
-
-var rxCdata = regexp.MustCompile(`(?i)^<!--\[cdata\[(.*)\]\]-->$`)
 
 func sitemapCmd() *cobra.Command {
 	cmd := &cobra.Command{
@@ -98,7 +95,7 @@ func sitemapCmdHandler(cmd *cobra.Command, args []string) {
 	pageURLs := (&sitemapDownloader{
 		cache:      make(map[string]struct{}),
 		httpClient: httpClient,
-		filter:     fnFilter,
+		filterFunc: fnFilter,
 		delay:      time.Duration(delay) * time.Second,
 		semaphore:  semaphore.NewWeighted(int64(nThread)),
 	}).downloadURLs(context.Background(), sitemapURLs)
@@ -214,8 +211,8 @@ func findSitemapURLsInRobots(client *http.Client, robotsURL string) ([]*nurl.URL
 			line = strings.TrimPrefix(line, "sitemap:")
 			line = strings.TrimSpace(line)
 
-			if isValidURL(line) {
-				parsedURL, _ := nurl.ParseRequestURI(line)
+			parsedURL, valid := validateURL(line)
+			if valid {
 				sitemapURLs = append(sitemapURLs, parsedURL)
 			}
 		}
