@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/markusmobius/go-trafilatura/etree"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
 )

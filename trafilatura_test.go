@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/go-shiori/dom"
-	"github.com/markusmobius/go-trafilatura/etree"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )

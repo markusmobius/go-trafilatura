@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
-	"github.com/markusmobius/go-trafilatura/etree"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"golang.org/x/net/html"
 )
 
