@@ -158,7 +158,6 @@ func findSitemapURLs(client *http.Client, baseURL string) ([]*nurl.URL, error) {
 
 	// If it already looks like a sitemap URL, return
 	if strings.HasSuffix(baseURL, ".xml") ||
-		strings.HasSuffix(baseURL, ".xml.gz") ||
 		strings.HasSuffix(baseURL, "sitemap") {
 		return []*nurl.URL{parsedURL}, nil
 	}
