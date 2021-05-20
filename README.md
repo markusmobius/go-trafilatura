@@ -85,6 +85,7 @@ What's not done yet:
 ### 20 May 2021
 
 - Add license header in each file
+- Improve charset encoding to make sure parsing HTML document always done in UTF-8.
 
 ### 19 May 2021
 
