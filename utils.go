@@ -79,10 +79,6 @@ func isImageFile(imageSrc string) bool {
 	return imageSrc != "" && rxImageExtension.MatchString(imageSrc)
 }
 
-// doNothing is placeholder function to store unused variables
-// so Go formatter doesn't complain.
-func doNothing(i ...interface{}) {}
-
 func isSoftHyphen(r rune) bool {
 	return r == '\u00AD'
 }
