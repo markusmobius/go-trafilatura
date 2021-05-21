@@ -104,14 +104,15 @@ func pruneHTML(doc *html.Node) {
 	}
 }
 
-// discardUnwanted deletes unwanted sections.
-func discardUnwanted(tree *html.Node) {
+// pruneUnwantedNodes prune the HTML tree by removing unwanted sections.
+func pruneUnwantedNodes(tree *html.Node, rules []selector.Rule) {
 	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
-		for _, rule := range selector.DiscardedContentRules {
+		for _, rule := range rules {
 			if !rule(subElement) {
 				continue
 			}
 
+			// Preserve tail text from deletion
 			tail := etree.Tail(subElement)
 			if tail != "" {
 				previous := dom.PreviousElementSibling(subElement)
@@ -132,18 +133,6 @@ func discardUnwanted(tree *html.Node) {
 
 			etree.Remove(subElement)
 			break
-		}
-	}
-}
-
-// discardUnwantedComments deletes unwanted comment sections.
-func discardUnwantedComments(tree *html.Node) {
-	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
-		for _, rule := range selector.DiscardedCommentsRules {
-			if rule(subElement) {
-				etree.Remove(subElement)
-				break
-			}
 		}
 	}
 }
@@ -211,8 +200,8 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 
 	switch {
 	case dom.TagName(element) == "p":
-		limitLength, threshold = 25, 0.9
-	case element.NextSibling == nil:
+		limitLength, threshold = 25, 0.8
+	case dom.NextElementSibling(element) == nil:
 		limitLength, threshold = 200, 0.66
 	default:
 		limitLength, threshold = 100, 0.66

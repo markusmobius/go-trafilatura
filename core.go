@@ -202,7 +202,7 @@ func extractComments(doc *html.Node, cache *Cache, opts Options) (*html.Node, st
 		}
 
 		// Prune
-		discardUnwantedComments(subTree)
+		pruneUnwantedNodes(subTree, selector.DiscardedCommentsRules)
 		etree.StripTags(subTree, "a", "span")
 
 		// Extract comments
@@ -284,7 +284,7 @@ func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, str
 		}
 
 		// Prune
-		discardUnwanted(subTree)
+		pruneUnwantedNodes(subTree, selector.DiscardedContentRules)
 
 		// Remove elements by link density
 		deleteByLinkDensity(subTree, "div", true)
@@ -779,7 +779,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	logInfo(opts, "recovering wild text elements")
 
 	// Prune
-	discardUnwanted(doc)
+	pruneUnwantedNodes(doc, selector.DiscardedContentRules)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {
