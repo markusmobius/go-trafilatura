@@ -162,7 +162,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		}
 	}
 
-	// Post cleaning: remove attributes
+	// Post cleaning
 	postCleaning(postBody)
 	if commentsBody != nil {
 		postCleaning(commentsBody)
@@ -750,7 +750,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 
 	if tagName == "div" {
 		processedElement := handleTextNode(element, cache, false, opts)
-		if processedElement != nil {
+		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
 			processedElement.Attr = nil
 			if dom.TagName(processedElement) == "div" {
 				processedElement.Data = "p"

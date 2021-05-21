@@ -309,9 +309,24 @@ func processNode(element *html.Node, cache *Cache, opts Options) *html.Node {
 	return element
 }
 
-// postCleaning is used to clean the extracted content from useless attribute.
+// postCleaning is used to clean the extracted content.
 // This is additional function that doesn't exist in original.
 func postCleaning(doc *html.Node) {
+	// Remove empty nodes. Do it backward, to make sure all children
+	// is removed before its parent.
+	children := dom.GetElementsByTagName(doc, "*")
+	for i := len(children) - 1; i >= 0; i-- {
+		child := children[i]
+
+		grandChildren := dom.ChildNodes(child)
+		isVoidElement := dom.IsVoidElement(child)
+		isEmpty := !textCharsTest(etree.Text(child))
+		if len(grandChildren) == 0 && isEmpty && !isVoidElement {
+			etree.Strip(child)
+		}
+	}
+
+	// Remove useless attributes
 	for _, element := range etree.Iter(doc) {
 		newAttr := []html.Attribute{}
 		for _, attr := range element.Attr {
