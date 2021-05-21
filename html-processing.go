@@ -318,7 +318,7 @@ func postCleaning(doc *html.Node) {
 	for i := len(children) - 1; i >= 0; i-- {
 		child := children[i]
 
-		grandChildren := dom.ChildNodes(child)
+		grandChildren := dom.Children(child)
 		isVoidElement := dom.IsVoidElement(child)
 		isEmpty := !textCharsTest(etree.Text(child))
 		if len(grandChildren) == 0 && isEmpty && !isVoidElement {
