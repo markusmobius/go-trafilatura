@@ -359,8 +359,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "https://novalanalove.com/ear-candy/")
 	assert.True(t, resContains(result, "Earcuff: Zoeca"))
 	assert.True(t, resContains(result, "mit längeren Ohrringen (:"))
-	// For unknown reason our implementation can't find this substring.
-	// assert.True(t, resContains(result, "Kreole: Stella Hoops"))
+	assert.True(t, resContains(result, "Kreole: Stella Hoops"))
 	assert.False(t, resContains(result, "Jetzt heißt es schnell sein:"))
 	assert.False(t, resContains(result, "Diese Website speichert Cookies"))
 	assert.False(t, resContains(result, "VON Sina Giebel"))
@@ -543,9 +542,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Wie konnte es dazu kommen?"))
 	assert.False(t, resContains(result, "Die Geschichte beginnt am 26. Oktober"))
 	assert.True(t, resContains(result, "Es stützt seine Version."))
-	// TODO: In original Trafilatura it asserted to be true.
-	// However, IMHO this test should return false, so here I set it to false.
-	assert.False(t, resContains(result, "und Vorteile sichern!"))
+	assert.True(t, resContains(result, "und Vorteile sichern!"))
 	assert.False(t, resContains(result, "Verschickt"))
 
 	result = extractMockFile(rwMockFiles, "https://lemire.me/blog/2019/08/02/json-parsing-simdjson-vs-json-for-modern-c/")

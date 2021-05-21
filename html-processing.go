@@ -271,7 +271,7 @@ func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyL
 		}
 
 		linkLength += textLength
-		if textLength < 100 {
+		if textLength < 10 {
 			nShortLinks++
 		}
 
