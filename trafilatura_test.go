@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	nurl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,12 +39,15 @@ import (
 )
 
 var (
+	exampleURL, _ = nurl.ParseRequestURI("https://example.org")
+
 	trafilaturaMockFiles = map[string]string{
 		"http://exotic_tags": "exotic_tags.html",
 	}
 
 	zeroOpts = Options{
-		NoFallback: true,
+		NoFallback:  false,
+		OriginalURL: exampleURL,
 		Config: &Config{
 			MinOutputSize:    0,
 			MinExtractedSize: 0,
@@ -87,18 +91,14 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Nil(t, handleQuotes(etree.Element("blockquote"), nil, zeroOpts))
 	assert.Nil(t, handleTable(etree.Element("table"), nil, zeroOpts))
 
-	// Nested <p>
+	// Nested <p> with trailing line break
 	element, second := etree.Element("p"), etree.Element("p")
 	etree.SetText(element, "1st part.")
 	etree.SetText(second, "2nd part.")
 	etree.Append(element, second)
+	etree.SubElement(element, "br")
 
 	converted := handleParagraphs(element, map[string]struct{}{"p": {}}, nil, zeroOpts)
-	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
-
-	// Trailing line break
-	etree.SubElement(element, "br")
-	converted = handleParagraphs(element, map[string]struct{}{"p": {}}, nil, zeroOpts)
 	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
 	// Malformed lists (common error)
@@ -207,7 +207,31 @@ func Test_Formatting(t *testing.T) {
 	etree.SetTail(element, "And a tail.")
 
 	converted := handleFormatting(element)
-	assert.Equal(t, etree.ToString(converted), "<p><b>Here is the text.</b>And a tail.</p>")
+	assert.Equal(t, "<p><b>Here is the text.</b>And a tail.</p>", etree.ToString(converted))
+
+	// Empty elements
+	r = strings.NewReader("<html><body><div>\t\n</div><div>There is text here.</div></body></html>")
+	result, _ = Extract(r, zeroOpts)
+	assert.Equal(t, "<div><p>There is text here.</p></div>", fnHtml(result))
+
+	// List with links
+	linkOpts := zeroOpts
+	linkOpts.IncludeLinks = true
+
+	r = strings.NewReader(`<html><body><article><ul><li>Number 1</li><li>Number <a href="test.html">2</a></li><li>Number 3</li><p>Test</p></article></body></html>`)
+	result, _ = Extract(r, linkOpts)
+	assert.Contains(t, fnHtml(result), `<li>Number <a href="https://example.org/test.html">2</a></li>`)
+
+	// (Markdown) formatting within <p>-tag
+	mdOpts := zeroOpts
+	mdOpts.IncludeLinks = true
+	mdOpts.NoFallback = true
+
+	r = strings.NewReader(`<html><body><p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a>.</p></body></html>`)
+	result, _ = Extract(r, mdOpts)
+	assert.Contains(t, fnHtml(result), `<tt>tt</tt>`)
+	assert.Contains(t, fnHtml(result), `<strike>deleted</strike>`)
+	assert.Contains(t, fnHtml(result), `<a href="test.html">link</a>`)
 }
 
 func Test_Baseline(t *testing.T) {
@@ -268,13 +292,29 @@ func Test_Filters(t *testing.T) {
 	assert.NotNil(t, result)
 
 	// HTML lang filter
+	// No lang
+	opts.TargetLanguage = "en"
+	doc := docFromStr(`<html><body></body></html>`)
+	assert.True(t, checkHtmlLanguage(doc, opts))
+
+	// Lang detection on content
+	str := `html><body><article><p>How many ages hence/Shall this our lofty scene be acted over,/In states unborn and accents yet unknown!</p></article></body></html>`
+
+	opts.TargetLanguage = "de"
+	result, _ = Extract(strings.NewReader(str), opts)
+	assert.Nil(t, result)
+
+	opts.TargetLanguage = "en"
+	result, _ = Extract(strings.NewReader(str), opts)
+	assert.NotNil(t, result)
+
 	// TODO: In original Trafilatura, the value of p3 is set to "In sleep a king,
 	// but waking no such matter." which is part of Sonnet 87, classic English poem
 	// by Shakespear. Unfortunately, whatlanggo struggle to detect its language.
 	// However, when I added the entire closure of Sonnet 87, it works. Need to
 	// investigate later.
 	p3 := "<p>Thus have I had thee as a dream doth flatter, In sleep a king, but waking no such matter.</p>"
-	str := `<html lang="en-US"><body>` + strings.Repeat(p3, 50) + `</body></html>`
+	str = `<html lang="en-US"><body>` + strings.Repeat(p3, 50) + `</body></html>`
 
 	opts.TargetLanguage = "en"
 	result, _ = Extract(strings.NewReader(str), opts)
@@ -284,7 +324,7 @@ func Test_Filters(t *testing.T) {
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
-	doc := docFromStr(`<html lang="de_DE, en_US"><body></body></html>`)
+	doc = docFromStr(`<html lang="de_DE, en_US"><body></body></html>`)
 	assert.True(t, checkHtmlLanguage(doc, opts))
 
 	opts.TargetLanguage = "it"
@@ -310,13 +350,28 @@ func Test_External(t *testing.T) {
 	sanitizeTree(doc, defaultOpts)
 	assert.NotEmpty(t, etree.IterText(doc, " "))
 
-	// Strip fancy tags
-	doc = docFromStr(`<html><body><p>Text here <fancy>Test text</fancy></p></body></html>`)
+	// Strip fancy tags while excluding links and images
+	doc = docFromStr(`<html><body><p>Text here <fancy>Test text</fancy><a href="">with a link</a>.</p><img src="test.jpg"/></body></html>`)
 	sanitizeTree(doc, defaultOpts)
-	assert.Contains(t, dom.OuterHTML(doc), "<p>Text here Test text</p>")
+
+	mainTree := dom.QuerySelector(doc, "body")
+	assert.Len(t, dom.Children(mainTree), 1)
+
+	// Strip fancy tags while including links and images
+	opts := Options{IncludeLinks: true, IncludeImages: true}
+	doc = docFromStr(`<html><body><p>Text here <fancy>Test text</fancy><a href="">with a link</a>.</p><img src="test.jpg"/></body></html>`)
+	sanitizeTree(doc, opts)
+
+	mainTree = dom.QuerySelector(doc, "body")
+	aNodes := dom.GetElementsByTagName(mainTree, "a")
+	imgNodes := dom.GetElementsByTagName(mainTree, "img")
+
+	assert.Len(t, dom.Children(mainTree), 2)
+	assert.NotZero(t, len(aNodes))
+	assert.NotZero(t, len(imgNodes))
 
 	// Test language
-	opts := Options{TargetLanguage: "en"}
+	opts = Options{TargetLanguage: "en"}
 	str := `<html><body>` + strings.Repeat("<p>Non è inglese.</p>", 20) + `</body></html>`
 	result, _ := Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
@@ -392,13 +447,18 @@ func Test_Links(t *testing.T) {
 	processed = handleFormatting(element)
 	assert.NotNil(t, processed)
 
-	// Extracting document with links
+	// Extracting links with target
 	htmlStr := `<html><body><p><a href="testlink.html">Test link text.</a></p></body></html>`
 	result, _ := Extract(strings.NewReader(htmlStr), zeroOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
 
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
+
+	// Extracting links without target
+	htmlStr = `<html><body><p><a>Test link text.</a></p></body></html>`
+	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
+	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
 
 	// Extracting document  with links, from file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
