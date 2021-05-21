@@ -76,7 +76,7 @@ func StripElements(tree *html.Node, keepTail bool, tags ...string) {
 // text content and descendants. It will also remove the tail text of the element unless
 // you explicitly set the keepTail argument to true.
 func Remove(element *html.Node, keepTail ...bool) {
-	if element.Parent == nil {
+	if element == nil || element.Parent == nil {
 		return
 	}
 
@@ -92,7 +92,7 @@ func Remove(element *html.Node, keepTail ...bool) {
 // Strip will removes the element but not their text/tail content or descendants.
 // Instead, it will merge the text content and children of the element into its parent.
 func Strip(element *html.Node) {
-	if element.Parent == nil {
+	if element == nil || element.Parent == nil {
 		return
 	}
 

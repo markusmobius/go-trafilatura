@@ -37,7 +37,7 @@ import (
 func openMockFile(mockFiles map[string]string, url string) io.ReadCloser {
 	// Open file
 	path := mockFiles[url]
-	path = filepath.Join("test-files", path)
+	path = filepath.Join("test-files", "mock", path)
 
 	f, err := os.Open(path)
 	if err != nil {

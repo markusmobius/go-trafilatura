@@ -74,6 +74,10 @@ func Iter(element *html.Node, tags ...string) []*html.Node {
 // Text returns texts before first subelement. If there was no text,
 // this function will returns an empty string.
 func Text(element *html.Node) string {
+	if element == nil {
+		return ""
+	}
+
 	buffer := bytes.NewBuffer(nil)
 	for child := element.FirstChild; child != nil; child = child.NextSibling {
 		if child.Type == html.ElementNode {
@@ -89,7 +93,7 @@ func Text(element *html.Node) string {
 // SetText sets the value for element's text.
 func SetText(element *html.Node, text string) {
 	// Make sure element is not void
-	if dom.IsVoidElement(element) {
+	if element == nil || dom.IsVoidElement(element) {
 		return
 	}
 
@@ -112,6 +116,10 @@ func SetText(element *html.Node, text string) {
 // next sibling element's start tag. If there was no text, this
 // function will returns an empty string.
 func Tail(element *html.Node) string {
+	if element == nil {
+		return ""
+	}
+
 	buffer := bytes.NewBuffer(nil)
 	for _, tailNode := range TailNodes(element) {
 		buffer.WriteString(tailNode.Data)
@@ -123,7 +131,7 @@ func Tail(element *html.Node) string {
 // SetTail sets the value for element's tail.
 func SetTail(element *html.Node, tail string) {
 	// Make sure parent exist and not void
-	if element.Parent == nil || dom.IsVoidElement(element.Parent) {
+	if element == nil || element.Parent == nil || dom.IsVoidElement(element.Parent) {
 		return
 	}
 
@@ -180,6 +188,10 @@ func Extend(node *html.Node, subelements ...*html.Node) {
 // and returns all inner text. Similar with dom.TextContent, except here we
 // add whitespaces when element level changed.
 func IterText(node *html.Node, separator string) string {
+	if node == nil {
+		return ""
+	}
+
 	var buffer bytes.Buffer
 	var finder func(*html.Node, int)
 	var lastLevel int

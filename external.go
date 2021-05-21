@@ -58,7 +58,7 @@ func tryDomDistiller(originalExtract, doc *html.Node, url string, opts Options) 
 
 	res, err := distiller.ApplyForReader(r, &distiller.Options{
 		OriginalURL:    parsedURL,
-		PaginationAlgo: distiller.PageNumber})
+		SkipPagination: true})
 	if err != nil {
 		return nil, err
 	}

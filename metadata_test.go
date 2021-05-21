@@ -53,7 +53,7 @@ func Test_Metadata_Titles(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Empty(t, metadata.Title)
 
-	metadata = testGetMetadataFromFile("mock/metadata-title.html")
+	metadata = testGetMetadataFromFile("simple/metadata-title.html")
 	assert.Equal(t, "Semantic satiation", metadata.Title)
 }
 
@@ -82,10 +82,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
-	metadata = testGetMetadataFromFile("mock/metadata-author-1.html")
+	metadata = testGetMetadataFromFile("simple/metadata-author-1.html")
 	assert.Equal(t, "Maggie Haberman; Shane Goldmacher; Michael Crowley", metadata.Author)
 
-	metadata = testGetMetadataFromFile("mock/metadata-author-2.html")
+	metadata = testGetMetadataFromFile("simple/metadata-author-2.html")
 	assert.Equal(t, "Jean Sévillia", metadata.Author)
 }
 

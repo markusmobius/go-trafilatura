@@ -341,7 +341,7 @@ func Test_Images(t *testing.T) {
 	assert.Nil(t, handleTextElem(etree.Element("img"), nil, nil, defaultOpts))
 
 	// From file
-	f, _ := os.Open(filepath.Join("test-files", "mock", "http_sample.html"))
+	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
 	bt, _ := ioutil.ReadAll(f)
 
 	opts := defaultOpts
@@ -356,7 +356,7 @@ func Test_Images(t *testing.T) {
 	assert.Contains(t, contentHtml, `<img src="test.jpg" title="Example image"/>`)
 
 	// CNN example
-	f, _ = os.Open(filepath.Join("test-files", "mock", "cnn-image.html"))
+	f, _ = os.Open(filepath.Join("test-files", "simple", "cnn-image.html"))
 	doc, _ := html.Parse(f)
 	img = handleImage(dom.QuerySelector(doc, "img"))
 	assert.NotNil(t, img)
@@ -364,7 +364,7 @@ func Test_Images(t *testing.T) {
 	assert.True(t, dom.HasAttribute(img, "src"))
 
 	// Modified CNN example
-	f, _ = os.Open(filepath.Join("test-files", "mock", "cnn-image-modified.html"))
+	f, _ = os.Open(filepath.Join("test-files", "simple", "cnn-image-modified.html"))
 	doc, _ = html.Parse(f)
 	img = handleImage(dom.QuerySelector(doc, "img"))
 	assert.NotNil(t, img)
@@ -401,7 +401,7 @@ func Test_Links(t *testing.T) {
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
 
 	// Extracting document  with links, from file
-	f, _ := os.Open(filepath.Join("test-files", "mock", "http_sample.html"))
+	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
 	bt, _ := ioutil.ReadAll(f)
 
 	result, _ = Extract(bytes.NewReader(bt), zeroOpts)
