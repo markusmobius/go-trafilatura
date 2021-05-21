@@ -29,15 +29,6 @@ import (
 )
 
 func metaTitleRule1(n *html.Node) bool {
-	switch dom.ClassName(n) {
-	case "entry-title", "post-title":
-		return true
-	default:
-		return false
-	}
-}
-
-func metaTitleRule2(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	itemProp := dom.GetAttribute(n, "itemprop")
@@ -63,6 +54,15 @@ func metaTitleRule2(n *html.Node) bool {
 	return true
 }
 
+func metaTitleRule2(n *html.Node) bool {
+	switch dom.ClassName(n) {
+	case "entry-title", "post-title":
+		return true
+	default:
+		return false
+	}
+}
+
 func metaTitleRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
@@ -78,19 +78,6 @@ func metaTitleRule3(n *html.Node) bool {
 	case strings.Contains(class, "title"),
 		strings.Contains(id, "title"):
 	default:
-		return false
-	}
-
-	return true
-}
-
-func metaTitleRule4(n *html.Node) bool {
-	tagName := dom.TagName(n)
-	if tagName != "h1" {
-		return false
-	}
-
-	if n.Parent == nil || dom.TagName(n.Parent) != "header" {
 		return false
 	}
 

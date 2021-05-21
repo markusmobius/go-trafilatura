@@ -29,7 +29,6 @@ var MetaTitleRules = []Rule{
 	metaTitleRule1,
 	metaTitleRule2,
 	metaTitleRule3,
-	metaTitleRule4,
 }
 
 var MetaAuthorRules = []Rule{
