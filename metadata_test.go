@@ -146,13 +146,16 @@ func Test_Metadata_MetaTags(t *testing.T) {
 			<meta property="og:description" content="This is an Open Graph description" />
 			<meta property="og:site_name" content="My first site" />
 			<meta property="og:url" content="https://example.org/test" />
-		</head></html>`
+		</head><body>
+			<a rel="license" href="https://creativecommons.org/">Creative Commons</a>
+		</body></html>`
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Open Graph Title", metadata.Title)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 	assert.Equal(t, "This is an Open Graph description", metadata.Description)
 	assert.Equal(t, "My first site", metadata.Sitename)
 	assert.Equal(t, "https://example.org/test", metadata.URL)
+	assert.Equal(t, "Creative Commons", metadata.License)
 
 	rawHTML = `<html><head>
 			<meta name="dc.title" content="Open Graph Title" />

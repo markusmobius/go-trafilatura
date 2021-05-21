@@ -446,7 +446,8 @@ func Test_Images(t *testing.T) {
 func Test_Links(t *testing.T) {
 	// Prepare options
 	linkOpts := Options{
-		IncludeLinks: true, NoFallback: true,
+		NoFallback:   true,
+		IncludeLinks: true,
 		Config: &Config{
 			MinOutputSize:    0,
 			MinExtractedSize: 0,
@@ -475,7 +476,7 @@ func Test_Links(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
 
-	// Extracting document  with links, from file
+	// Extracting document with links, from file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
 	bt, _ := ioutil.ReadAll(f)
 
@@ -484,4 +485,9 @@ func Test_Links(t *testing.T) {
 
 	result, _ = Extract(bytes.NewReader(bt), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
+
+	// Test license link
+	htmlStr = `<html><body><p>Test text under <a rel="license" href="">CC BY-SA license</a>.</p></body></html>`
+	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<a>CC BY-SA license</a>")
 }

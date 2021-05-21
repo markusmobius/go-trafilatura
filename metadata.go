@@ -30,6 +30,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
@@ -63,6 +64,7 @@ type Metadata struct {
 	Date        string
 	Categories  []string
 	Tags        []string
+	License     string
 }
 
 func extractMetadata(doc *html.Node, defaultURL *nurl.URL) Metadata {
@@ -134,6 +136,14 @@ func extractMetadata(doc *html.Node, defaultURL *nurl.URL) Metadata {
 
 	if len(metadata.Tags) != 0 {
 		metadata.Tags = cleanCatTags(metadata.Tags)
+	}
+
+	// License
+	for _, element := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
+		if text := trim(etree.Text(element)); text != "" {
+			metadata.License = text
+			break
+		}
 	}
 
 	return metadata

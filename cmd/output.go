@@ -121,6 +121,10 @@ func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
 	dom.SetAttribute(meta, "name", "tags")
 	dom.SetAttribute(meta, "content", strings.Join(result.Metadata.Tags, "; "))
 
+	meta = etree.SubElement(head, "meta")
+	dom.SetAttribute(meta, "name", "license")
+	dom.SetAttribute(meta, "content", result.Metadata.License)
+
 	// Put content
 	content := result.ContentNode
 	if content != nil {
@@ -156,6 +160,7 @@ func (r jsonExtractResult) MarshalJSON() ([]byte, error) {
 		"date":        r.Metadata.Date,
 		"categories":  r.Metadata.Categories,
 		"tags":        r.Metadata.Tags,
+		"license":     r.Metadata.License,
 	}
 
 	// Convert result to map
