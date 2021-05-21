@@ -419,7 +419,7 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 		return handleLists(element, cache, opts)
 	case "blockquote", "pre", "q", "code":
 		return handleQuotes(element, cache, opts)
-	case "h1", "h2", "h3", "h4", "h5", "h6":
+	case "h1", "h2", "h3", "h4", "h5", "h6", "summary":
 		return handleTitles(element, cache, opts)
 	case "p":
 		return handleParagraphs(element, potentialTags, cache, opts)
@@ -526,6 +526,17 @@ func handleTitles(element *html.Node, cache *Cache, opts Options) *html.Node {
 	tail := etree.Tail(element)
 	if tail != "" && rxWords.MatchString(tail) {
 		logWarn(opts, "tail in title, stripping: %s", tail)
+	}
+
+	// In original trafilatura, summary is treated as heading.
+	// However, in XML, <h1> to <h6> is treated simply as <head>,
+	// which means heading level is not important in XML. Since
+	// we work mainly in HTML, we can't simply change the summary
+	// into heading because heading level is important here. So,
+	// here we just mark the summary as bold to show that it's an
+	// important text.
+	if dom.TagName(element) == "summary" {
+		element.Data = "b"
 	}
 
 	etree.SetTail(element, "")
@@ -748,7 +759,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		return nil
 	}
 
-	if tagName == "div" {
+	if tagName == "div" || tagName == "details" {
 		processedElement := handleTextNode(element, cache, false, opts)
 		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
 			processedElement.Attr = nil

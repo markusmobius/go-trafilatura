@@ -113,6 +113,21 @@ func Test_ExoticTags(t *testing.T) {
 	strResult := etree.ToString(handledLists)
 	assert.Equal(t, 3, strings.Count(strResult, "List item"))
 	assert.Contains(t, strResult, "Description")
+
+	// HTML5: <details>
+	opts := zeroOpts
+	opts.NoFallback = true
+
+	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
+	result, err = Extract(strings.NewReader(htmlString), opts)
+	assert.Contains(t, result.ContentText, "Epcot Center")
+	assert.Contains(t, result.ContentText, "award-winning fireworks")
+
+	opts.NoFallback = false
+	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
+	result, err = Extract(strings.NewReader(htmlString), opts)
+	assert.Contains(t, result.ContentText, "Epcot Center")
+	assert.Contains(t, result.ContentText, "award-winning fireworks")
 }
 
 func Test_Cache(t *testing.T) {

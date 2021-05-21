@@ -27,12 +27,11 @@ var tagsToClean = sliceToMap(
 	// other content
 	"applet", "audio", "canvas", "figure", "map", "picture", "svg", "video",
 	// secondary
-	"area", "blink", "button", "datalist", "details", "dialog",
-	"frame", "frameset", "fieldset", "link", "input", "ins", "label", "legend",
-	"marquee", "math", "menuitem", "nav", "noscript", "optgroup", "option",
-	"output", "param", "progress", "rp", "rt", "rtc", "select", "source",
-	"style", "summary", "track", "template", "textarea", "time", "use",
-	// "meta", "hr", "img", "data"
+	"area", "blink", "button", "datalist", "dialog", "frame", "frameset", "fieldset",
+	"link", "input", "ins", "label", "legend", "marquee", "math", "menuitem", "nav",
+	"noscript", "optgroup", "option", "output", "param", "progress", "rp", "rt", "rtc",
+	"select", "source", "style", "track", "template", "textarea", "time", "use",
+	// "meta", "hr", "img", "data", "details", "summary"
 )
 
 var tagsToStrip = sliceToMap(
@@ -56,6 +55,7 @@ var tagCatalog = sliceToMap(
 	"br", "hr",
 	"ul", "ol", "dl",
 	"p", "pre", "q",
+	"details", "summary",
 )
 
 var formatTagCatalog = sliceToMap(
@@ -79,7 +79,7 @@ var validTagCatalog = sliceToMap(
 	"td", "textarea", "tfoot", "th", "thead", "title", "tr", "u", "ul", "var", "article",
 	"aside", "audio", "canvas", "command", "datalist", "details", "embed", "figcaption",
 	"figure", "footer", "header", "mark", "meter", "nav", "output", "progress", "rp", "rt",
-	"ruby", "section", "source", "time", "track", "video", "wbr")
+	"ruby", "section", "source", "summary", "time", "track", "video", "wbr")
 
 var presentationalAttributes = sliceToMap(
 	"align", "background", "bgcolor", "border", "cellpadding",
