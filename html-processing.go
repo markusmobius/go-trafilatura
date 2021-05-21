@@ -108,10 +108,30 @@ func pruneHTML(doc *html.Node) {
 func discardUnwanted(tree *html.Node) {
 	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
 		for _, rule := range selector.DiscardedContentRules {
-			if rule(subElement) {
-				etree.Remove(subElement)
-				break
+			if !rule(subElement) {
+				continue
 			}
+
+			tail := etree.Tail(subElement)
+			if tail != "" {
+				previous := dom.PreviousElementSibling(subElement)
+				if previous == nil {
+					previous = subElement.Parent
+				}
+
+				if previous != nil {
+					// There is a previous node, append text to its tail
+					previousTail := etree.Tail(previous)
+					if previousTail != "" {
+						etree.SetTail(previous, previousTail+" "+tail)
+					} else {
+						etree.SetTail(previous, tail)
+					}
+				}
+			}
+
+			etree.Remove(subElement)
+			break
 		}
 	}
 }
