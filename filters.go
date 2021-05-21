@@ -47,27 +47,35 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 		}
 	}
 
-	if htmlNode != nil {
+	if htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
 		langAttr := dom.GetAttribute(htmlNode, "lang")
 		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
 			if lang == opts.TargetLanguage {
 				return true
 			}
 		}
+
+		logWarn(opts, "html language detection failed")
+		return false
 	}
 
 	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"]`)
-	for _, metaNode := range metaNodes {
-		metaContent := dom.GetAttribute(metaNode, "content")
-		for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
-			if lang == opts.TargetLanguage {
-				return true
+	if len(metaNodes) > 0 {
+		for _, metaNode := range metaNodes {
+			metaContent := dom.GetAttribute(metaNode, "content")
+			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
+				if lang == opts.TargetLanguage {
+					return true
+				}
 			}
 		}
+
+		logWarn(opts, "html language detection in meta failed")
+		return false
 	}
 
-	logWarn(opts, "language detection failed")
-	return false
+	logWarn(opts, "no html language elements found")
+	return true
 }
 
 // textFilter filters out unwanted text
