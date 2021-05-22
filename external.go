@@ -87,7 +87,7 @@ func sanitizeTree(tree *html.Node, opts Options) {
 	for _, elem := range dom.GetElementsByTagName(tree, "*") {
 		elemTag := dom.TagName(elem)
 		if _, exist := sanitizeList[elemTag]; exist {
-			etree.Remove(elem)
+			etree.Remove(elem, true)
 		}
 	}
 

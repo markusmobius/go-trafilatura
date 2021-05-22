@@ -73,7 +73,7 @@ func extractMockFile(mockFiles map[string]string, url string) *ExtractResult {
 	}
 
 	// Extract
-	opts := Options{OriginalURL: parsedURL, NoFallback: true}
+	opts := Options{OriginalURL: parsedURL, NoFallback: false}
 	result, err := Extract(f, opts)
 	if err != nil {
 		logrus.Panicln(err)
