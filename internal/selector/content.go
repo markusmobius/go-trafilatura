@@ -78,7 +78,8 @@ func contentRule2(n *html.Node) bool {
 		strings.Contains(class, "postContent"),
 		strings.Contains(class, "article-text"),
 		strings.Contains(class, "articletext"),
-		strings.Contains(class, "articleText"):
+		strings.Contains(class, "articleText"),
+		strings.Contains(class, "field-body"):
 	default:
 		return false
 	}
@@ -154,6 +155,7 @@ func contentRule5(n *html.Node) bool {
 		strings.Contains(class, "main-column"),
 		strings.Contains(class, "wpb_text_column"),
 		strings.HasPrefix(id, "primary"),
+		strings.HasPrefix(class, "article"),
 		class == "text",
 		class == "cell",
 		id == "story",

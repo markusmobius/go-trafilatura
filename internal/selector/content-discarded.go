@@ -92,6 +92,7 @@ func discardedContentRule2(n *html.Node) bool {
 		strings.Contains(id, "navigation"),
 		strings.Contains(strings.ToLower(class), "navigation"),
 		strings.Contains(role, "navigation"),
+		strings.Contains(class, "navbar"),
 		strings.Contains(class, "navbox"),
 		strings.HasPrefix(class, "post-nav"),
 		strings.Contains(id, "breadcrumb"),
@@ -114,7 +115,8 @@ func discardedContentRule2(n *html.Node) bool {
 		strings.Contains(class, "-ad-"),
 		strings.Contains(class, "-icon"),
 		strings.Contains(class, "article-infos"),
-		strings.Contains(strings.ToLower(class), "infoline"):
+		strings.Contains(strings.ToLower(class), "infoline"),
+		strings.Contains(class, "options"):
 	default:
 		return false
 	}

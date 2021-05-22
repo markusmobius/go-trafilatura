@@ -44,6 +44,7 @@ func commentsRule1(n *html.Node) bool {
 		strings.Contains(class, "commentlist"),
 		strings.Contains(class, "comment-page"),
 		strings.Contains(class, "comment-list"),
+		strings.Contains(id, "comment-list"),
 		strings.Contains(class, "comments-list"),
 		strings.Contains(class, "comments-content"):
 	default:
