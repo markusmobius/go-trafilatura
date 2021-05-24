@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	nurl "net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -83,6 +84,15 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		// if metadata.Date == "" {
 		// 	return nil, fmt.Errorf("date is required")
 		// }
+	}
+
+	// ADDITIONAL: If original URL never specified, and it found in metadata,
+	// use the one from metadata.
+	if opts.OriginalURL == nil && metadata.URL != "" {
+		parsedURL, err := nurl.ParseRequestURI(metadata.URL)
+		if err != nil {
+			opts.OriginalURL = parsedURL
+		}
 	}
 
 	// Clean document
