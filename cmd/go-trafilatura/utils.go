@@ -19,8 +19,6 @@
 package main
 
 import (
-	"io"
-	"net/http"
 	nurl "net/url"
 	"os"
 	"path"
@@ -49,18 +47,6 @@ func validateURL(url string) (*nurl.URL, bool) {
 func isValidURL(url string) bool {
 	_, valid := validateURL(url)
 	return valid
-}
-
-func getFileContentType(r io.Reader) (string, error) {
-	// Only the first 512 bytes are used to sniff the content type.
-	buffer := make([]byte, 512)
-	_, err := r.Read(buffer)
-	if err != nil {
-		return "", err
-	}
-
-	contentType := http.DetectContentType(buffer)
-	return contentType, nil
 }
 
 func sliceToMap(strings ...string) map[string]struct{} {

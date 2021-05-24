@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	nurl "net/url"
 	"os"
@@ -33,6 +34,7 @@ import (
 	"github.com/markusmobius/go-trafilatura"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/net/html"
 )
 
 const (
@@ -121,19 +123,16 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 
 	// Make sure it's html
 	var fReader io.Reader
-	if fp.Ext(path) == "html" {
+	mimeType := mime.TypeByExtension(fp.Ext(path))
+	if strings.Contains(mimeType, "text/html") {
 		fReader = f
 	} else {
 		buffer := bytes.NewBuffer(nil)
 		tee := io.TeeReader(f, buffer)
 
-		contentType, err := getFileContentType(tee)
+		_, err := html.Parse(tee)
 		if err != nil {
-			return nil, err
-		}
-
-		if !strings.Contains(contentType, "text/html") {
-			return nil, fmt.Errorf("%s is not html file: %s", path, contentType)
+			return nil, fmt.Errorf("%s is not a valid html file: %v", path, err)
 		}
 
 		fReader = buffer
