@@ -19,7 +19,9 @@ that can be parsed by the original Trafilatura can be parsed by this package as 
 - [Status](#status)
 - [Usage as Go package](#usage-as-go-package)
 - [Usage as CLI Application](#usage-as-cli-application)
-- [Comparison with Other Package](#comparison-with-other-package)
+- [Comparison with Other Go Package](#comparison-with-other-go-packages)
+- [Comparison with Original Trafilatura](#comparison-with-original-trafilatura)
+- [License](#license)
 
 ## Status
 
@@ -152,7 +154,7 @@ Here are some example of common usage
   go-trafilatura feed -o extract http://www.domain.com
   ```
 
-## Comparison with Other Package
+## Comparison with Other Go Packages
 
 Here we compare the extraction result between `go-trafilatura`, `go-readability` and `go-domdistiller`.
 To reproduce this test, clone this repository then run:
@@ -161,7 +163,7 @@ To reproduce this test, clone this repository then run:
 go run scripts/comparison/*.go
 ```
 
-Here we use 500 documents, 1,487 text and 1,496 boilerplate segments (2020-11-06):
+Here we use 500 documents, 1,487 text and 1,496 boilerplate segments (data from 2020-11-06):
 
 |             Package            | Precision | Recall | Accuracy | F-Score |
 |:------------------------------:|:---------:|:------:|:--------:|:-------:|
@@ -171,7 +173,69 @@ Here we use 500 documents, 1,487 text and 1,496 boilerplate segments (2020-11-06
 | `go-trafilatura` with fallback |   0.927   |  0.882 |   0.906  |  0.904  |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For
-instance, the image extraction in `go-trafilatura` is not as good as the other.
+instance, the image extraction in `go-trafilatura` is not as good as the other. There is one confusing point
+though: for some reason precision in `go-trafilatura` with fallback is lower than the one without fallback.
+Might need to research it later.
+
+## Comparison with Original Trafilatura
+
+For our purpose, we need a high quality extractor that is as fast as possible, especially since we process 
+millions of page each day. Because of this, we decided to port Trafilatura from Python to Go since we
+believe the accuracy of Trafilatura combined with Go's speed will fulfill our requirement.
+
+### Performance
+
+First we want to make sure that our port has similar performance as the original. Fortunately Trafilatura
+already has a script named `comparison.py` which used to compare it with several other Python libraries,
+so we can easily use it to compare the performance between the original and our port:
+
+|             Package             | Precision | Recall | Accuracy | F-Score |
+|:-------------------------------:|:---------:|:------:|:--------:|:-------:|
+|         `go-trafilatura`        |   0.933   |  0.834 |   0.887  |  0.881  |
+|   `go-trafilatura` + fallback   |   0.927   |  0.882 |   0.906  |  0.904  |
+|       `trafilatura` v0.6.2      |   0.925   |  0.867 |   0.899  |  0.895  |
+| `trafilatura` v0.6.2 + fallback |   0.934   |  0.889 |   0.914  |  0.911  |
+
+From table above, apparently the original Trafilatura has slightly better performance compared to this port.
+I'm not really sure why though, since most of code is ported line by line from Python (excluding some
+difference that mentioned above). Fortunately the difference is really small and it should be still usable
+for our purpose.
+
+### Speed
+
+We expected that Go should be a lot faster than Python. However, to make sure how much the difference is, 
+here we run a simple test to compare the speed. The comparison is done by using `time` command in Linux to
+see how long the CLI run while downloading and extracting the web page(s).
+
+First we test the speed for single web page. In this test, we use an article from GamingOnLinux:
+
+```
+https://www.gamingonlinux.com/2021/05/heroic-games-launcher-for-running-epic-store-titles-on-linux-170-release-is-out
+```
+
+And here is the commands that used:
+
+```
+$ time go-trafilatura --images --links --no-comments <url>
+$ time python -m trafilatura.cli --images --links -out xml -u <url>
+```
+
+The result: `go-trafilatura` is finished in 1.11 seconds while `trafilatura` is finished in 2.4 seconds. So,
+for single download, `go-trafilatura` is at least two times faster than the original.
+
+Next we are going to test the speed for batch web pages. In this test, we use RSS feed from GamingOnLinux
+as well. Here is the commands that used:
+
+```
+$ time go-trafilatura feed -o tmp --images --links --no-comments https://www.gamingonlinux.com
+$ time python -m trafilatura.cli -o tmp --images --links --nocomments -out xml --feed https://www.gamingonlinux.com
+```
+
+The result: for 50 URLs in GamingOnLinux's RSS feed, `go-trafilatura` is finished in 6.61 seconds while 
+`trafilatura` is finished in 152.45 seconds. So, for the batch download our Go port is 23 times faster than
+the original. This is as expected though, especially considering Go is built for concurrency.
+
+With that said, regarding the speed, Go fulfill our expectation.
 
 ## License
 
