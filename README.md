@@ -191,8 +191,8 @@ so we can easily use it to compare the performance between the original and our 
 |:-------------------------------:|:---------:|:------:|:--------:|:-------:|
 |         `go-trafilatura`        |   0.921   |  0.867 |   0.896  |  0.893  |
 |   `go-trafilatura` + fallback   |   0.926   |  0.888 |   0.909  |  0.907  |
-|       `trafilatura` v0.6.2      |   0.925   |  0.867 |   0.899  |  0.895  |
-| `trafilatura` v0.6.2 + fallback |   0.934   |  0.889 |   0.914  |  0.911  |
+|       `trafilatura` v0.8.2      |   0.925   |  0.867 |   0.899  |  0.895  |
+| `trafilatura` v0.8.2 + fallback |   0.934   |  0.889 |   0.914  |  0.911  |
 
 So, according to the table above, our port has the same performance as the original Trafilatura. It makes
 sense since most of code is ported line by line from Python to Go (excluding some difference that mentioned
