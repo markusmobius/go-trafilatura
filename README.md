@@ -169,13 +169,11 @@ Here we use 500 documents, 1,487 text and 1,496 boilerplate segments (data from 
 |:------------------------------:|:---------:|:------:|:--------:|:-------:|
 |        `go-domdistiller`       |   0.900   |  0.831 |   0.870  |  0.864  |
 |        `go-readability`        |   0.895   |  0.866 |   0.882  |  0.880  |
-|        `go-trafilatura`        |   0.933   |  0.834 |   0.887  |  0.881  |
-| `go-trafilatura` with fallback |   0.927   |  0.882 |   0.906  |  0.904  |
+|        `go-trafilatura`        |   0.921   |  0.867 |   0.896  |  0.893  |
+| `go-trafilatura` with fallback |   0.926   |  0.888 |   0.909  |  0.907  |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For
-instance, the image extraction in `go-trafilatura` is not as good as the other. There is one confusing point
-though: for some reason precision in `go-trafilatura` with fallback is lower than the one without fallback.
-Might need to research it later.
+instance, the image extraction in `go-trafilatura` is not as good as the other.
 
 ## Comparison with Original Trafilatura
 
@@ -191,15 +189,18 @@ so we can easily use it to compare the performance between the original and our 
 
 |             Package             | Precision | Recall | Accuracy | F-Score |
 |:-------------------------------:|:---------:|:------:|:--------:|:-------:|
-|         `go-trafilatura`        |   0.933   |  0.834 |   0.887  |  0.881  |
-|   `go-trafilatura` + fallback   |   0.927   |  0.882 |   0.906  |  0.904  |
+|         `go-trafilatura`        |   0.921   |  0.867 |   0.896  |  0.893  |
+|   `go-trafilatura` + fallback   |   0.926   |  0.888 |   0.909  |  0.907  |
 |       `trafilatura` v0.6.2      |   0.925   |  0.867 |   0.899  |  0.895  |
 | `trafilatura` v0.6.2 + fallback |   0.934   |  0.889 |   0.914  |  0.911  |
 
-From table above, apparently the original Trafilatura has slightly better performance compared to this port.
-I'm not really sure why though, since most of code is ported line by line from Python (excluding some
-difference that mentioned above). Fortunately the difference is really small and it should be still usable
-for our purpose.
+So, according to the table above, our port has the same performance as the original Trafilatura. It makes
+sense since most of code is ported line by line from Python to Go (excluding some difference that mentioned
+above).
+
+There is a small difference in precision between our port and the original. However, I believe this is
+happened not because of incorrectly ported code but because we are using different fallback extractors
+compared to the original.
 
 ### Speed
 

@@ -125,7 +125,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	} else {
 		// Rescue: try to use original/dirty tree
 		lenText := utf8.RuneCountInString(tmpBodyText)
-		if !sureThing && lenText < opts.Config.MinExtractedSize {
+		if !sureThing && (opts.Config.MinExtractedSize == 0 || lenText < opts.Config.MinExtractedSize) {
 			baselineBody, baselineText := baseline(docBackup)
 
 			// Make sure baseline is not worse than the original

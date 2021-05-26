@@ -68,7 +68,7 @@ func main() {
 		start := time.Now()
 		result, err := runTrafilatura(url, fContent)
 		if err != nil {
-			logrus.Errorf("trafilatura error in %s: %v", strURL, err)
+			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
 		}
 
 		duration := time.Now().Sub(start)
@@ -80,7 +80,7 @@ func main() {
 		start = time.Now()
 		result, err = runTrafilaturaFallback(url, fContent)
 		if err != nil {
-			logrus.Errorf("trafilatura+x error in %s: %v", strURL, err)
+			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
 		}
 
 		duration = time.Now().Sub(start)
@@ -92,7 +92,7 @@ func main() {
 		start = time.Now()
 		result, err = runReadability(url, fContent)
 		if err != nil {
-			logrus.Errorf("readability error in %s: %v", strURL, err)
+			logrus.Warnf("readability error in %s: %v", strURL, err)
 		}
 
 		duration = time.Now().Sub(start)
@@ -104,7 +104,7 @@ func main() {
 		start = time.Now()
 		result, err = runDomDistiller(url, fContent)
 		if err != nil {
-			logrus.Errorf("dom-distiller error in %s: %v", strURL, err)
+			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
 		}
 
 		duration = time.Now().Sub(start)
@@ -181,10 +181,6 @@ func runTrafilatura(url *nurl.URL, rawHTML []byte) (string, error) {
 		OriginalURL:     url,
 		NoFallback:      true,
 		ExcludeComments: true,
-		Config: &trafilatura.Config{
-			MinOutputSize:    0,
-			MinExtractedSize: 0,
-		},
 	})
 
 	if err != nil {
@@ -201,10 +197,6 @@ func runTrafilaturaFallback(url *nurl.URL, rawHTML []byte) (string, error) {
 		OriginalURL:     url,
 		NoFallback:      false,
 		ExcludeComments: true,
-		Config: &trafilatura.Config{
-			MinOutputSize:    0,
-			MinExtractedSize: 0,
-		},
 	})
 
 	if err != nil {
