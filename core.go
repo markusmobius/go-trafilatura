@@ -90,7 +90,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// use the one from metadata.
 	if opts.OriginalURL == nil && metadata.URL != "" {
 		parsedURL, err := nurl.ParseRequestURI(metadata.URL)
-		if err != nil {
+		if err == nil {
 			opts.OriginalURL = parsedURL
 		}
 	}
