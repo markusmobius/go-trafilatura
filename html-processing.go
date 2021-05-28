@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"regexp"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -339,12 +340,18 @@ func postCleaning(doc *html.Node) {
 	for _, element := range etree.Iter(doc) {
 		newAttr := []html.Attribute{}
 		for _, attr := range element.Attr {
-			if attr.Key == "id" || attr.Key == "class" {
+			// Remove styling attributes
+			_, isStyling := presentationalAttributes[attr.Key]
+			if isStyling {
 				continue
 			}
 
-			_, isStyling := presentationalAttributes[attr.Key]
-			if isStyling {
+			// Remove id, class, data and event attributes
+			switch {
+			case attr.Key == "id",
+				attr.Key == "class",
+				strings.HasPrefix(attr.Key, "data-"),
+				strings.HasPrefix(attr.Key, "on"):
 				continue
 			}
 

@@ -82,7 +82,7 @@ var validTagCatalog = sliceToMap(
 	"ruby", "section", "source", "summary", "time", "track", "video", "wbr")
 
 var presentationalAttributes = sliceToMap(
-	"align", "background", "bgcolor", "border", "cellpadding",
+	"align", "background", "bgcolor", "border", "cellpadding", "width", "height",
 	"cellspacing", "frame", "hspace", "rules", "style", "valign", "vspace")
 
 func sliceToMap(strings ...string) map[string]struct{} {
