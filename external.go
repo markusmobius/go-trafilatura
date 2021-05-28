@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	"fmt"
-	nurl "net/url"
 	"strings"
 
 	"github.com/go-shiori/dom"
@@ -33,11 +32,11 @@ import (
 	"golang.org/x/net/html"
 )
 
-func tryReadability(originalExtract, doc *html.Node, url string, opts Options) (*html.Node, error) {
+func tryReadability(originalExtract, doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-readability
 	docHtml := dom.OuterHTML(doc)
 	r := strings.NewReader(docHtml)
-	article, err := readability.FromReader(r, url)
+	article, err := readability.FromReader(r, opts.OriginalURL)
 	if err != nil {
 		return nil, err
 	}
@@ -45,19 +44,13 @@ func tryReadability(originalExtract, doc *html.Node, url string, opts Options) (
 	return article.Node, nil
 }
 
-func tryDomDistiller(originalExtract, doc *html.Node, url string, opts Options) (*html.Node, error) {
-	// Parse URL
-	parsedURL, err := nurl.ParseRequestURI(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse URL: %v", err)
-	}
-
+func tryDomDistiller(originalExtract, doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-domdistiller
 	docHtml := dom.OuterHTML(doc)
 	r := strings.NewReader(docHtml)
 
 	res, err := distiller.ApplyForReader(r, &distiller.Options{
-		OriginalURL:    parsedURL,
+		OriginalURL:    opts.OriginalURL,
 		SkipPagination: true})
 	if err != nil {
 		return nil, err

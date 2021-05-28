@@ -817,14 +817,14 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 // go-domdistiller. Since there are difference in implementation between
 // them, here we do it a bit differently compared to the original code.
 func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
-	// Convert url to string
+	// Convert url to string for logging
 	var originalUrl string
 	if opts.OriginalURL != nil {
 		originalUrl = opts.OriginalURL.String()
 	}
 
 	// Try readability
-	readabilityExtract, err := tryReadability(originalExtract, doc, originalUrl, opts)
+	readabilityExtract, err := tryReadability(originalExtract, doc, opts)
 	if err != nil {
 		logWarn(opts, "readability failed: %v", err)
 		readabilityExtract = etree.Element("div")
@@ -862,15 +862,13 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		originalText = readabilityText
 		lenOriginal = lenReadability
 		logInfo(opts, "using readability algorithm: %s", originalUrl)
-	} else {
-		logInfo(opts, "using dom-distiller algorithm: %s", originalUrl)
 	}
 
 	// Try dom-distiller
 	if lenOriginal < opts.Config.MinExtractedSize {
 		logWarn(opts, "not enough text, using dom-distiller: %s", originalUrl)
 
-		distillerExtract, err := tryDomDistiller(originalExtract, doc, originalUrl, opts)
+		distillerExtract, err := tryDomDistiller(originalExtract, doc, opts)
 		if err != nil {
 			logWarn(opts, "dom-distiller failed: %v", err)
 		} else {
