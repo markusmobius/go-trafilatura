@@ -208,7 +208,7 @@ func runTrafilaturaFallback(url *nurl.URL, rawHTML []byte) (string, error) {
 
 func runReadability(url *nurl.URL, rawHTML []byte) (string, error) {
 	r := bytes.NewReader(rawHTML)
-	article, err := readability.FromReader(r, url.String())
+	article, err := readability.FromReader(r, url)
 	if err != nil {
 		return "", err
 	}
