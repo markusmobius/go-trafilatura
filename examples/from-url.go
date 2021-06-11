@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	nurl "net/url"
+	"regexp"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -15,11 +16,12 @@ import (
 
 var (
 	httpClient = &http.Client{Timeout: 30 * time.Second}
+	rxCharset  = regexp.MustCompile(`(?i)charset\s*=\s*([^;\s"]+)`)
 )
 
 func main() {
 	// Prepare URL
-	url := "https://arstechnica.com/science/2021/05/rare-flesh-eating-black-fungus-rides-covids-coattails-in-india/"
+	url := "https://www.finanzen.net/nachricht/trading/anzeige-value-stars-mit-ausgewaehlten-aktien-den-dax-schlagen-5873873"
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
 		logrus.Fatalf("failed to parse url: %v", err)
@@ -36,6 +38,7 @@ func main() {
 	opts := trafilatura.Options{
 		IncludeImages: true,
 		OriginalURL:   parsedURL,
+		PageCharset:   findRespCharset(resp),
 	}
 
 	result, err := trafilatura.Extract(resp.Body, opts)
@@ -45,4 +48,14 @@ func main() {
 
 	// Print result
 	fmt.Println(dom.OuterHTML(result.ContentNode))
+}
+
+func findRespCharset(resp *http.Response) string {
+	contentType := resp.Header.Get("content-type")
+	matches := rxCharset.FindStringSubmatch(contentType)
+	if len(matches) > 0 {
+		return matches[1]
+	}
+
+	return ""
 }

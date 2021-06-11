@@ -107,32 +107,43 @@ func normalizeReaderEncoding(r io.Reader) io.Reader {
 }
 
 // parseHTMLDocument parses a reader and try to convert the character encoding into UTF-8.
-func parseHTMLDocument(r io.Reader) (*html.Node, error) {
-	// Check if there is invalid character.
-	r, valid := validateRunes(r)
-
-	// If already valid, we can parse and return it.
-	if valid {
-		r = normalizeReaderEncoding(r)
-		return html.Parse(r)
+func parseHTMLDocument(r io.Reader, opts Options) (*html.Node, error) {
+	// Since we are going to use the reader several times, we convert it to bytes.
+	content, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
 	}
 
-	// Find the decoder and parse HTML.
-	r, charset := findHtmlCharset(r)
-	r = transform.NewReader(r, charset.NewDecoder())
-	r = normalizeReaderEncoding(r)
-	return html.Parse(r)
+	// First, if all runes in web page already valid, we can use it as it is.
+	if runesAreValid(content) {
+		var newReader io.Reader
+		newReader = bytes.NewReader(content)
+		newReader = normalizeReaderEncoding(newReader)
+		return html.Parse(newReader)
+	}
+
+	// Try to use custom charset. If charset is not specified in options, try to
+	// find it in <meta> tags.
+	pageCharset := opts.PageCharset
+	if pageCharset == "" {
+		pageCharset = findHtmlCharset(content)
+	}
+	pageEncoding := findCharsetEncoding(pageCharset)
+
+	// Parse HTML using the custom charset.
+	var newReader io.Reader
+	newReader = bytes.NewReader(content)
+	newReader = transform.NewReader(newReader, pageEncoding.NewDecoder())
+	newReader = normalizeReaderEncoding(newReader)
+	return html.Parse(newReader)
 }
 
-// validateRunes check a reader to make sure all runes inside it is
-// valid UTF-8 character. Since a reader only usable once, here
-// we also return a mirror of the reader.
-func validateRunes(r io.Reader) (io.Reader, bool) {
-	buffer := bytes.NewBuffer(nil)
-	tee := io.TeeReader(r, buffer)
-
+// runesAreValid check to make sure all runes in specified content is valid UTF-8 character.
+func runesAreValid(content []byte) bool {
 	allValid := true
-	scanner := bufio.NewScanner(tee)
+	reader := bytes.NewReader(content)
+	scanner := bufio.NewScanner(reader)
+
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		if !utf8.Valid(line) || containsErrorRune(line) {
@@ -141,23 +152,16 @@ func validateRunes(r io.Reader) (io.Reader, bool) {
 		}
 	}
 
-	ioutil.ReadAll(tee)
-	return buffer, allValid
+	return allValid
 }
 
-// validateRunes check HTML page in the reader to find charset
-// that used in the HTML page. If none found, we assume it's
-// UTF-8. Since a reader only usable once, here we also return
-// a mirror of the reader.
-func findHtmlCharset(r io.Reader) (io.Reader, encoding.Encoding) {
-	// Prepare mirror
-	buffer := bytes.NewBuffer(nil)
-	tee := io.TeeReader(r, buffer)
-
+// validateRunes check HTML page to find charset that used in the HTML page.
+func findHtmlCharset(content []byte) string {
 	// Parse HTML normally
-	doc, err := html.Parse(tee)
+	r := bytes.NewReader(content)
+	doc, err := html.Parse(r)
 	if err != nil {
-		return buffer, unicode.UTF8
+		return ""
 	}
 
 	// Look for charset in <meta> elements
@@ -182,16 +186,16 @@ func findHtmlCharset(r io.Reader) (io.Reader, encoding.Encoding) {
 		}
 	}
 
-	// If there are no custom charset specified, assume it's utf-8
-	if customCharset == "" {
-		return buffer, unicode.UTF8
+	return customCharset
+}
+
+// findCharsetEncoding converts specified charset name to a valid encoding.
+// If charset name is unknown, we assume it's UTF-8.
+func findCharsetEncoding(charsetName string) encoding.Encoding {
+	e, _ := charset.Lookup(charsetName)
+	if e != nil {
+		return e
 	}
 
-	// Find the encoder
-	e, _ := charset.Lookup(customCharset)
-	if e == nil {
-		e = unicode.UTF8
-	}
-
-	return buffer, e
+	return unicode.UTF8
 }
