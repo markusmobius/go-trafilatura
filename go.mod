@@ -7,6 +7,7 @@ require (
 	github.com/beevik/etree v1.1.0
 	github.com/go-shiori/dom v0.0.0-20210510042244-c74b4cff1404
 	github.com/go-shiori/go-readability v0.0.0-20210528061711-a4ef7bdf2420
+	github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 	github.com/markusmobius/go-domdistiller v0.0.0-20210520100406-78c3172602a8
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/sirupsen/logrus v1.8.1

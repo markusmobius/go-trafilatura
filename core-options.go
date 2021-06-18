@@ -72,10 +72,6 @@ type Options struct {
 	// OriginalURL is the original URL of the page. Might be overwritten by URL in metadata.
 	OriginalURL *nurl.URL
 
-	// PageCharset is the charset that used by the web page. If not specified, Trafilatura
-	// will try to guess it by using charset value in <meta> tags.
-	PageCharset string
-
 	// TargetLanguage is ISO 639-1 language code to make the extractor only process web page that
 	// uses the specified language.
 	TargetLanguage string

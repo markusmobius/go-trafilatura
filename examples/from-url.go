@@ -38,7 +38,6 @@ func main() {
 	opts := trafilatura.Options{
 		IncludeImages: true,
 		OriginalURL:   parsedURL,
-		PageCharset:   findRespCharset(resp),
 	}
 
 	result, err := trafilatura.Extract(resp.Body, opts)
@@ -48,14 +47,4 @@ func main() {
 
 	// Print result
 	fmt.Println(dom.OuterHTML(result.ContentNode))
-}
-
-func findRespCharset(resp *http.Response) string {
-	contentType := resp.Header.Get("content-type")
-	matches := rxCharset.FindStringSubmatch(contentType)
-	if len(matches) > 0 {
-		return matches[1]
-	}
-
-	return ""
 }

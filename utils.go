@@ -19,18 +19,15 @@
 package trafilatura
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 	"io/ioutil"
 	"regexp"
 	"strings"
-	"unicode/utf8"
 
-	"github.com/go-shiori/dom"
+	"github.com/gogs/chardet"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
@@ -90,112 +87,38 @@ func isImageFile(imageSrc string) bool {
 // are not exist in original Trafilatura.
 // =========================================================
 
-func isSoftHyphen(r rune) bool {
-	return r == '\u00AD'
-}
-
-func containsErrorRune(bt []byte) bool {
-	return bytes.ContainsRune(bt, utf8.RuneError)
-}
-
-// normalizeReaderEncoding convert text encoding from NFD to NFC.
+// normalizeTextEncoding convert text encoding from NFD to NFC.
 // It also remove soft hyphen since apparently it's useless in web.
 // See: https://web.archive.org/web/19990117011731/http://www.hut.fi/~jkorpela/shy.html
-func normalizeReaderEncoding(r io.Reader) io.Reader {
-	transformer := transform.Chain(norm.NFD, runes.Remove(runes.Predicate(isSoftHyphen)), norm.NFC)
+func normalizeTextEncoding(r io.Reader) io.Reader {
+	fnSoftHyphen := func(r rune) bool { return r == '\u00AD' }
+	softHyphenSet := runes.Predicate(fnSoftHyphen)
+	transformer := transform.Chain(norm.NFD, runes.Remove(softHyphenSet), norm.NFC)
 	return transform.NewReader(r, transformer)
 }
 
 // parseHTMLDocument parses a reader and try to convert the character encoding into UTF-8.
-func parseHTMLDocument(r io.Reader, opts Options) (*html.Node, error) {
-	// Since we are going to use the reader several times, we convert it to bytes.
+func parseHTMLDocument(r io.Reader) (*html.Node, error) {
+	// Split the reader using tee
 	content, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
 
-	// First, if all runes in web page already valid, we can use it as it is.
-	if runesAreValid(content) {
-		var newReader io.Reader
-		newReader = bytes.NewReader(content)
-		newReader = normalizeReaderEncoding(newReader)
-		return html.Parse(newReader)
-	}
-
-	// Try to use custom charset. If charset is not specified in options, try to
-	// find it in <meta> tags.
-	pageCharset := opts.PageCharset
-	if pageCharset == "" {
-		pageCharset = findHtmlCharset(content)
-	}
-	pageEncoding := findCharsetEncoding(pageCharset)
-
-	// Parse HTML using the custom charset.
-	var newReader io.Reader
-	newReader = bytes.NewReader(content)
-	newReader = transform.NewReader(newReader, pageEncoding.NewDecoder())
-	newReader = normalizeReaderEncoding(newReader)
-	return html.Parse(newReader)
-}
-
-// runesAreValid check to make sure all runes in specified content is valid UTF-8 character.
-func runesAreValid(content []byte) bool {
-	allValid := true
-	reader := bytes.NewReader(content)
-	scanner := bufio.NewScanner(reader)
-
-	for scanner.Scan() {
-		line := scanner.Bytes()
-		if !utf8.Valid(line) || containsErrorRune(line) {
-			allValid = false
-			break
-		}
-	}
-
-	return allValid
-}
-
-// validateRunes check HTML page to find charset that used in the HTML page.
-func findHtmlCharset(content []byte) string {
-	// Parse HTML normally
-	r := bytes.NewReader(content)
-	doc, err := html.Parse(r)
+	// Detect page encoding
+	res, err := chardet.NewHtmlDetector().DetectBest(content)
 	if err != nil {
-		return ""
+		return nil, err
 	}
 
-	// Look for charset in <meta> elements
-	var customCharset string
-	for _, meta := range dom.GetElementsByTagName(doc, "meta") {
-		// Look in charset
-		charsetAttr := dom.GetAttribute(meta, "charset")
-		if charsetAttr != "" {
-			customCharset = strings.TrimSpace(charsetAttr)
-			break
-		}
-
-		// Look in http-equiv="Content-Type"
-		content := dom.GetAttribute(meta, "content")
-		httpEquiv := dom.GetAttribute(meta, "http-equiv")
-		if httpEquiv == "Content-Type" && content != "" {
-			matches := rxCharset.FindStringSubmatch(content)
-			if len(matches) > 0 {
-				customCharset = matches[1]
-				break
-			}
-		}
+	pageEncoding, _ := charset.Lookup(res.Charset)
+	if pageEncoding == nil {
+		pageEncoding = unicode.UTF8
 	}
 
-	return customCharset
-}
-
-// findCharsetEncoding converts specified charset name to a valid encoding.
-// If charset name is unknown, we assume it's UTF-8.
-func findCharsetEncoding(charsetName string) encoding.Encoding {
-	e, _ := charset.Lookup(charsetName)
-	if e != nil {
-		return e
-	}
-
-	return unicode.UTF8
+	// Parse HTML using the page encoding
+	r = bytes.NewReader(content)
+	r = transform.NewReader(r, pageEncoding.NewDecoder())
+	r = normalizeTextEncoding(r)
+	return html.Parse(r)
 }
