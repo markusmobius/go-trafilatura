@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	nurl "net/url"
-	"time"
 )
 
 // Config is advanced setting to fine tune the extraction result.
@@ -62,12 +61,6 @@ type Options struct {
 	// Config is the advanced configuration to fine tune the
 	// extraction result. Keep it as nil to use default config.
 	Config *Config
-
-	// RecordID is optional ID for the extracted metadata.
-	RecordID int64
-
-	// ExtractionTime is optional data for the extracted metadata.
-	ExtractionTime time.Time
 
 	// OriginalURL is the original URL of the page. Might be overwritten by URL in metadata.
 	OriginalURL *nurl.URL
