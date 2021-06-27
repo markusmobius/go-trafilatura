@@ -34,6 +34,7 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
@@ -131,7 +132,7 @@ func Test_ExoticTags(t *testing.T) {
 }
 
 func Test_Cache(t *testing.T) {
-	cache := NewCache(2)
+	cache := lru.NewCache(2)
 
 	div1 := etree.Element("div")
 	p1 := etree.SubElement(div1, "p")

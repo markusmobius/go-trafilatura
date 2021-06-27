@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"golang.org/x/net/html"
 )
 
@@ -111,7 +112,7 @@ func textCharsTest(s string) bool {
 }
 
 // duplicateTest checks for duplicate text within cache
-func duplicateTest(element *html.Node, cache *Cache, opts Options) bool {
+func duplicateTest(element *html.Node, cache *lru.Cache, opts Options) bool {
 	var isDuplicate bool
 	testString := trim(etree.IterText(element, " "))
 

@@ -28,6 +28,7 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
@@ -139,7 +140,7 @@ func pruneUnwantedNodes(tree *html.Node, rules []selector.Rule) {
 }
 
 // handleTextNode converts, formats and probes potential text elements.
-func handleTextNode(node *html.Node, cache *Cache, fixComments bool, opts Options) *html.Node {
+func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Options) *html.Node {
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
@@ -283,7 +284,7 @@ func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyL
 }
 
 // processNode converts, formats, and probes potential text elements (light format).
-func processNode(element *html.Node, cache *Cache, opts Options) *html.Node {
+func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	tagName := dom.TagName(element)
 	if tagName == "done" {
 		return nil

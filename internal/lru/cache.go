@@ -16,14 +16,16 @@
 // You should have received a copy of the GNU General Public License along
 // with this program. If not, see <https://www.gnu.org/licenses/>.
 
-package trafilatura
+package lru
 
+// Cache is a simple implementation for the Least Recently Used (LRU) cache.
 type Cache struct {
 	maxSize int
 	keys    []string
 	data    map[string]int
 }
 
+// NewCache returns a new Cache with specified max size.
 func NewCache(maxSize int) *Cache {
 	return &Cache{
 		maxSize: maxSize,
@@ -32,11 +34,13 @@ func NewCache(maxSize int) *Cache {
 	}
 }
 
+// Get fetch value from the cache.
 func (c *Cache) Get(key string) (int, bool) {
 	value, exist := c.data[key]
 	return value, exist
 }
 
+// Remove removes an item from the cache.
 func (c *Cache) Remove(key string) {
 	// Check if key exist in cache
 	_, exist := c.data[key]
@@ -58,6 +62,7 @@ func (c *Cache) Remove(key string) {
 	delete(c.data, key)
 }
 
+// Put stores a given key in the cache.
 func (c *Cache) Put(key string, value int) {
 	// If key already exist, just put it
 	if _, exist := c.data[key]; exist {
@@ -77,6 +82,7 @@ func (c *Cache) Put(key string, value int) {
 	c.data[key] = value
 }
 
+// Clear removes all cache content.
 func (c *Cache) Clear() {
 	c.keys = []string{}
 	c.data = make(map[string]int)

@@ -32,6 +32,7 @@ import (
 	"github.com/abadojack/whatlanggo"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
@@ -51,7 +52,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	}
 
 	// Prepare cache for detecting text duplicate
-	cache := NewCache(opts.Config.CacheSize)
+	cache := lru.NewCache(opts.Config.CacheSize)
 
 	// Parse HTML
 	doc, err := dom.Parse(r)
@@ -188,7 +189,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 }
 
 // extractComments try and extract comments out of potential sections in the HTML.
-func extractComments(doc *html.Node, cache *Cache, opts Options) (*html.Node, string) {
+func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string) {
 	// Prepare final container
 	commentsBody := etree.Element("body")
 
@@ -240,7 +241,7 @@ func extractComments(doc *html.Node, cache *Cache, opts Options) (*html.Node, st
 	return nil, ""
 }
 
-func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
+func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	// Make sure node is one of the potential tags
 	if _, isPotential := potentialTags[dom.TagName(elem)]; !isPotential {
 		return nil
@@ -258,7 +259,7 @@ func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cac
 
 // extractContent find the main content of a page using a set of selectors, then
 // extract relevant elements, strip them of unwanted subparts and convert them.
-func extractContent(doc *html.Node, cache *Cache, opts Options) (*html.Node, string, bool) {
+func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string, bool) {
 	var sureThing bool
 	resultBody := dom.CreateElement("body")
 
@@ -423,7 +424,7 @@ func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) 
 }
 
 // handleTextElem process text element and determine how to deal with its content.
-func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
+func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	switch dom.TagName(element) {
 	case "ul", "ol", "dl":
 		return handleLists(element, cache, opts)
@@ -460,7 +461,7 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 }
 
 // handleLists process lists elements
-func handleLists(element *html.Node, cache *Cache, opts Options) *html.Node {
+func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	processedElement := etree.Element(dom.TagName(element))
 
 	if text := etree.Text(element); text != "" {
@@ -510,7 +511,7 @@ func handleLists(element *html.Node, cache *Cache, opts Options) *html.Node {
 }
 
 // handleQuotes process quotes elements.
-func handleQuotes(element *html.Node, cache *Cache, opts Options) *html.Node {
+func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	processedElement := etree.Element(dom.TagName(element))
 
 	for _, child := range etree.Iter(element) {
@@ -532,7 +533,7 @@ func handleQuotes(element *html.Node, cache *Cache, opts Options) *html.Node {
 }
 
 // handleTitles process head elements (titles).
-func handleTitles(element *html.Node, cache *Cache, opts Options) *html.Node {
+func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	tail := etree.Tail(element)
 	if tail != "" && rxWords.MatchString(tail) {
 		logWarn(opts, "tail in title, stripping: %s", tail)
@@ -559,7 +560,7 @@ func handleTitles(element *html.Node, cache *Cache, opts Options) *html.Node {
 }
 
 // handleParagraphs process paragraphs (p) elements along with their children, trim and clean the content.
-func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
+func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	// Clear attributes
 	element.Attr = nil
 
@@ -670,7 +671,7 @@ func handleFormatting(element *html.Node) *html.Node {
 }
 
 // handleTable process single table element.
-func handleTable(tableElement *html.Node, cache *Cache, opts Options) *html.Node {
+func handleTable(tableElement *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	newTable := etree.Element(("table"))
 	newRow := etree.Element("tr")
 	i := 0
@@ -762,7 +763,7 @@ func handleImage(element *html.Node) *html.Node {
 }
 
 // handleOtherElement handle diverse or unknown elements in the scope of relevant tags.
-func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) *html.Node {
+func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	// Delete non potential element
 	tagName := dom.TagName(element)
 	if _, exist := potentialTags[tagName]; !exist {
@@ -785,7 +786,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	return nil
 }
 
-func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *Cache, opts Options) {
+func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	logInfo(opts, "recovering wild text elements")
 
 	// Prune
