@@ -28,6 +28,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-shiori/dom"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
@@ -52,7 +53,7 @@ func parseMockFile(mockFiles map[string]string, url string) *html.Node {
 	f := openMockFile(mockFiles, url)
 	defer f.Close()
 
-	doc, err := html.Parse(f)
+	doc, err := dom.Parse(f)
 	if err != nil {
 		logrus.Panicln(err)
 	}

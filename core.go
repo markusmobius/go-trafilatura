@@ -54,7 +54,7 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	cache := NewCache(opts.Config.CacheSize)
 
 	// Parse HTML
-	doc, err := parseHTMLDocument(r)
+	doc, err := dom.Parse(r)
 	if err != nil {
 		return nil, err
 	}
