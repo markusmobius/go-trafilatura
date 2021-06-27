@@ -37,6 +37,7 @@ import (
 	"golang.org/x/net/html"
 )
 
+// ExtractResult is the result of content extraction.
 type ExtractResult struct {
 	ContentNode  *html.Node
 	CommentsNode *html.Node
@@ -45,7 +46,22 @@ type ExtractResult struct {
 	Metadata     Metadata
 }
 
+// Extract parses a reader and find the main readable content.
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
+	// Parse HTML
+	doc, err := dom.Parse(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return ExtractDocument(doc, opts)
+}
+
+// ExtractDocument parses the specified document and find the main readable content.
+func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
+	// Clone document to make sure the original kept untouched
+	doc = dom.Clone(doc, true)
+
 	//  Set default config
 	if opts.Config == nil {
 		opts.Config = DefaultConfig()
@@ -53,12 +69,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 	// Prepare cache for detecting text duplicate
 	cache := lru.NewCache(opts.Config.CacheSize)
-
-	// Parse HTML
-	doc, err := dom.Parse(r)
-	if err != nil {
-		return nil, err
-	}
 
 	// HTML language check
 	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts) {

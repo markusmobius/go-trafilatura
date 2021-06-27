@@ -54,6 +54,7 @@ var (
 	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher"}
 )
 
+// Metadata is the metadata of the page.
 type Metadata struct {
 	Title       string
 	Author      string
