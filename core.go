@@ -835,7 +835,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	}
 
 	// Try readability
-	readabilityExtract, err := tryReadability(originalExtract, doc, opts)
+	readabilityExtract, err := tryReadability(doc, opts)
 	if err != nil {
 		logWarn(opts, "readability failed: %v", err)
 		readabilityExtract = etree.Element("div")
@@ -879,7 +879,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	if lenOriginal < opts.Config.MinExtractedSize {
 		logWarn(opts, "not enough text, using dom-distiller: %s", originalUrl)
 
-		distillerExtract, err := tryDomDistiller(originalExtract, doc, opts)
+		distillerExtract, err := tryDomDistiller(doc, opts)
 		if err != nil {
 			logWarn(opts, "dom-distiller failed: %v", err)
 		} else {

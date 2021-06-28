@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
@@ -32,11 +31,9 @@ import (
 	"golang.org/x/net/html"
 )
 
-func tryReadability(originalExtract, doc *html.Node, opts Options) (*html.Node, error) {
+func tryReadability(doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-readability
-	docHtml := dom.OuterHTML(doc)
-	r := strings.NewReader(docHtml)
-	article, err := readability.FromReader(r, opts.OriginalURL)
+	article, err := readability.FromDocument(doc, opts.OriginalURL)
 	if err != nil {
 		return nil, err
 	}
@@ -44,14 +41,14 @@ func tryReadability(originalExtract, doc *html.Node, opts Options) (*html.Node, 
 	return article.Node, nil
 }
 
-func tryDomDistiller(originalExtract, doc *html.Node, opts Options) (*html.Node, error) {
+func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-domdistiller
-	docHtml := dom.OuterHTML(doc)
-	r := strings.NewReader(docHtml)
-
-	res, err := distiller.ApplyForReader(r, &distiller.Options{
+	distillerOpts := &distiller.Options{
 		OriginalURL:    opts.OriginalURL,
-		SkipPagination: true})
+		SkipPagination: true,
+	}
+
+	res, err := distiller.Apply(doc, distillerOpts)
 	if err != nil {
 		return nil, err
 	}

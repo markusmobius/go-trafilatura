@@ -10,10 +10,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-trafilatura"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 )
 
 func main() {
@@ -57,6 +59,13 @@ func main() {
 			continue
 		}
 
+		// Create document
+		doc, err := dom.Parse(bytes.NewReader(fContent))
+		if err != nil {
+			logrus.Errorf("failed to parse %s: %v", entry.File, err)
+			continue
+		}
+
 		// Null hypotheses
 		ev := evaluateResult("", entry)
 		evNothing = mergeEvaluationResult(evNothing, ev)
@@ -66,7 +75,7 @@ func main() {
 
 		// Trafilatura
 		start := time.Now()
-		result, err := runTrafilatura(url, fContent)
+		result, err := runTrafilatura(url, doc)
 		if err != nil {
 			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
 		}
@@ -78,7 +87,7 @@ func main() {
 
 		// Trafilatura + fallback
 		start = time.Now()
-		result, err = runTrafilaturaFallback(url, fContent)
+		result, err = runTrafilaturaFallback(url, doc)
 		if err != nil {
 			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
 		}
@@ -90,7 +99,7 @@ func main() {
 
 		// Readability
 		start = time.Now()
-		result, err = runReadability(url, fContent)
+		result, err = runReadability(url, doc)
 		if err != nil {
 			logrus.Warnf("readability error in %s: %v", strURL, err)
 		}
@@ -102,7 +111,7 @@ func main() {
 
 		// Dom Distiller
 		start = time.Now()
-		result, err = runDomDistiller(url, fContent)
+		result, err = runDomDistiller(url, doc)
 		if err != nil {
 			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
 		}
@@ -174,10 +183,8 @@ func evaluateResult(result string, entry comparisonEntry) evaluationResult {
 	return ev
 }
 
-func runTrafilatura(url *nurl.URL, rawHTML []byte) (string, error) {
-	r := bytes.NewReader(rawHTML)
-
-	result, err := trafilatura.Extract(r, trafilatura.Options{
+func runTrafilatura(url *nurl.URL, doc *html.Node) (string, error) {
+	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
 		OriginalURL:     url,
 		NoFallback:      true,
 		ExcludeComments: true,
@@ -190,10 +197,8 @@ func runTrafilatura(url *nurl.URL, rawHTML []byte) (string, error) {
 	return result.ContentText, nil
 }
 
-func runTrafilaturaFallback(url *nurl.URL, rawHTML []byte) (string, error) {
-	r := bytes.NewReader(rawHTML)
-
-	result, err := trafilatura.Extract(r, trafilatura.Options{
+func runTrafilaturaFallback(url *nurl.URL, doc *html.Node) (string, error) {
+	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
 		OriginalURL:     url,
 		NoFallback:      false,
 		ExcludeComments: true,
@@ -206,9 +211,8 @@ func runTrafilaturaFallback(url *nurl.URL, rawHTML []byte) (string, error) {
 	return result.ContentText, nil
 }
 
-func runReadability(url *nurl.URL, rawHTML []byte) (string, error) {
-	r := bytes.NewReader(rawHTML)
-	article, err := readability.FromReader(r, url)
+func runReadability(url *nurl.URL, doc *html.Node) (string, error) {
+	article, err := readability.FromDocument(doc, url)
 	if err != nil {
 		return "", err
 	}
@@ -216,9 +220,8 @@ func runReadability(url *nurl.URL, rawHTML []byte) (string, error) {
 	return article.TextContent, nil
 }
 
-func runDomDistiller(url *nurl.URL, rawHTML []byte) (string, error) {
-	r := bytes.NewReader(rawHTML)
-	res, err := distiller.ApplyForReader(r, &distiller.Options{
+func runDomDistiller(url *nurl.URL, doc *html.Node) (string, error) {
+	res, err := distiller.Apply(doc, &distiller.Options{
 		OriginalURL:     url,
 		ExtractTextOnly: true,
 		SkipPagination:  true})
