@@ -20,7 +20,8 @@ func main() {
 	filePaths, err := getFileList()
 	checkError(err)
 
-	// Process each path
+	// Process each path. All error handling is skipped here for brevity,
+	// in real world we should check and handle each error.
 	var nDocument int
 	var parseTime time.Duration
 	var readabilityTime time.Duration
@@ -39,18 +40,24 @@ func main() {
 
 		// Use readability
 		start = time.Now()
-		readability.FromDocument(doc, nil)
+		readabilityResult, _ := readability.FromDocument(doc, nil)
 		readabilityTime += time.Now().Sub(start)
 
 		// Use dom distiller
 		start = time.Now()
 		distillerOpts := &distiller.Options{SkipPagination: true}
-		distiller.Apply(doc, distillerOpts)
+		distillerResult, _ := distiller.Apply(doc, distillerOpts)
 		domDistillerTime += time.Now().Sub(start)
 
 		// Use trafilatura
 		start = time.Now()
-		trafilaturaOpts := trafilatura.Options{NoFallback: false}
+		trafilaturaOpts := trafilatura.Options{
+			FallbackCandidates: []*html.Node{
+				readabilityResult.Node,
+				distillerResult.Node,
+			},
+		}
+
 		trafilatura.ExtractDocument(doc, trafilaturaOpts)
 		trafilaturaTime += time.Now().Sub(start)
 
