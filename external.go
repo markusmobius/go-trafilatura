@@ -22,8 +22,6 @@
 package trafilatura
 
 import (
-	"fmt"
-
 	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
@@ -53,14 +51,7 @@ func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 		return nil, err
 	}
 
-	// Since dom-distiller return extract in HTML string, parse it back into node
-	distillerExtract := dom.CreateElement("div")
-	dom.SetInnerHTML(distillerExtract, res.HTML)
-	if len(dom.Children(distillerExtract)) == 0 {
-		return nil, fmt.Errorf("can't find any content")
-	}
-
-	return distillerExtract, nil
+	return res.Node, nil
 }
 
 // sanitizeTree converts and sanitize the output from the generic

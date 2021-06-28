@@ -30,8 +30,8 @@ var (
 
 // trim removes unnecessary spaces within a text string.
 func trim(s string) string {
-	s = strings.TrimSpace(s)
-	return strings.Join(strings.Fields(s), " ")
+	s = strings.Join(strings.Fields(s), " ")
+	return strings.TrimSpace(s)
 }
 
 func strWordCount(s string) int {

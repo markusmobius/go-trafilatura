@@ -127,7 +127,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	postBody, tmpBodyText, sureThing := extractContent(doc, cache, opts)
 
 	// Use fallback if necessary
-	if !opts.NoFallback {
+	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
 		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
 		// Add baseline as additional fallback
 		if len(dom.Children(postBody)) == 0 {
@@ -822,68 +822,72 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	etree.Extend(resultBody, processedElems...)
 }
 
-// compareExtraction decide whether to choose own or external extraction
-// based on a series of heuristics. In original Trafilatura, they use
-// python-readability and justext, while here we use go-readability and
-// go-domdistiller. Since there are difference in implementation between
-// them, here we do it a bit differently compared to the original code.
+// compareExtraction decide whether to choose own or external extraction based on a series
+// of heuristics. In original Trafilatura, they use python-readability and justext, while
+// here we use go-readability and go-domdistiller. Since there are difference in
+// implementation between them, here we do it a bit differently compared to the original code.
 func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+	// Prepare fallback candidates
+	fallbackCandidates := opts.FallbackCandidates
+
+	// If fallback candidates are empty, populate it first
+	if len(fallbackCandidates) == 0 {
+		fallbackCandidates = []*html.Node{}
+
+		readabilityExtract, err := tryReadability(doc, opts)
+		if err == nil {
+			fallbackCandidates = append(fallbackCandidates, readabilityExtract)
+		} else {
+			logWarn(opts, "readability failed: %v", err)
+		}
+
+		// Here we append nil to fallback candidates. This nil value is used to
+		// notify Trafilatura to run Go-DomDistiller for that candidate. We do iy
+		// this way to make sure that dom-distiller will only be run if readability
+		// result is still not good enough to use.
+		fallbackCandidates = append(fallbackCandidates, nil)
+	}
+
 	// Convert url to string for logging
 	var originalUrl string
 	if opts.OriginalURL != nil {
 		originalUrl = opts.OriginalURL.String()
 	}
 
-	// Try readability
-	readabilityExtract, err := tryReadability(doc, opts)
-	if err != nil {
-		logWarn(opts, "readability failed: %v", err)
-		readabilityExtract = etree.Element("div")
-	}
-
-	readabilityText := trim(etree.IterText(readabilityExtract, " "))
-	lenReadability := utf8.RuneCountInString(readabilityText)
-
 	// Compare
 	originalText := trim(etree.IterText(originalExtract, " "))
 	lenOriginal := utf8.RuneCountInString(originalText)
-	logInfo(opts, "extracted length: %d (readability) %d (original)", lenReadability, lenOriginal)
 
-	// Check whether to use alternative algorithms
-	var useReadability bool
-	switch {
-	case lenReadability == 0 || lenReadability == lenOriginal:
-		useReadability = false
-	case lenOriginal == 0 && lenReadability > 0:
-		useReadability = true
-	case lenOriginal > 2*lenReadability:
-		useReadability = false
-	case lenReadability > 2*lenOriginal:
-		useReadability = true
-	case lenOriginal == 0 && lenReadability > opts.Config.MinExtractedSize:
-		useReadability = true
-	default:
-		logInfo(opts, "extraction values: %d %d for %s", lenOriginal, lenReadability, originalUrl)
-		useReadability = false
-	}
+	for i, candidate := range fallbackCandidates {
+		// Use dom-distiller if necessary
+		if candidate == nil {
+			var err error
+			candidate, err = tryDomDistiller(doc, opts)
+			if err != nil {
+				logWarn(opts, "dom-distiller failed: %v", err)
+				continue
+			}
+		}
 
-	// Apply decision
-	if useReadability {
-		originalExtract = readabilityExtract
-		originalText = readabilityText
-		lenOriginal = lenReadability
-		logInfo(opts, "using readability algorithm: %s", originalUrl)
-	}
+		// Extract text from candidate
+		candidateText := trim(etree.IterText(candidate, " "))
+		lenCandidate := utf8.RuneCountInString(candidateText)
+		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
 
-	// Try dom-distiller
-	if lenOriginal < opts.Config.MinExtractedSize {
-		logWarn(opts, "not enough text, using dom-distiller: %s", originalUrl)
+		// Check if this candidate can be used
+		candidateUsable := (lenOriginal == 0 && lenCandidate > 0) || (lenCandidate > 2*lenOriginal) ||
+			(lenOriginal == 0 && lenCandidate > opts.Config.MinExtractedSize)
 
-		distillerExtract, err := tryDomDistiller(doc, opts)
-		if err != nil {
-			logWarn(opts, "dom-distiller failed: %v", err)
-		} else {
-			originalExtract = distillerExtract
+		if candidateUsable {
+			originalExtract = candidate
+			originalText = candidateText
+			lenOriginal = lenCandidate
+			logInfo(opts, "candidate-%d usable: %s", i+1, originalUrl)
+		}
+
+		if lenOriginal >= opts.Config.MinExtractedSize {
+			logInfo(opts, "candidate-%d used: %s", i+1, originalUrl)
+			break
 		}
 	}
 

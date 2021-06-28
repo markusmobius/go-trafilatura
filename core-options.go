@@ -23,6 +23,8 @@ package trafilatura
 
 import (
 	nurl "net/url"
+
+	"golang.org/x/net/html"
 )
 
 // Config is advanced setting to fine tune the extraction result.
@@ -71,6 +73,11 @@ type Options struct {
 
 	// NoFallback specify whether to skip fallback extractor using readability and dom-distiller.
 	NoFallback bool
+
+	// FallbackCandidates is list of documents which will be used for fallback when extraction result
+	// by original algorithm is too little and not good enough. If this list is specified, `NoFallback`
+	// will be ignored but readability and dom-distiller won't be run.
+	FallbackCandidates []*html.Node
 
 	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool

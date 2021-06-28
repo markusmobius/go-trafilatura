@@ -128,6 +128,8 @@ github.com/magiconair/properties v1.8.0/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czP
 github.com/magiconair/properties v1.8.1/go.mod h1:PppfXfuXeibc/6YijjN8zIbojt8czPbwD3XqdrwzmxQ=
 github.com/markusmobius/go-domdistiller v0.0.0-20210627124457-88889a6bc85d h1:9bFnPEcOB8a/5osECiAiqrNB4+DeK9e9/oxH5sOXP18=
 github.com/markusmobius/go-domdistiller v0.0.0-20210627124457-88889a6bc85d/go.mod h1:1e3SLFlQR6Yrz/T3InDERSMrBneVk6JLPlUAIWKQ5+o=
+github.com/markusmobius/go-domdistiller v0.0.0-20210628034231-85945987016d h1:0He59ROOqaTCOKqDkxWWj10lhY/RXzHSKCWkOoXQLec=
+github.com/markusmobius/go-domdistiller v0.0.0-20210628034231-85945987016d/go.mod h1:1e3SLFlQR6Yrz/T3InDERSMrBneVk6JLPlUAIWKQ5+o=
 github.com/markusmobius/go-htmldate v0.0.0-20210627113013-f9a1cbfd7762 h1:KvLfxWj7pUTFeWoZ38i71c9mHSVn/4dUwQKQWhLxdIQ=
 github.com/markusmobius/go-htmldate v0.0.0-20210627113013-f9a1cbfd7762/go.mod h1:uvd0UTFXNbaX5K8o/oxFOEadGjpaxJ4eiaWUXHAJ7I8=
 github.com/matoous/go-nanoid v1.5.0 h1:VRorl6uCngneC4oUQqOYtO3S0H5QKFtKuKycFG3euek=

@@ -73,45 +73,21 @@ func main() {
 		ev = evaluateResult(string(fContent), entry)
 		evEverything = mergeEvaluationResult(evEverything, ev)
 
-		// Trafilatura
-		start := time.Now()
-		result, err := runTrafilatura(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
-		}
-
-		duration := time.Now().Sub(start)
-		ev = evaluateResult(result, entry)
-		evTrafilatura = mergeEvaluationResult(evTrafilatura, ev)
-		evTrafilatura.Duration += duration
-
-		// Trafilatura + fallback
-		start = time.Now()
-		result, err = runTrafilaturaFallback(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
-		}
-
-		duration = time.Now().Sub(start)
-		ev = evaluateResult(result, entry)
-		evTrafilaturaFallback = mergeEvaluationResult(evTrafilaturaFallback, ev)
-		evTrafilaturaFallback.Duration += duration
-
 		// Readability
-		start = time.Now()
-		result, err = runReadability(url, doc)
+		start := time.Now()
+		docReadability, result, err := runReadability(url, doc)
 		if err != nil {
 			logrus.Warnf("readability error in %s: %v", strURL, err)
 		}
 
-		duration = time.Now().Sub(start)
+		duration := time.Now().Sub(start)
 		ev = evaluateResult(result, entry)
 		evReadability = mergeEvaluationResult(evReadability, ev)
 		evReadability.Duration += duration
 
 		// Dom Distiller
 		start = time.Now()
-		result, err = runDomDistiller(url, doc)
+		docDistiller, result, err := runDomDistiller(url, doc)
 		if err != nil {
 			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
 		}
@@ -120,6 +96,30 @@ func main() {
 		ev = evaluateResult(result, entry)
 		evDomDistiller = mergeEvaluationResult(evDomDistiller, ev)
 		evDomDistiller.Duration += duration
+
+		// Trafilatura
+		start = time.Now()
+		result, err = runTrafilatura(url, doc)
+		if err != nil {
+			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
+		}
+
+		duration = time.Now().Sub(start)
+		ev = evaluateResult(result, entry)
+		evTrafilatura = mergeEvaluationResult(evTrafilatura, ev)
+		evTrafilatura.Duration += duration
+
+		// Trafilatura + fallback
+		start = time.Now()
+		result, err = runTrafilaturaFallback(url, doc, docReadability, docDistiller)
+		if err != nil {
+			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
+		}
+
+		duration = time.Now().Sub(start)
+		ev = evaluateResult(result, entry)
+		evTrafilaturaFallback = mergeEvaluationResult(evTrafilaturaFallback, ev)
+		evTrafilaturaFallback.Duration += duration
 
 		// Counter
 		nDocument++
@@ -197,11 +197,12 @@ func runTrafilatura(url *nurl.URL, doc *html.Node) (string, error) {
 	return result.ContentText, nil
 }
 
-func runTrafilaturaFallback(url *nurl.URL, doc *html.Node) (string, error) {
+func runTrafilaturaFallback(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
 	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
-		OriginalURL:     url,
-		NoFallback:      false,
-		ExcludeComments: true,
+		OriginalURL:        url,
+		NoFallback:         false,
+		ExcludeComments:    true,
+		FallbackCandidates: fallbackCandidates,
 	})
 
 	if err != nil {
@@ -211,25 +212,24 @@ func runTrafilaturaFallback(url *nurl.URL, doc *html.Node) (string, error) {
 	return result.ContentText, nil
 }
 
-func runReadability(url *nurl.URL, doc *html.Node) (string, error) {
+func runReadability(url *nurl.URL, doc *html.Node) (*html.Node, string, error) {
 	article, err := readability.FromDocument(doc, url)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return article.TextContent, nil
+	return article.Node, article.TextContent, nil
 }
 
-func runDomDistiller(url *nurl.URL, doc *html.Node) (string, error) {
+func runDomDistiller(url *nurl.URL, doc *html.Node) (*html.Node, string, error) {
 	res, err := distiller.Apply(doc, &distiller.Options{
-		OriginalURL:     url,
-		ExtractTextOnly: true,
-		SkipPagination:  true})
+		OriginalURL:    url,
+		SkipPagination: true})
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
-	return res.HTML, nil
+	return res.Node, res.Text, nil
 }
 
 type evaluationResult struct {
