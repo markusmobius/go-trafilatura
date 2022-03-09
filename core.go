@@ -79,7 +79,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	docBackup := dom.Clone(doc, true)
 
 	// Fetch metadata
-	metadata := extractMetadata(doc, opts.OriginalURL)
+	metadata := extractMetadata(doc, opts)
 
 	// Check if essential metadata is missing
 	if opts.HasEssentialMetadata {
@@ -91,10 +91,9 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 			return nil, fmt.Errorf("url is required")
 		}
 
-		// TODO: need to port htmldate
-		// if metadata.Date == "" {
-		// 	return nil, fmt.Errorf("date is required")
-		// }
+		if metadata.Date.IsZero() {
+			return nil, fmt.Errorf("date is required")
+		}
 	}
 
 	// ADDITIONAL: If original URL never specified, and it found in metadata,

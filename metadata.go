@@ -26,10 +26,12 @@ import (
 	nurl "net/url"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
@@ -52,6 +54,7 @@ var (
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title"}
 	metaNameDescription = []string{"description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description"}
 	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher"}
+	defaultHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 )
 
 // Metadata is the metadata of the page.
@@ -62,13 +65,13 @@ type Metadata struct {
 	Hostname    string
 	Description string
 	Sitename    string
-	Date        string
+	Date        time.Time
 	Categories  []string
 	Tags        []string
 	License     string
 }
 
-func extractMetadata(doc *html.Node, defaultURL *nurl.URL) Metadata {
+func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Extract metadata from <meta> tags
 	metadata := examineMeta(doc)
 
@@ -88,7 +91,7 @@ func extractMetadata(doc *html.Node, defaultURL *nurl.URL) Metadata {
 
 	// URL
 	if metadata.URL == "" {
-		metadata.URL = extractDomURL(doc, defaultURL)
+		metadata.URL = extractDomURL(doc, opts.OriginalURL)
 	}
 
 	// Hostname
@@ -96,7 +99,19 @@ func extractMetadata(doc *html.Node, defaultURL *nurl.URL) Metadata {
 		metadata.Hostname = extractDomainURL(metadata.URL)
 	}
 
-	// TODO: Publish date (need to port htmldate) :(
+	// Publish date
+	var htmlDateOpts htmldate.Options
+	if opts.HtmlDateOptions != nil {
+		htmlDateOpts = *opts.HtmlDateOptions
+	} else {
+		htmlDateOpts = defaultHtmlDateOpts
+	}
+
+	htmlDateOpts.URL = metadata.URL
+	publishDate, err := htmldate.FromDocument(doc, htmlDateOpts)
+	if err == nil && !publishDate.IsZero() {
+		metadata.Date = publishDate.DateTime
+	}
 
 	// Sitename
 	if metadata.Sitename == "" {

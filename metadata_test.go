@@ -114,7 +114,13 @@ func Test_Metadata_Descriptions(t *testing.T) {
 }
 
 func Test_Metadata_Dates(t *testing.T) {
-	// TODO: need to port htmldate :(
+	rawHTML := `<html><head><meta property="og:published_time" content="2017-09-01"/></head><body></body></html>`
+	metadata := testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+
+	rawHTML = `<html><head><meta property="og:url" content="https://example.org/2017/09/01/content.html"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
 }
 
 func Test_Metadata_Categories(t *testing.T) {
@@ -181,7 +187,7 @@ func Test_Metadata_MetaTags(t *testing.T) {
 			meta.Hostname == "" &&
 			meta.Description == "" &&
 			meta.Sitename == "" &&
-			meta.Date == "" &&
+			meta.Date.IsZero() &&
 			len(meta.Categories) == 0 &&
 			len(meta.Tags) == 0
 	}
@@ -335,7 +341,7 @@ func Test_Metadata_RealPages(t *testing.T) {
 	metadata = testGetMetadataFromURL(url)
 	assert.True(t, strings.HasSuffix(metadata.Title, "scores historic upset at SAG awards, boosting Oscar chances"))
 	assert.Equal(t, "Jill Serjeant", metadata.Author)
-	// assert.Equal(t, "2020-01-20", metadata.Date)
+	assert.Equal(t, "2020-01-20", metadata.Date.Format("2006-01-02"))
 	// assert.Equal(t, "“Parasite,” the Korean language social satire about the wealth gap in South Korea, was the first film in a foreign language to win the top prize of best cast ensemble in the 26 year-history of the SAG awards.", metadata.Description)
 	// assert.Equal(t, "Reuters", metadata.Sitename)
 	// assert.Equal(t, []string{"Parasite", "SAG awards", "Cinema"}, metadata.Categories)
@@ -430,12 +436,12 @@ func testGetMetadataFromHTML(rawHTML string) Metadata {
 		panic(err)
 	}
 
-	return extractMetadata(doc, nil)
+	return extractMetadata(doc, defaultOpts)
 }
 
 func testGetMetadataFromURL(url string) Metadata {
 	doc := parseMockFile(metadataMockFiles, url)
-	return extractMetadata(doc, nil)
+	return extractMetadata(doc, defaultOpts)
 }
 
 func testGetMetadataFromFile(path string) Metadata {
@@ -452,5 +458,5 @@ func testGetMetadataFromFile(path string) Metadata {
 		logrus.Panicln(err)
 	}
 
-	return extractMetadata(doc, nil)
+	return extractMetadata(doc, defaultOpts)
 }

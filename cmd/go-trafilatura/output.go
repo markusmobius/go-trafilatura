@@ -111,7 +111,7 @@ func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
 
 	meta = etree.SubElement(head, "meta")
 	dom.SetAttribute(meta, "name", "date")
-	dom.SetAttribute(meta, "content", result.Metadata.Date)
+	dom.SetAttribute(meta, "content", result.Metadata.Date.Format("2006-01-02"))
 
 	meta = etree.SubElement(head, "meta")
 	dom.SetAttribute(meta, "name", "categories")

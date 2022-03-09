@@ -25,7 +25,7 @@ that can be parsed by the original Trafilatura can be parsed by this package as 
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura v0.8.2 (commit 
+This package is stable enough for use and up to date with the original Trafilatura v0.8.2 (commit
 [8f512db][4]). I've also picked some latest commits that fix important issues.
 
 There are some difference between this port and the original Trafilatura:
@@ -38,8 +38,6 @@ There are some difference between this port and the original Trafilatura:
   difference in extraction result between our port and the original.
 - The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks
   to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
-- Unlike the original, right now `go-trafilatura` is unable to fetch publish date of a web page. To fix
-  this, we are planning to port [`htmldate`][5] as well.
 
 ## Usage as Go package
 
@@ -55,7 +53,7 @@ Next, include it in your application :
 import "github.com/markusmobius/go-trafilatura"
 ```
 
-Now you can use Trafilatura to extract content of a web page. For basic usage you can check the 
+Now you can use Trafilatura to extract content of a web page. For basic usage you can check the
 [example](examples/from-url.go).
 
 ## Usage as CLI Application
@@ -166,19 +164,19 @@ go run scripts/comparison/*.go
 For the test, we use 500 documents, 1,487 text and 1,496 boilerplate segments (data from 2020-11-06).
 Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
-|             Package            | Precision | Recall | Accuracy | F-Score | Speed (s) |
-|:------------------------------:|:---------:|:------:|:--------:|:-------:|:---------:|
-|        `go-domdistiller`       |   0.900   |  0.831 |   0.870  |  0.864  |   6.795   |
-|        `go-readability`        |   0.895   |  0.866 |   0.882  |  0.880  |   6.604   |
-|        `go-trafilatura`        |   0.921   |  0.867 |   0.896  |  0.893  |   3.656   |
-| `go-trafilatura` with fallback |   0.926   |  0.888 |   0.909  |  0.907  |  10.663   |
+|            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
+| :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
+|       `go-domdistiller`        |   0.900   | 0.831  |  0.870   |  0.864  |   6.795   |
+|        `go-readability`        |   0.895   | 0.866  |  0.882   |  0.880  |   6.604   |
+|        `go-trafilatura`        |   0.921   | 0.867  |  0.896   |  0.893  |   3.656   |
+| `go-trafilatura` with fallback |   0.926   | 0.888  |  0.909   |  0.907  |  10.663   |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For
 instance, the image extraction in `go-trafilatura` is not as good as the other.
 
 ## Comparison with Original Trafilatura
 
-For our purpose, we need a high quality extractor that is as fast as possible, especially since we process 
+For our purpose, we need a high quality extractor that is as fast as possible, especially since we process
 millions of page each day. Because of this, we decided to port Trafilatura from Python to Go since we
 believe the accuracy of Trafilatura combined with Go's speed will fulfill our requirement.
 
@@ -187,11 +185,11 @@ Trafilatura already has a script named `comparison.py` which used to compare it 
 libraries, so we can easily use it to compare the performance between the original and our port:
 
 |             Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
-|:-------------------------------:|:---------:|:------:|:--------:|:-------:|:---------:|
-|         `go-trafilatura`        |   0.921   |  0.867 |   0.896  |  0.893  |   3.656   |
-|   `go-trafilatura` + fallback   |   0.926   |  0.888 |   0.909  |  0.907  |  10.663   |
-|       `trafilatura` v0.8.2      |   0.925   |  0.867 |   0.899  |  0.895  |  10.123   |
-| `trafilatura` v0.8.2 + fallback |   0.934   |  0.889 |   0.914  |  0.911  |  20.757   |
+| :-----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
+|        `go-trafilatura`         |   0.921   | 0.867  |  0.896   |  0.893  |   3.656   |
+|   `go-trafilatura` + fallback   |   0.925   | 0.888  |  0.908   |  0.906  |   3.750   |
+|      `trafilatura` v0.8.2       |   0.925   | 0.867  |  0.899   |  0.895  |  10.123   |
+| `trafilatura` v0.8.2 + fallback |   0.934   | 0.889  |  0.914   |  0.911  |  20.757   |
 
 According to the table above, our port has the same performance as the original Trafilatura. It makes
 sense since most of code is ported line by line from Python to Go (excluding some difference that mentioned
@@ -220,4 +218,3 @@ Like the original, `go-trafilatura` is distributed under the [GNU General Public
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
 [4]: https://github.com/adbar/trafilatura/commit/25698ebc93e1625f81f2d1f2300caf27425df33e
-[5]: https://github.com/adbar/htmldate
