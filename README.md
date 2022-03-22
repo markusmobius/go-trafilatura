@@ -21,6 +21,7 @@ that can be parsed by the original Trafilatura can be parsed by this package as 
 - [Usage as CLI Application](#usage-as-cli-application)
 - [Comparison with Other Go Package](#comparison-with-other-go-packages)
 - [Comparison with Original Trafilatura](#comparison-with-original-trafilatura)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
 
 ## Status
@@ -209,6 +210,26 @@ the original Trafilatura. This is because Python doesn't support CPU threading, 
 Trafilatura in multiple thread, it will become a lot more slower than running it sequentially in single
 thread.
 
+## Acknowledgements
+
+This package won't be exist without effort by Adrien Barbaresi, the author of the original Python package. He created `trafilatura` as part of effort to [build text databases for research][k-web], to facilitate a better text data collection which lead to a better corpus quality. For more information:
+
+```
+@inproceedings{barbaresi-2021-trafilatura,
+  title = {{Trafilatura: A Web Scraping Library and Command-Line Tool for Text Discovery and Extraction}},
+  author = "Barbaresi, Adrien",
+  booktitle = "Proceedings of the Joint Conference of the 59th Annual Meeting of the Association for Computational Linguistics and the 11th International Joint Conference on Natural Language Processing: System Demonstrations",
+  pages = "122--131",
+  publisher = "Association for Computational Linguistics",
+  url = "https://aclanthology.org/2021.acl-demo.15",
+  year = 2021,
+}
+```
+
+- Barbaresi, A. [Trafilatura: A Web Scraping Library and Command-Line Tool for Text Discovery and Extraction][paper-1], Proceedings of ACL/IJCNLP 2021: System Demonstrations, 2021, p. 122-131.
+- Barbaresi, A. ["Generic Web Content Extraction with Open-Source Software"][paper-2], Proceedings of KONVENS 2019, Kaleidoscope Abstracts, 2019.
+- Barbaresi, A. ["Efficient construction of metadata-enhanced web corpora"][paper-3], Proceedings of the [10th Web as Corpus Workshop (WAC-X)][wac-x], 2016.
+
 ## License
 
 Like the original, `go-trafilatura` is distributed under the [GNU General Public License v3.0](LICENSE).
@@ -218,3 +239,8 @@ Like the original, `go-trafilatura` is distributed under the [GNU General Public
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
 [4]: https://github.com/adbar/trafilatura/commit/25698ebc93e1625f81f2d1f2300caf27425df33e
+[paper-1]: https://aclanthology.org/2021.acl-demo.15/
+[paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
+[paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
+[wac-x]: https://www.sigwac.org.uk/wiki/WAC-X
+[k-web]: https://www.dwds.de/d/k-web
