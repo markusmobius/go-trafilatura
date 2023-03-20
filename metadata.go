@@ -120,9 +120,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 
 	if metadata.Sitename != "" {
 		// Scrap Twitter ID
-		if strings.HasPrefix(metadata.Sitename, "@") {
-			metadata.Sitename = strings.TrimPrefix(metadata.Sitename, "@")
-		}
+		metadata.Sitename = strings.TrimPrefix(metadata.Sitename, "@")
 
 		// Capitalize
 		firstRune := getRune(metadata.Sitename, 0)

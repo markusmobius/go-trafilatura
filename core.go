@@ -879,7 +879,6 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 
 		if candidateUsable {
 			originalExtract = candidate
-			originalText = candidateText
 			lenOriginal = lenCandidate
 			logInfo(opts, "candidate-%d usable: %s", i+1, originalUrl)
 		}

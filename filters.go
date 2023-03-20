@@ -105,10 +105,7 @@ func textFilter(n *html.Node) bool {
 // textCharsTest determine if a string is only composed of spaces and/or control characters.
 func textCharsTest(s string) bool {
 	s = strings.TrimSpace(s)
-	if s == "" {
-		return false
-	}
-	return true
+	return s != ""
 }
 
 // duplicateTest checks for duplicate text within cache
