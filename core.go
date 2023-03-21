@@ -534,11 +534,6 @@ func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 
 // handleTitles process head elements (titles).
 func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
-	tail := etree.Tail(element)
-	if tail != "" && rxWords.MatchString(tail) {
-		logWarn(opts, "tail in title, stripping: %s", tail)
-	}
-
 	// In original trafilatura, summary is treated as heading.
 	// However, in XML, <h1> to <h6> is treated simply as <head>,
 	// which means heading level is not important in XML. Since
@@ -550,9 +545,28 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		element.Data = "b"
 	}
 
-	etree.SetTail(element, "")
-	title := processNode(element, cache, opts)
-	if title != nil && textCharsTest(etree.Text(element)) {
+	var title *html.Node
+	if children := dom.Children(element); len(children) == 0 {
+		// TODO: maybe needs attention?
+		// tail := etree.Tail(element)
+		// if tail != "" && rxWords.MatchString(tail) {
+		// 	logWarn(opts, "tail in title, stripping: %s", tail)
+		// }
+		// etree.SetTail(element, "")
+		title = processNode(element, cache, opts)
+	} else {
+		title = dom.Clone(element, false)
+		for _, child := range children {
+			processedChild := handleTextNode(child, cache, false, opts)
+			if processedChild != nil {
+				processedChild = dom.Clone(processedChild, true)
+				dom.AppendChild(title, processedChild)
+			}
+			child.Data = "done"
+		}
+	}
+
+	if title != nil && textCharsTest(dom.InnerText(title)) {
 		return title
 	}
 

@@ -35,7 +35,8 @@ func Test_Extract(t *testing.T) {
 			strings.Contains(result.CommentsText, str)
 	}
 
-	result := extractMockFile(rwMockFiles, "https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/")
+	var result *ExtractResult
+	result = extractMockFile(rwMockFiles, "https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/")
 	assert.False(t, resContains(result, "Impressum"))
 	assert.True(t, resContains(result, "Die GEMA dreht völlig am Zeiger!"))
 
