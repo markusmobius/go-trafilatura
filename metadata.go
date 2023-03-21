@@ -44,7 +44,7 @@ var (
 	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
 	rxAuthorCleaner1 = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorCleaner2 = regexp.MustCompile(`(?i)\d.+?$`)
-	rxAuthorCleaner3 = regexp.MustCompile(`(?i)[^\w]+$|( am| on)`)
+	rxAuthorCleaner3 = regexp.MustCompile(`(?i)[^\w]+$|\b( [A|a]m| [O|o]n| [F|f]or)\b\s+(.*)`)
 	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
 	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
