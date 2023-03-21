@@ -145,6 +145,13 @@ func Test_Metadata_Tags(t *testing.T) {
 	assert.Equal(t, expected, metadata.Tags)
 }
 
+func Test_Metadata_Sitename(t *testing.T) {
+	rawHTML := `<html><head><title>sitemaps.org - Home</title></head><body/></html>`
+	metadata := testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "sitemaps.org", metadata.Sitename)
+	assert.Equal(t, "Home", metadata.Title)
+}
+
 func Test_Metadata_MetaTags(t *testing.T) {
 	rawHTML := `<html><head>
 			<meta property="og:title" content="Open Graph Title" />

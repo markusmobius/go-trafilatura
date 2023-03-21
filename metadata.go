@@ -38,17 +38,16 @@ import (
 )
 
 var (
-	rxCommaSeparator  = regexp.MustCompile(`\s*[,;]\s*`)
-	rxTitleCleaner    = regexp.MustCompile(`(?i)(.+)?\s+[-|]\s+.*$`)
-	rxJsonSymbol      = regexp.MustCompile(`[{\\}]`)
-	rxNameJson        = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
-	rxAuthorCleaner1  = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
-	rxAuthorCleaner2  = regexp.MustCompile(`(?i)\d.+?$`)
-	rxAuthorCleaner3  = regexp.MustCompile(`(?i)[^\w]+$|( am| on)`)
-	rxUrlCheck        = regexp.MustCompile(`(?i)https?://|/`)
-	rxDomainFinder    = regexp.MustCompile(`(?i)https?://[^/]+`)
-	rxSitenameFinder1 = regexp.MustCompile(`(?i)^.*?[-|]\s+(.*)$`)
-	rxSitenameFinder2 = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
+	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
+	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
+	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
+	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
+	rxAuthorCleaner1 = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
+	rxAuthorCleaner2 = regexp.MustCompile(`(?i)\d.+?$`)
+	rxAuthorCleaner3 = regexp.MustCompile(`(?i)[^\w]+$|( am| on)`)
+	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
+	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
+	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
 
 	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author"} // twitter:creator
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title"}
@@ -128,7 +127,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 			metadata.Sitename = strings.Title(metadata.Sitename)
 		}
 	} else if metadata.URL != "" {
-		matches := rxSitenameFinder2.FindStringSubmatch(metadata.URL)
+		matches := rxSitenameFinder.FindStringSubmatch(metadata.URL)
 		if len(matches) > 0 {
 			metadata.Sitename = matches[1]
 		}
@@ -564,7 +563,11 @@ func extractDomTitle(doc *html.Node) string {
 
 		matches := rxTitleCleaner.FindStringSubmatch(title)
 		if len(matches) > 0 {
-			title = matches[1]
+			if !strings.Contains(matches[1], ".") {
+				title = matches[1]
+			} else if !strings.Contains(matches[2], ".") {
+				title = matches[2]
+			}
 		}
 
 		return title
@@ -685,9 +688,13 @@ func extractDomSitename(doc *html.Node) string {
 		return ""
 	}
 
-	matches := rxSitenameFinder1.FindStringSubmatch(titleText)
+	matches := rxTitleCleaner.FindStringSubmatch(titleText)
 	if len(matches) > 0 {
-		return matches[1]
+		if strings.Contains(matches[1], ".") {
+			return matches[1]
+		} else if strings.Contains(matches[2], ".") {
+			return matches[2]
+		}
 	}
 
 	return ""
