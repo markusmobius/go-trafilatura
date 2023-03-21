@@ -293,6 +293,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Prune
 		pruneUnwantedNodes(subTree, DiscardedContentXpaths)
+		if !opts.IncludeImages {
+			pruneUnwantedNodes(subTree, DiscardedImageXpaths)
+		}
 
 		// Remove elements by link density
 		deleteByLinkDensity(subTree, "div", true)
@@ -744,8 +747,8 @@ func handleImage(element *html.Node) *html.Node {
 		dom.SetAttribute(processedElement, "title", elementTitle)
 	}
 
-	// If image doesn't have any attributes, return nil
-	if len(processedElement.Attr) == 0 {
+	// If image doesn't have any attributes or doesn't have any src, return nil
+	if len(processedElement.Attr) == 0 || dom.GetAttribute(processedElement, "src") == "" {
 		return nil
 	}
 
@@ -767,6 +770,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		return nil
 	}
 
+	// TODO: make a copy and prune it in case it contains sub-elements handled on their ownE
 	if tagName == "div" || tagName == "details" {
 		processedElement := handleTextNode(element, cache, false, opts)
 		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
@@ -788,6 +792,9 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 
 	// Prune
 	pruneUnwantedNodes(doc, DiscardedContentXpaths)
+	if _, exist := potentialTags["img"]; !exist {
+		pruneUnwantedNodes(doc, DiscardedImageXpaths)
+	}
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {

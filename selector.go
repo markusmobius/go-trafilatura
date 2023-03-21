@@ -146,8 +146,7 @@ var DiscardedContentXpaths = []string{
 	contains(@id, "bread-crumb") or contains(@class, "bread-crumb") or
 	contains(@id, "author") or contains(@class, "author") or
 	contains(@id, "button") or contains(@class, "button")
-	or contains(@id, "caption") or contains(@class, "caption") or
-	contains(translate(@class, "B","b"), "byline")
+	or contains(translate(@class, "B","b"), "byline")
 	or contains(@class, "rating") or starts-with(@class, "widget") or
 	contains(@class, "attachment") or contains(@class, "timestamp") or
 	contains(@class, "user-info") or contains(@class, "user-profile") or
@@ -169,4 +168,10 @@ var DiscardedCommentXpaths = []string{
 	`.//*[@class="comments-title" or contains(@class, "comments-title") or contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
     contains(@class, "-reply-") or contains(@class, "message") or
     contains(@id, "akismet") or contains(@class, "akismet") or contains(@style, "display:none")]`,
+}
+
+var DiscardedImageXpaths = []string{
+	`.//*[(self::div or self::item or self::ol or self::ul or self::li or
+	self::p or self::section or self::span)][
+	contains(@id, "caption") or contains(@class, "caption")]`,
 }
