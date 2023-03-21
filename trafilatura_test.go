@@ -248,6 +248,11 @@ func Test_Formatting(t *testing.T) {
 	assert.Contains(t, fnHtml(result), `<tt>tt</tt>`)
 	assert.Contains(t, fnHtml(result), `<strike>deleted</strike>`)
 	assert.Contains(t, fnHtml(result), `<a href="test.html">link</a>`)
+
+	// Line break following formatting
+	r = strings.NewReader("<html><body><article><p><strong>Staff Review of the Financial Situation</strong><br>Domestic financial conditions remained accommodative over the intermeeting period.</p></article></body></html>")
+	result, _ = Extract(r, zeroOpts)
+	assert.Equal(t, "Staff Review of the Financial Situation\nDomestic financial conditions remained accommodative over the intermeeting period.", dom.InnerText(result.ContentNode))
 }
 
 func Test_Baseline(t *testing.T) {
