@@ -19,7 +19,7 @@ var (
 
 func main() {
 	// Prepare URL
-	url := "https://www.finanzen.net/nachricht/trading/anzeige-value-stars-mit-ausgewaehlten-aktien-den-dax-schlagen-5873873"
+	url := "https://www.federalreserve.gov/monetarypolicy/fomcminutes20160727.htm"
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
 		logrus.Fatalf("failed to parse url: %v", err)
