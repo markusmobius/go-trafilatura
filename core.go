@@ -30,10 +30,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/abadojack/whatlanggo"
+	htmlxpath "github.com/antchfx/htmlquery"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
-	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
 
@@ -206,15 +206,9 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 	potentialTags := duplicateMap(tagCatalog)
 
 	// Process each selector rules
-	for _, rule := range selector.CommentsRules {
+	for _, query := range CommentXpaths {
 		// Capture first node that matched with the rule
-		var subTree *html.Node
-		for _, n := range dom.GetElementsByTagName(doc, "*") {
-			if rule(n) {
-				subTree = n
-				break
-			}
-		}
+		subTree := htmlxpath.FindOne(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
@@ -222,7 +216,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 		}
 
 		// Prune
-		pruneUnwantedNodes(subTree, selector.DiscardedCommentsRules)
+		pruneUnwantedNodes(subTree, DiscardedCommentXpaths)
 		etree.StripTags(subTree, "a", "span")
 
 		// Extract comments
@@ -288,15 +282,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Iterate each selector rule
-	for _, rule := range selector.ContentRules {
+	for _, query := range ContentXpaths {
 		// Capture first node that matched with the rule
-		var subTree *html.Node
-		for _, n := range dom.GetElementsByTagName(doc, "*") {
-			if rule(n) {
-				subTree = n
-				break
-			}
-		}
+		subTree := htmlxpath.FindOne(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
@@ -304,7 +292,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Prune
-		pruneUnwantedNodes(subTree, selector.DiscardedContentRules)
+		pruneUnwantedNodes(subTree, DiscardedContentXpaths)
 
 		// Remove elements by link density
 		deleteByLinkDensity(subTree, "div", true)
@@ -799,7 +787,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	logInfo(opts, "recovering wild text elements")
 
 	// Prune
-	pruneUnwantedNodes(doc, selector.DiscardedContentRules)
+	pruneUnwantedNodes(doc, DiscardedContentXpaths)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {

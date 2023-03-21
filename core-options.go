@@ -80,6 +80,9 @@ type Options struct {
 	// will be ignored but readability and dom-distiller won't be run.
 	FallbackCandidates []*html.Node
 
+	// FavorPrecision specify whether to prefer less text but correct extraction
+	FavorPrecision bool
+
 	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool
 
