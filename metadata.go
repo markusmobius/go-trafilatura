@@ -48,6 +48,7 @@ var (
 	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
 	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
+	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
 
 	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author"} // twitter:creator
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title"}
@@ -206,7 +207,8 @@ func examineMeta(doc *html.Node) Metadata {
 
 		if name != "" {
 			if strIn(name, metaNameAuthor...) {
-				metadata.Author = strOr(metadata.Author, content)
+				tmpContent := rxHtmlStripTag.ReplaceAllString(content, "")
+				metadata.Author = strOr(metadata.Author, tmpContent)
 			} else if strIn(name, metaNameTitle...) {
 				metadata.Title = strOr(metadata.Title, content)
 			} else if strIn(name, metaNameDescription...) {
