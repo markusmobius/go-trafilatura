@@ -239,7 +239,7 @@ func linkDensityTestTables(table *html.Node) bool {
 	textLength := utf8.RuneCountInString(text)
 	if textLength > 250 {
 		// Collect link info
-		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		linkLength, _, nonEmptyLinks := collectLinkInfo(links)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return true
@@ -250,9 +250,10 @@ func linkDensityTestTables(table *html.Node) bool {
 			return true
 		}
 
-		if float64(nShortLinks) > float64(len(links))*0.66 {
-			return true
-		}
+		// TODO: it seems to does more harm than good
+		// if float64(nShortLinks) > float64(len(links))*0.66 {
+		// 	return true
+		// }
 	}
 
 	return false
