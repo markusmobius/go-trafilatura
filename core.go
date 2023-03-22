@@ -425,16 +425,17 @@ func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) 
 
 // handleTextElem process text element and determine how to deal with its content.
 func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
-	switch dom.TagName(element) {
-	case "ul", "ol", "dl":
+	tagName := dom.TagName(element)
+
+	if inMap(tagName, mapXmlListTags) {
 		return handleLists(element, cache, opts)
-	case "blockquote", "pre", "q", "code":
+	} else if inMap(tagName, mapXmlQuoteTags) || tagName == "code" {
 		return handleQuotes(element, cache, opts)
-	case "h1", "h2", "h3", "h4", "h5", "h6", "summary":
+	} else if inMap(tagName, mapXmlHeadTags) {
 		return handleTitles(element, cache, opts)
-	case "p":
+	} else if tagName == "p" {
 		return handleParagraphs(element, potentialTags, cache, opts)
-	case "br", "hr":
+	} else if inMap(tagName, mapXmlLbTags) {
 		if textCharsTest(etree.Tail(element)) {
 			element = processNode(element, cache, opts)
 			if element != nil {
@@ -443,21 +444,19 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 				return newElement
 			}
 		}
-	case "em", "i", "b", "strong", "u", "kbd", "samp", "tt", "var", "sub", "sup", "a", "span":
+	} else if inMap(tagName, mapXmlHiTags) || inMap(tagName, mapXmlRefTags) || tagName == "span" {
 		return handleFormatting(element, cache, opts)
-	case "table":
+	} else if tagName == "table" {
 		if _, exist := potentialTags["table"]; exist {
 			return handleTable(element, cache, opts)
 		}
-	case "img":
+	} else if inMap(tagName, mapXmlGraphicTags) {
 		if _, exist := potentialTags["img"]; exist {
 			return handleImage(element)
 		}
-	default:
-		return handleOtherElement(element, potentialTags, cache, opts)
 	}
 
-	return nil
+	return handleOtherElement(element, potentialTags, cache, opts)
 }
 
 // handleLists process lists elements
