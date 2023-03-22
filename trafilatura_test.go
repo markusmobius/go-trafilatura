@@ -222,7 +222,7 @@ func Test_Formatting(t *testing.T) {
 	etree.SetText(element, "Here is the text.")
 	etree.SetTail(element, "And a tail.")
 
-	converted := handleFormatting(element)
+	converted := handleFormatting(element, nil, zeroOpts)
 	assert.Equal(t, "<p><b>Here is the text.</b>And a tail.</p>", etree.ToString(converted))
 
 	// Empty elements
@@ -245,7 +245,10 @@ func Test_Formatting(t *testing.T) {
 
 	r = strings.NewReader(`<html><body><p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a>.</p></body></html>`)
 	result, _ = Extract(r, mdOpts)
+	assert.Contains(t, fnHtml(result), `<b>bold</b>`)
+	assert.Contains(t, fnHtml(result), `<i>italics</i>`)
 	assert.Contains(t, fnHtml(result), `<tt>tt</tt>`)
+	assert.Contains(t, fnHtml(result), `<u>underlined</u>`)
 	assert.Contains(t, fnHtml(result), `<strike>deleted</strike>`)
 	assert.Contains(t, fnHtml(result), `<a href="test.html">link</a>`)
 
@@ -466,7 +469,7 @@ func Test_Links(t *testing.T) {
 
 	// Formatting link
 	element := etree.FromString(`<a href="testlink.html">Test link text.</a>`)
-	processed = handleFormatting(element)
+	processed = handleFormatting(element, nil, zeroOpts)
 	assert.NotNil(t, processed)
 
 	// Extracting links with target

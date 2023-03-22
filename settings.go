@@ -100,3 +100,8 @@ func duplicateMap(original map[string]struct{}) map[string]struct{} {
 	}
 	return duplicate
 }
+
+func inMap(key string, maps map[string]struct{}) bool {
+	_, exist := maps[key]
+	return exist
+}

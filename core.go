@@ -444,7 +444,7 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 			}
 		}
 	case "em", "i", "b", "strong", "u", "kbd", "samp", "tt", "var", "sub", "sup", "a", "span":
-		return handleFormatting(element)
+		return handleFormatting(element, cache, opts)
 	case "table":
 		if _, exist := potentialTags["table"]; exist {
 			return handleTable(element, cache, opts)
@@ -664,21 +664,30 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 // handleFormatting process formatting elements (b, i, etc) found
 // outside of paragraphs.
-func handleFormatting(element *html.Node) *html.Node {
+func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	formatting := processNode(element, cache, opts)
+	if len(dom.Children(element)) == 0 && formatting == nil {
+		return nil
+	}
+
+	// Repair orphan elements
+	parent := element.Parent
+	if parent == nil {
+		parent = element.PrevSibling
+	}
+
 	var processedElement *html.Node
-	text, tail := etree.Text(element), etree.Tail(element)
-
-	if text != "" || tail != "" {
+	if parentTag := dom.TagName(parent); parent == nil ||
+		(!inMap(parentTag, mapXmlCellTags) &&
+			!inMap(parentTag, mapXmlHeadTags) &&
+			!inMap(parentTag, mapXmlHiTags) &&
+			!inMap(parentTag, mapXmlItemTags) &&
+			!inMap(parentTag, mapXmlQuoteTags) &&
+			parentTag != "p") {
 		processedElement = etree.Element("p")
-		processedChild := etree.SubElement(processedElement, dom.TagName(element))
-
-		if textCharsTest(text) {
-			etree.SetText(processedChild, trim(text))
-		}
-
-		if textCharsTest(tail) {
-			etree.SetTail(processedChild, trim(tail))
-		}
+		etree.Append(processedElement, formatting)
+	} else {
+		processedElement = formatting
 	}
 
 	return processedElement
