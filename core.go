@@ -485,6 +485,12 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 					subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
 					etree.SetText(subChildElement, etree.Text(processedSubChild))
 					etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+
+					subElementTag := dom.TagName(subElement)
+					subElementTarget := dom.GetAttribute(subElement, "href")
+					if inMap(subElementTag, mapXmlRefTags) && subElementTarget != "" {
+						dom.SetAttribute(subChildElement, "href", subElementTarget)
+					}
 				}
 
 				if subElement.Type == html.ElementNode {
