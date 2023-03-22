@@ -594,7 +594,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		childTag := dom.TagName(child)
 
 		// Make sure child is potential element
-		if _, exist := potentialTags[childTag]; !exist {
+		if _, exist := potentialTags[childTag]; !exist && childTag != "done" {
 			logWarn(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
 			etree.Remove(child)
 			continue
