@@ -48,7 +48,8 @@ var (
 	rxHtmlStripTag    = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
 	rxAuthorCleaner1  = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorCleaner2  = regexp.MustCompile(`(?i)\d.+?$`)
-	rxAuthorCleaner3  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for)\b\s+(.*)`)
+	rxAuthorCleaner3  = regexp.MustCompile(`(?i)[:()?*$#!]`)
+	rxAuthorCleaner4  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for)\b\s+(.*)`)
 	rxAuthorSeparator = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp      = regexp.MustCompile(`(?i)^http`)
 
@@ -819,6 +820,7 @@ func splitAuthors(s string) []string {
 	s = rxAuthorCleaner1.ReplaceAllString(s, "")
 	s = rxAuthorCleaner2.ReplaceAllString(s, "")
 	s = rxAuthorCleaner3.ReplaceAllString(s, "")
+	s = rxAuthorCleaner4.ReplaceAllString(s, "")
 
 	// Split authors
 	var authors []string
