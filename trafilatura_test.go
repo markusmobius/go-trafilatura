@@ -376,6 +376,19 @@ func Test_Filters(t *testing.T) {
 	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`)
 	assert.False(t, checkHtmlLanguage(doc, opts))
+
+	opts.TargetLanguage = "de"
+	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="DE"></head><body></body></html>`)
+	assert.True(t, checkHtmlLanguage(doc, opts))
+
+	// HTML lang attribute superseded by og:locale
+	opts.TargetLanguage = "de"
+	doc = docFromStr(`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`)
+	assert.True(t, checkHtmlLanguage(doc, opts))
+
+	opts.TargetLanguage = "en"
+	doc = docFromStr(`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`)
+	assert.False(t, checkHtmlLanguage(doc, opts))
 }
 
 func Test_External(t *testing.T) {

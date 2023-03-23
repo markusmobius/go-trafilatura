@@ -48,30 +48,46 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 		}
 	}
 
-	if htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
-		langAttr := dom.GetAttribute(htmlNode, "lang")
-		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
-			if lang == opts.TargetLanguage {
-				return true
-			}
-		}
-
-		logWarn(opts, "html language detection failed")
-		return false
-	}
-
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Language
 	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"]`)
 	if len(metaNodes) > 0 {
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")
 			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
-				if lang == opts.TargetLanguage {
+				if strings.ToLower(lang) == opts.TargetLanguage {
 					return true
 				}
 			}
 		}
 
 		logWarn(opts, "html language detection in meta failed")
+		return false
+	}
+
+	// Locale
+	metaNodes = dom.QuerySelectorAll(doc, `meta[property="og:locale"]`)
+	if len(metaNodes) > 0 {
+		for _, metaNode := range metaNodes {
+			metaContent := dom.GetAttribute(metaNode, "content")
+			if len(metaContent) > 1 && strings.ToLower(metaContent)[:2] == opts.TargetLanguage {
+				return true
+			}
+		}
+
+		logWarn(opts, "html language detection in meta failed")
+		return false
+	}
+
+	// HTML lang attribute: sometimes a wrong indication
+	if htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
+		langAttr := dom.GetAttribute(htmlNode, "lang")
+		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
+			if strings.ToLower(lang) == opts.TargetLanguage {
+				return true
+			}
+		}
+
+		logWarn(opts, "html language detection failed")
 		return false
 	}
 
