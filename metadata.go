@@ -38,17 +38,18 @@ import (
 )
 
 var (
-	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
-	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
-	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
-	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
-	rxAuthorCleaner1 = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
-	rxAuthorCleaner2 = regexp.MustCompile(`(?i)\d.+?$`)
-	rxAuthorCleaner3 = regexp.MustCompile(`(?i)[^\w]+$|\b( [A|a]m| [O|o]n| [F|f]or)\b\s+(.*)`)
-	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
-	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
-	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
-	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
+	rxCommaSeparator  = regexp.MustCompile(`\s*[,;]\s*`)
+	rxTitleCleaner    = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
+	rxJsonSymbol      = regexp.MustCompile(`[{\\}]`)
+	rxNameJson        = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
+	rxAuthorCleaner1  = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
+	rxAuthorCleaner2  = regexp.MustCompile(`(?i)\d.+?$`)
+	rxAuthorCleaner3  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for)\b\s+(.*)`)
+	rxUrlCheck        = regexp.MustCompile(`(?i)https?://|/`)
+	rxDomainFinder    = regexp.MustCompile(`(?i)https?://[^/]+`)
+	rxSitenameFinder  = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
+	rxHtmlStripTag    = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
+	rxAuthorSeparator = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 
 	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author"} // twitter:creator
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title"}
@@ -196,11 +197,13 @@ func examineMeta(doc *html.Node) Metadata {
 			case property == "article:tag":
 				metadata.Tags = append(metadata.Tags, content)
 			case strIn(property, "author", "article:author"):
-				if metadata.Author == "" {
-					metadata.Author = content
-				} else if !strings.Contains(content, metadata.Author) &&
-					!strings.HasPrefix(content, "http") {
-					metadata.Author += "; " + content
+				for _, a := range splitAuthors(content) {
+					if metadata.Author == "" {
+						metadata.Author = a
+					} else if !strings.Contains(metadata.Author, a) &&
+						!strings.HasPrefix(a, "http") {
+						metadata.Author += "; " + a
+					}
 				}
 			}
 			continue
@@ -214,11 +217,13 @@ func examineMeta(doc *html.Node) Metadata {
 		if name != "" {
 			if strIn(name, metaNameAuthor...) {
 				content = rxHtmlStripTag.ReplaceAllString(content, "")
-				if metadata.Author == "" {
-					metadata.Author = content
-				} else if !strings.Contains(content, metadata.Author) &&
-					!strings.HasPrefix(content, "http") {
-					metadata.Author += "; " + content
+				for _, a := range splitAuthors(content) {
+					if metadata.Author == "" {
+						metadata.Author = a
+					} else if !strings.Contains(metadata.Author, a) &&
+						!strings.HasPrefix(a, "http") {
+						metadata.Author += "; " + a
+					}
 				}
 			} else if strIn(name, metaNameTitle...) {
 				metadata.Title = strOr(metadata.Title, content)
@@ -245,11 +250,13 @@ func examineMeta(doc *html.Node) Metadata {
 		if itemprop != "" {
 			switch itemprop {
 			case "author":
-				if metadata.Author == "" {
-					metadata.Author = content
-				} else if !strings.Contains(content, metadata.Author) &&
-					!strings.HasPrefix(content, "http") {
-					metadata.Author += "; " + content
+				for _, a := range splitAuthors(content) {
+					if metadata.Author == "" {
+						metadata.Author = a
+					} else if !strings.Contains(metadata.Author, a) &&
+						!strings.HasPrefix(a, "http") {
+						metadata.Author += "; " + a
+					}
 				}
 			case "description":
 				metadata.Description = strOr(metadata.Description, content)
@@ -607,14 +614,14 @@ func extractDomTitle(doc *html.Node) string {
 	return ""
 }
 
-// extractDomTitle returns the document author from DOM elements.
+// extractDomAuthor returns the document author from DOM elements.
 func extractDomAuthor(doc *html.Node) string {
 	author := extractDomMetaSelectors(doc, 75, MetaAuthorXpaths)
 	if author != "" {
 		author = rxAuthorCleaner1.ReplaceAllString(author, "")
 		author = rxAuthorCleaner2.ReplaceAllString(author, "")
 		author = rxAuthorCleaner3.ReplaceAllString(author, "")
-		author = strings.Title(author)
+		author = strings.Join(splitAuthors(author), "; ")
 		return author
 	}
 
@@ -806,4 +813,16 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 	}
 
 	return ""
+}
+
+func splitAuthors(s string) []string {
+	s = trim(s)
+	var authors []string
+	for _, a := range rxAuthorSeparator.Split(s, -1) {
+		a = strings.TrimSpace(a)
+		if a != "" {
+			authors = append(authors, a)
+		}
+	}
+	return authors
 }
