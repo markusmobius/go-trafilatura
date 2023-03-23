@@ -53,10 +53,10 @@ var (
 	rxAuthorSeparator = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp      = regexp.MustCompile(`(?i)^http`)
 
-	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author"} // twitter:creator
-	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title"}
+	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author"} // twitter:creator
+	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title"}
 	metaNameDescription = []string{"description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description"}
-	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher"}
+	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher", "citation_journal_title"}
 	defaultHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 )
 

@@ -62,6 +62,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><head><meta name="author" content="Jenny Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	rawHTML = `<html><body><a href="" rel="author">Jenny Smith</a></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
@@ -118,6 +122,11 @@ func Test_Metadata_Authors(t *testing.T) {
 	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
 
 	rawHTML = `<html><body><span class="author">Jenny Smith and John Smith</span></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+
+	// Google Scholar citation
+	rawHTML = `<html><head><meta name="citation_author" content="Jenny Smith and John Smith"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
 }
