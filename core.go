@@ -561,12 +561,16 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		title = processNode(element, cache, opts)
 	} else {
 		title = dom.Clone(element, false)
-		for _, child := range children {
-			processedChild := handleTextNode(child, cache, false, opts)
+		for _, child := range dom.ChildNodes(element) {
+			clonedChild := dom.Clone(child, true)
+			processedChild := handleTextNode(clonedChild, cache, false, opts)
+
 			if processedChild != nil {
-				processedChild = dom.Clone(processedChild, true)
 				dom.AppendChild(title, processedChild)
+			} else {
+				dom.AppendChild(title, clonedChild)
 			}
+
 			child.Data = "done"
 		}
 	}

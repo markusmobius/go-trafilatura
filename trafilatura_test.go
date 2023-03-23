@@ -256,6 +256,20 @@ func Test_Formatting(t *testing.T) {
 	r = strings.NewReader("<html><body><article><p><strong>Staff Review of the Financial Situation</strong><br>Domestic financial conditions remained accommodative over the intermeeting period.</p></article></body></html>")
 	result, _ = Extract(r, zeroOpts)
 	assert.Equal(t, "Staff Review of the Financial Situation\nDomestic financial conditions remained accommodative over the intermeeting period.", dom.InnerText(result.ContentNode))
+
+	// Title with formatting
+	r = strings.NewReader(`
+		<html><body>
+			<article>
+				<h4 id="1theinoperator">1) The <code>in</code> Operator</h4>
+				<p>The easiest way to check if a Python string contains a substring is to use the <code>in</code> operator. The <code>in</code> operator is used to check data structures for membership in Python. It returns a Boolean (either <code>True</code> or <code>False</code>) and can be used as follows:</p>
+			</article>
+		</body></html>`)
+	result, _ = Extract(r, zeroOpts)
+	assert.Contains(t, fnHtml(result), `<h4>1) The <code>in</code> Operator</h4>`)
+	assert.Contains(t, fnHtml(result), `<p>The easiest way to check if a Python string contains a substring is to use the <code>in</code> operator.`)
+	assert.Contains(t, fnHtml(result), `The <code>in</code> operator is used to check data structures for membership in Python.`)
+	assert.Contains(t, fnHtml(result), `It returns a Boolean (either <code>True</code> or <code>False</code>) and can be used as follows:`)
 }
 
 func Test_Baseline(t *testing.T) {
