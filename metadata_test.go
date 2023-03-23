@@ -95,6 +95,19 @@ func Test_Metadata_Authors(t *testing.T) {
 
 	metadata = testGetMetadataFromFile("simple/metadata-author-2.html")
 	assert.Equal(t, "Jean Sévillia", metadata.Author)
+
+	// Multi authors
+	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/><meta itemprop="author" content="John Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+
+	rawHTML = `<html><head><meta name="author" content="Jenny Smith"/><meta name="author" content="John Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+
+	rawHTML = `<html><head><meta property="author" content="Jenny Smith"/><meta property="author" content="John Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
 }
 
 func Test_Metadata_URLs(t *testing.T) {

@@ -179,6 +179,7 @@ func examineMeta(doc *html.Node) Metadata {
 	for _, node := range dom.QuerySelectorAll(doc, "meta[content]") {
 		// Make sure content is not empty
 		content := dom.GetAttribute(node, "content")
+		content = rxHtmlStripTag.ReplaceAllString(content, "")
 		content = trim(content)
 		if content == "" {
 			continue
@@ -195,7 +196,12 @@ func examineMeta(doc *html.Node) Metadata {
 			case property == "article:tag":
 				metadata.Tags = append(metadata.Tags, content)
 			case strIn(property, "author", "article:author"):
-				metadata.Author = strOr(metadata.Author, content)
+				if metadata.Author == "" {
+					metadata.Author = content
+				} else if !strings.Contains(content, metadata.Author) &&
+					!strings.HasPrefix(content, "http") {
+					metadata.Author += "; " + content
+				}
 			}
 			continue
 		}
@@ -207,8 +213,13 @@ func examineMeta(doc *html.Node) Metadata {
 
 		if name != "" {
 			if strIn(name, metaNameAuthor...) {
-				tmpContent := rxHtmlStripTag.ReplaceAllString(content, "")
-				metadata.Author = strOr(metadata.Author, tmpContent)
+				content = rxHtmlStripTag.ReplaceAllString(content, "")
+				if metadata.Author == "" {
+					metadata.Author = content
+				} else if !strings.Contains(content, metadata.Author) &&
+					!strings.HasPrefix(content, "http") {
+					metadata.Author += "; " + content
+				}
 			} else if strIn(name, metaNameTitle...) {
 				metadata.Title = strOr(metadata.Title, content)
 			} else if strIn(name, metaNameDescription...) {
@@ -234,7 +245,12 @@ func examineMeta(doc *html.Node) Metadata {
 		if itemprop != "" {
 			switch itemprop {
 			case "author":
-				metadata.Author = strOr(metadata.Author, content)
+				if metadata.Author == "" {
+					metadata.Author = content
+				} else if !strings.Contains(content, metadata.Author) &&
+					!strings.HasPrefix(content, "http") {
+					metadata.Author += "; " + content
+				}
 			case "description":
 				metadata.Description = strOr(metadata.Description, content)
 			case "headline":
