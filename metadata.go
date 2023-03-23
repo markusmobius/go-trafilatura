@@ -57,7 +57,9 @@ var (
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title"}
 	metaNameDescription = []string{"description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description"}
 	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher", "citation_journal_title"}
-	defaultHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
+
+	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
+	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
 )
 
 // Metadata is the metadata of the page.
@@ -107,7 +109,11 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	if opts.HtmlDateOptions != nil {
 		htmlDateOpts = *opts.HtmlDateOptions
 	} else {
-		htmlDateOpts = defaultHtmlDateOpts
+		if opts.NoFallback { // No fallback means we want it fast
+			htmlDateOpts = fastHtmlDateOpts
+		} else {
+			htmlDateOpts = extensiveHtmlDateOpts
+		}
 	}
 
 	htmlDateOpts.URL = metadata.URL

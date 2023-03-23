@@ -163,6 +163,19 @@ func Test_Metadata_Dates(t *testing.T) {
 	rawHTML = `<html><head><meta property="og:url" content="https://example.org/2017/09/01/content.html"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+
+	// Compare extensive mode
+	opts := defaultOpts
+	rawHTML = `<html><body><p>Veröffentlicht am 1.9.17</p></body></html>`
+
+	opts.NoFallback = true // fast mode
+	metadata = testGetMetadataFromHTML(rawHTML, opts)
+	assert.True(t, metadata.Date.IsZero())
+
+	opts.NoFallback = false // extensive mode
+	metadata = testGetMetadataFromHTML(rawHTML, opts)
+	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+
 }
 
 func Test_Metadata_Categories(t *testing.T) {
@@ -478,11 +491,15 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Contains(t, metadata.Tags, "Ältere Menschen")
 }
 
-func testGetMetadataFromHTML(rawHTML string) Metadata {
+func testGetMetadataFromHTML(rawHTML string, customOpts ...Options) Metadata {
 	// Parse raw html
 	doc, err := html.Parse(strings.NewReader(rawHTML))
 	if err != nil {
 		panic(err)
+	}
+
+	if len(customOpts) > 0 {
+		return extractMetadata(doc, customOpts[0])
 	}
 
 	return extractMetadata(doc, defaultOpts)
