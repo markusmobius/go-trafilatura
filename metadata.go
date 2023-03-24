@@ -562,8 +562,10 @@ func extractDomTitle(doc *html.Node) string {
 	// If there are only one H1, use it as title
 	h1Nodes := dom.QuerySelectorAll(doc, "h1")
 	if len(h1Nodes) == 1 {
-		title := dom.TextContent(h1Nodes[0])
-		return trim(title)
+		title := trim(dom.TextContent(h1Nodes[0]))
+		if title != "" {
+			return title
+		}
 	}
 
 	// Look for title using several CSS selectors
