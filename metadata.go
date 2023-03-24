@@ -51,7 +51,7 @@ var (
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
-	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for)\b\s+(.*)`)
+	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for| at| in| to| from)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
