@@ -39,7 +39,7 @@ var (
 
 // checkHtmlLanguage checks HTML meta-elements for language information and
 // split the result in case there are several language.
-func checkHtmlLanguage(doc *html.Node, opts Options) bool {
+func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 	htmlNode := doc
 	if dom.TagName(htmlNode) != "html" {
 		htmlNodes := dom.GetElementsByTagName(doc, "html")
@@ -69,8 +69,10 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 	if len(metaNodes) > 0 {
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")
-			if len(metaContent) > 1 && strings.ToLower(metaContent)[:2] == opts.TargetLanguage {
-				return true
+			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
+				if strings.ToLower(lang) == opts.TargetLanguage {
+					return true
+				}
 			}
 		}
 
@@ -79,7 +81,7 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 	}
 
 	// HTML lang attribute: sometimes a wrong indication
-	if htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
+	if strict && htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
 		langAttr := dom.GetAttribute(htmlNode, "lang")
 		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
 			if strings.ToLower(lang) == opts.TargetLanguage {

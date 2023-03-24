@@ -333,7 +333,7 @@ func Test_Filters(t *testing.T) {
 	// No lang
 	opts.TargetLanguage = "en"
 	doc := docFromStr(`<html><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, opts))
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
 
 	// Lang detection on content
 	str := `html><body><article><p>How many ages hence/Shall this our lofty scene be acted over,/In states unborn and accents yet unknown!</p></article></body></html>`
@@ -362,33 +362,50 @@ func Test_Filters(t *testing.T) {
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
-	doc = docFromStr(`<html lang="de_DE, en_US"><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, opts))
-
-	opts.TargetLanguage = "it"
-	doc = docFromStr(`<html lang="en"><body></body></html>`)
-	assert.False(t, checkHtmlLanguage(doc, opts))
-
+	// http-equiv="content-language"
 	opts.TargetLanguage = "en"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, opts))
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
 
 	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`)
-	assert.False(t, checkHtmlLanguage(doc, opts))
+	assert.False(t, checkHtmlLanguage(doc, opts, false))
 
 	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html><head><meta http-equiv="content-language" content="DE"></head><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, opts))
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
 
 	// HTML lang attribute superseded by og:locale
-	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`)
-	assert.True(t, checkHtmlLanguage(doc, opts))
+
+	opts.TargetLanguage = "de"
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
 
 	opts.TargetLanguage = "en"
+	assert.False(t, checkHtmlLanguage(doc, opts, false))
+
+	// Last choice: HTML lang attribute
+	doc = docFromStr(`<html lang="de_DE, en_US"><body></body></html>`)
+
+	opts.TargetLanguage = "de"
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
+	assert.True(t, checkHtmlLanguage(doc, opts, true))
+
+	opts.TargetLanguage = "en"
+	assert.True(t, checkHtmlLanguage(doc, opts, false))
+	assert.True(t, checkHtmlLanguage(doc, opts, true))
+
+	// If strict, lang attribute in <html> should be checked
+	opts.TargetLanguage = "it"
+	doc = docFromStr(`<html lang="en"><body></body></html>`)
+	assert.False(t, checkHtmlLanguage(doc, opts, true)) // is strict
+	assert.True(t, checkHtmlLanguage(doc, opts, false)) // not strict
+
+	// Even if in strict mode, lang in <html> attribute is the last choice
+	opts.TargetLanguage = "de"
 	doc = docFromStr(`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`)
-	assert.False(t, checkHtmlLanguage(doc, opts))
+	assert.True(t, checkHtmlLanguage(doc, opts, true))  // is strict
+	assert.True(t, checkHtmlLanguage(doc, opts, false)) // not strict
 }
 
 func Test_External(t *testing.T) {

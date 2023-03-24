@@ -71,7 +71,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	cache := lru.NewCache(opts.Config.CacheSize)
 
 	// HTML language check
-	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts) {
+	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts, false) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
