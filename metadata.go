@@ -788,9 +788,11 @@ func cleanCatTags(catTags []string) []string {
 func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string {
 	for _, query := range queries {
 		for _, node := range htmlxpath.Find(doc, query) {
-			text := dom.TextContent(node)
+			text := etree.IterText(node, " ")
 			text = trim(text)
-			if text != "" && utf8.RuneCountInString(text) < limit {
+
+			lenText := utf8.RuneCountInString(text)
+			if lenText > 2 && lenText < limit {
 				return text
 			}
 		}

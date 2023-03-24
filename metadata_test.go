@@ -98,6 +98,14 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><div class="o-Attribution__a-Author"><span class="o-Attribution__a-Author--Label">By:</span><span class="o-Attribution__a-Author--Prefix"><span class="o-Attribution__a-Name"><a href="//web.archive.org/web/20210707074846/https://www.discovery.com/profiles/ian-shive">Ian Shive</a></span></span></div></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Ian Shive", metadata.Author)
+
+	rawHTML = `<html><body><div class="ArticlePage-authors"><div class="ArticlePage-authorName" itemprop="name"><span class="ArticlePage-authorBy">By&nbsp;</span><a aria-label="Ben Coxworth" href="https://newatlas.com/author/ben-coxworth/"><span>Ben Coxworth</span></a></div></div></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Ben Coxworth", metadata.Author)
+
 	metadata = testGetMetadataFromFile("simple/metadata-author-1.html")
 	assert.Equal(t, "Maggie Haberman; Shane Goldmacher; Michael Crowley", metadata.Author)
 
