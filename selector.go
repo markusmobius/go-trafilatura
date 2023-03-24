@@ -30,7 +30,7 @@ var MetaTitleXpaths = []string{
 var MetaAuthorXpaths = []string{
 	`//*[(self::a or self::address or self::link or self::p or self::span)][@rel="author" or @id="author" or @class="author" or rel="me"]|//author`,
 	`//*[(self::a or self::span)][contains(@class, "authors") or contains(@class, "author") or contains(@class, "posted-by") or contains(@itemprop, "author")]`,
-	`//*[(self::a or self::div or self::p or self::span)][contains(@class, "byline")]`,
+	`//*[(self::a or self::div or self::p or self::span)][contains(@class, "byline") or contains(@id, "author")]`,
 	`//*[contains(@class, "author") or contains(@class, "screenname")]`,
 }
 
