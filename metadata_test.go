@@ -58,6 +58,12 @@ func Test_Metadata_Titles(t *testing.T) {
 }
 
 func Test_Metadata_Authors(t *testing.T) {
+	// Normalization
+	assert.Equal(t, "Abc", normalizeAuthors("", "abc"))
+	assert.Equal(t, "Steve Steve", normalizeAuthors("", "Steve Steve 123"))
+	assert.Equal(t, "Steve Steve", normalizeAuthors("", "By Steve Steve"))
+
+	// Extraction
 	rawHTML := `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
