@@ -36,9 +36,9 @@ var MetaAuthorXpaths = []string{
 
 var MetaCategoriesXpaths = []string{
 	`//div[starts-with(@class, 'post-info') or starts-with(@class, 'postinfo') or
-    starts-with(@class, 'post-meta') or starts-with(@class, 'postmeta') or
-    starts-with(@class, 'meta') or starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-info') or
-    starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a`,
+	starts-with(@class, 'post-meta') or starts-with(@class, 'postmeta') or
+	starts-with(@class, 'meta') or starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-info') or
+	starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a`,
 	`//p[starts-with(@class, 'postmeta') or starts-with(@class, 'entry-categories') or @class='postinfo' or @id='filedunder']//a`,
 	`//footer[starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-footer')]//a`,
 	`//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category"]//a`,
@@ -50,8 +50,8 @@ var MetaTagsXpaths = []string{
 	`//div[@class="tags"]//a`,
 	`//p[starts-with(@class, 'entry-tags')]//a`,
 	`//div[@class="row" or @class="jp-relatedposts" or
-    @class="entry-utility" or starts-with(@class, 'tag') or
-    starts-with(@class, 'postmeta') or starts-with(@class, 'meta')]//a`,
+	@class="entry-utility" or starts-with(@class, 'tag') or
+	starts-with(@class, 'postmeta') or starts-with(@class, 'meta')]//a`,
 	`//*[@class="entry-meta" or contains(@class, "topics")]//a`,
 }
 
