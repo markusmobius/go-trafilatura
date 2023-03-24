@@ -6,6 +6,7 @@ require (
 	github.com/abadojack/whatlanggo v1.0.1
 	github.com/antchfx/htmlquery v1.3.0
 	github.com/beevik/etree v1.1.0
+	github.com/forPelevin/gomoji v1.1.8
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65
 	github.com/go-shiori/go-readability v0.0.0-20220215145315-dd6828d2f09b
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect

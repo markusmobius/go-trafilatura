@@ -31,6 +31,7 @@ import (
 	"unicode/utf8"
 
 	htmlxpath "github.com/antchfx/htmlquery"
+	"github.com/forPelevin/gomoji"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
@@ -49,7 +50,7 @@ var (
 
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
-	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!]`)
+	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
@@ -472,6 +473,9 @@ func extractJsonLd(doc *html.Node, originalMetadata Metadata) Metadata {
 		originalMetadata.Title = metadata.Title
 	}
 
+	// Clean up authors
+	originalMetadata.Author = normalizeAuthors("", originalMetadata.Author)
+
 	return originalMetadata
 }
 
@@ -604,7 +608,7 @@ func extractDomTitle(doc *html.Node) string {
 
 // extractDomAuthor returns the document author from DOM elements.
 func extractDomAuthor(doc *html.Node) string {
-	author := extractDomMetaSelectors(doc, 75, MetaAuthorXpaths)
+	author := extractDomMetaSelectors(doc, 120, MetaAuthorXpaths)
 	if author != "" {
 		return normalizeAuthors("", author)
 	}
@@ -804,6 +808,7 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 func normalizeAuthors(authors string, input string) string {
 	// Clean up input string
 	input = trim(input)
+	input = gomoji.RemoveEmojis(input)
 	input = rxAuthorDigits.ReplaceAllString(input, "")
 	input = rxAuthorSpecialChars.ReplaceAllString(input, "")
 	input = rxAuthorPreposition.ReplaceAllString(input, "")

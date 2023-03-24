@@ -88,6 +88,14 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><a class="username">Jenny Smith</a></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	rawHTML = `<html><body><div class="submitted-by"><a>Jenny Smith</a></div></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	rawHTML = `<html><body><span id="author">Jenny Smith</span></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
@@ -118,6 +126,14 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromFile("simple/metadata-author-2.html")
 	assert.Equal(t, "Jean Sévillia", metadata.Author)
 
+	metadata = testGetMetadataFromFile("simple/metadata-author-3.html")
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	// No emoji
+	rawHTML = `<html><head><meta name="author" content="Jenny Smith ❤️"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	// Multi authors
 	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/><meta itemprop="author" content="John Smith"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
@@ -142,6 +158,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	rawHTML = `<html><body><span class="author">Jenny Smith and John Smith</span></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+
+	rawHTML = `<html><body><span itemprop="author name">Shannon Deery, Mitch Clarke, Susie O’Brien, Laura Placella, Kara Irving, Jordy Atkinson, Suzan Delibasic</span></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Shannon Deery; Mitch Clarke; Susie O’Brien; Laura Placella; Kara Irving; Jordy Atkinson; Suzan Delibasic", metadata.Author)
 
 	// Google Scholar citation
 	rawHTML = `<html><head><meta name="citation_author" content="Jenny Smith and John Smith"/></head><body></body></html>`
