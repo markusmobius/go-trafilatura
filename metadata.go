@@ -837,11 +837,9 @@ func normalizeAuthors(authors string, input string) string {
 		a = trim(a)
 		a = rxAuthorPrefix.ReplaceAllString(a, "")
 
-		// Stop if author is empty
-		// TODO: in the original Trafilatura, if author doesn't contain space character
-		// it will be skipped. However, what happen if the authors only uses their first
-		// name? So, here we'll keep including authors without space.
-		if a == "" {
+		// Stop if author is empty, or single word but too long.
+		// The max length 23 is taken from ISO IEC-7813.
+		if length := len(a); length == 0 || (!strings.Contains(a, " ") && length >= 23) {
 			continue
 		}
 
