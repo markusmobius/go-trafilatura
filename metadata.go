@@ -51,6 +51,7 @@ var (
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
+	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
@@ -813,6 +814,7 @@ func normalizeAuthors(authors string, input string) string {
 	input = gomoji.RemoveEmojis(input)
 	input = rxAuthorDigits.ReplaceAllString(input, "")
 	input = rxAuthorSpecialChars.ReplaceAllString(input, "")
+	input = rxAuthorSocialMedia.ReplaceAllString(input, "")
 	input = rxAuthorPreposition.ReplaceAllString(input, "")
 
 	// Prepare list of current authors
