@@ -810,6 +810,11 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 }
 
 func normalizeAuthors(authors string, input string) string {
+	// Make sure input is not URL
+	if rxPrefixHttp.MatchString(input) {
+		return authors
+	}
+
 	// Clean up input string
 	input = trim(input)
 	input = gomoji.RemoveEmojis(input)
