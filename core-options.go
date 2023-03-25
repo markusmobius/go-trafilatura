@@ -83,6 +83,9 @@ type Options struct {
 	// FavorPrecision specify whether to prefer less text but correct extraction
 	FavorPrecision bool
 
+	// FavorRecall specify whether to prefer more text even when unsure
+	FavorRecall bool
+
 	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool
 
