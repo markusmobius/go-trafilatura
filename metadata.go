@@ -87,6 +87,11 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Extract metadata from <meta> tags
 	metadata := examineMeta(doc)
 
+	// TODO: in original trafilatura, if author name is a single word,
+	// it's regarded as invalid and author name will be set to empty.
+	// However, in some Asia country there are case hwere the name is
+	// only a single word, so I decided to not implement it here.
+
 	// Extract metadata from JSON-LD and override
 	metadata = extractJsonLd(doc, metadata)
 
