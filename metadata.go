@@ -50,7 +50,7 @@ var (
 	rxCategoryHref   = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
 	rxTagHref        = regexp.MustCompile(`(?i)/tags?/`)
 
-	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
+	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|by|von) `)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
 	rxAuthorSpaceChars   = regexp.MustCompile(`(?i)[._+]`)
