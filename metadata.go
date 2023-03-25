@@ -47,6 +47,8 @@ var (
 	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
 	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
+	rxCategoryHref   = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
+	rxTagHref        = regexp.MustCompile(`(?i)/tags?/`)
 
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
@@ -726,7 +728,7 @@ func extractDomCategories(doc *html.Node) []string {
 		for _, node := range htmlxpath.Find(doc, query) {
 			href := dom.GetAttribute(node, "href")
 			href = strings.TrimSpace(href)
-			if href != "" && strings.Contains(href, "/category/") {
+			if href != "" && rxCategoryHref.MatchString(href) {
 				text := dom.TextContent(node)
 				text = trim(text)
 				if text != "" {
@@ -764,7 +766,7 @@ func extractDomTags(doc *html.Node) []string {
 		for _, node := range htmlxpath.Find(doc, query) {
 			href := dom.GetAttribute(node, "href")
 			href = strings.TrimSpace(href)
-			if href != "" && strings.Contains(href, "/tags/") {
+			if href != "" && rxTagHref.MatchString(href) {
 				text := dom.TextContent(node)
 				text = trim(text)
 				if text != "" {
@@ -810,11 +812,6 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 }
 
 func normalizeAuthors(authors string, input string) string {
-	// Make sure input is not URL
-	if rxPrefixHttp.MatchString(input) {
-		return authors
-	}
-
 	// Clean up input string
 	input = trim(input)
 	input = gomoji.RemoveEmojis(input)
