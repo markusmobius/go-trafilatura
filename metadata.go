@@ -827,6 +827,9 @@ func normalizeAuthors(authors string, input string) string {
 		listAuthor = []string{}
 	}
 
+	// Track the existing authors
+	tracker := sliceToMap(listAuthor...)
+
 	// Save the new authors
 	for _, a := range rxAuthorSeparator.Split(input, -1) {
 		a = trim(a)
@@ -836,7 +839,8 @@ func normalizeAuthors(authors string, input string) string {
 
 		a = strings.Title(a)
 		a = rxAuthorPrefix.ReplaceAllString(a, "")
-		if !strings.Contains(authors, a) && !rxPrefixHttp.MatchString(a) {
+		_, tracked := tracker[a]
+		if !strings.Contains(authors, a) && !rxPrefixHttp.MatchString(a) && !tracked {
 			listAuthor = append(listAuthor, a)
 		}
 	}

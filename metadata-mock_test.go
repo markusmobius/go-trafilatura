@@ -74,4 +74,5 @@ var metadataMockFiles = map[string]string{
 	"https://www.scmp.com/comment/opinion/article/3046526/taiwanese-president-tsai-ing-wens-political-playbook-should-be":                       "scmp.com.playbook.html",
 	"https://www.faz.net/aktuell/wirtschaft/nutzerbasierte-abrechnung-musik-stars-fordern-neues-streaming-modell-16604622.html":                 "faz.net.streaming.html",
 	"https://www.ndr.de/nachrichten/info/16-Coronavirus-Update-Wir-brauchen-Abkuerzungen-bei-der-Impfstoffzulassung,podcastcoronavirus140.html": "ndr.de.podcastcoronavirus140.html",
+	"https://www.dailymail.co.uk/news/article-9831365/UKs-daily-Covid-cases-fall-SEVENTH-day-Infections-plummet-50-23-511.html":                 "dailymail.co.uk.html",
 }
