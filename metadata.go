@@ -57,6 +57,7 @@ var (
 	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from|of|via|with)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
+	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
 	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author"} // twitter:creator
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title"}
@@ -311,8 +312,7 @@ func validateMetadataAuthor(author string) string {
 		return author
 	}
 
-	isURL, _ := isAbsoluteURL(author)
-	if !strings.Contains(author, " ") || isURL {
+	if !strings.Contains(author, " ") || strings.HasPrefix(author, "http") {
 		return ""
 	}
 
@@ -814,10 +814,6 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 func normalizeAuthors(authors string, input string) string {
 	// Clean up input string
 	input = trim(input)
-	if isURL, _ := isAbsoluteURL(input); isURL {
-		return authors
-	}
-
 	input = gomoji.RemoveEmojis(input)
 	input = rxAuthorDigits.ReplaceAllString(input, "")
 	input = rxAuthorSocialMedia.ReplaceAllString(input, "")
@@ -840,7 +836,7 @@ func normalizeAuthors(authors string, input string) string {
 
 		a = strings.Title(a)
 		a = rxAuthorPrefix.ReplaceAllString(a, "")
-		if !strings.Contains(authors, a) {
+		if !strings.Contains(authors, a) && !rxPrefixHttp.MatchString(a) {
 			listAuthor = append(listAuthor, a)
 		}
 	}
