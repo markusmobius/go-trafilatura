@@ -155,7 +155,9 @@ var DiscardedContentXpaths = []string{
 	contains(@class, "-ad-") or contains(@class, "-icon")
 	or contains(@class, "article-infos") or
 	contains(translate(@class, "I","i"), "infoline")
-	or contains(@class, "options")]`,
+    or contains(@class, "options")
+    or contains(@class, "consent") or contains(@class, "modal-content")
+    or contains(@class, "paid-content") or contains(@class, "paidcontent")]`,
 	// comment debris
 	`.//*[@class="comments-title" or contains(@class, "comments-title") or contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
 	contains(@class, "-reply-") or contains(@class, "message") or contains(@id, "akismet") or contains(@class, "akismet")]`,
