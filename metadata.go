@@ -59,10 +59,11 @@ var (
 	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
-	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author"} // twitter:creator
-	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title"}
-	metaNameDescription = []string{"description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description"}
-	metaNamePublisher   = []string{"copyright", "dc.publisher", "dcterms.publisher", "publisher", "citation_journal_title"}
+	metaNameAuthor      = sliceToMap("author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author", "parsely-author") // twitter:creator
+	metaNameTitle       = sliceToMap("title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title", "parsely-title")
+	metaNameDescription = sliceToMap("description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description")
+	metaNamePublisher   = sliceToMap("copyright", "dc.publisher", "dcterms.publisher", "publisher", "citation_journal_title")
+	metaNameTag         = sliceToMap("keywords", "parsely-tags")
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
@@ -222,14 +223,14 @@ func examineMeta(doc *html.Node) Metadata {
 		name = trim(name)
 
 		if name != "" {
-			if strIn(name, metaNameAuthor...) {
+			if inMap(name, metaNameAuthor) {
 				content = rxHtmlStripTag.ReplaceAllString(content, "")
 				metadata.Author = normalizeAuthors(metadata.Author, content)
-			} else if strIn(name, metaNameTitle...) {
+			} else if inMap(name, metaNameTitle) {
 				metadata.Title = strOr(metadata.Title, content)
-			} else if strIn(name, metaNameDescription...) {
+			} else if inMap(name, metaNameDescription) {
 				metadata.Description = strOr(metadata.Description, content)
-			} else if strIn(name, metaNamePublisher...) {
+			} else if inMap(name, metaNamePublisher) {
 				metadata.Sitename = strOr(metadata.Sitename, content)
 			} else if strIn(name, "twitter:site", "application-name") || strings.Contains(name, "twitter:app:name") {
 				tmpSitename = content
@@ -237,7 +238,7 @@ func examineMeta(doc *html.Node) Metadata {
 				if isAbs, _ := isAbsoluteURL(content); metadata.URL == "" && isAbs {
 					metadata.URL = content
 				}
-			} else if name == "keywords" { // "page-topic"
+			} else if inMap(name, metaNameTag) { // "page-topic"
 				metadata.Tags = append(metadata.Tags, content)
 			}
 			continue
@@ -832,13 +833,23 @@ func normalizeAuthors(authors string, input string) string {
 
 	// Save the new authors
 	for _, a := range rxAuthorSeparator.Split(input, -1) {
+		// Clean the author
 		a = trim(a)
+		a = rxAuthorPrefix.ReplaceAllString(a, "")
+
+		// Stop if author is empty
+		// TODO: in the original Trafilatura, if author doesn't contain space character
+		// it will be skipped. However, what happen if the authors only uses their first
+		// name? So, here we'll keep including authors without space.
 		if a == "" {
 			continue
 		}
 
-		a = strings.Title(a)
-		a = rxAuthorPrefix.ReplaceAllString(a, "")
+		// If necessary, convert to title
+		if strings.ToLower(a) == a {
+			a = strings.Title(a)
+		}
+
 		_, tracked := tracker[a]
 		if !strings.Contains(authors, a) && !rxPrefixHttp.MatchString(a) && !tracked {
 			listAuthor = append(listAuthor, a)
