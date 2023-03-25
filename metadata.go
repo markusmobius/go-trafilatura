@@ -844,7 +844,10 @@ func normalizeAuthors(authors string, input string) string {
 
 		// Stop if author is empty, or single word but too long.
 		// The max length 23 is taken from ISO IEC-7813.
-		if length := len(a); length == 0 || (!strings.Contains(a, " ") && length >= 23) {
+		length := len(a)
+		hasDash := strings.Contains(a, "-")
+		hasSpace := strings.Contains(a, " ")
+		if length == 0 || (!hasDash && !hasSpace && length >= 50) {
 			continue
 		}
 
