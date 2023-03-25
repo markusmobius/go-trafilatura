@@ -53,7 +53,7 @@ var (
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
 	rxAuthorSpaceChars   = regexp.MustCompile(`(?i)[._+]`)
 	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
-	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from)\b\s+(.*)`)
+	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from|of|via|with)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
