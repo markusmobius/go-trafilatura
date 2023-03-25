@@ -51,7 +51,7 @@ var (
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))?\s?(by|von)\s`)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[:()?*$#!%/<>{}~.]`)
-	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b( am| on| for| at| in| to| from)\b\s+(.*)`)
+	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from)\b\s+(.*)`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
@@ -595,14 +595,14 @@ func extractDomTitle(doc *html.Node) string {
 	// If still not found, just use the first H1 as it is
 	if len(h1Nodes) > 0 {
 		title := dom.TextContent(h1Nodes[0])
-		return strings.TrimSpace(title)
+		return trim(title)
 	}
 
 	// If STILL not found, use the first H2 as it is
 	h2Node := dom.QuerySelector(doc, "h2")
 	if h2Node != nil {
 		title := dom.TextContent(h2Node)
-		return strings.TrimSpace(title)
+		return trim(title)
 	}
 
 	return ""
