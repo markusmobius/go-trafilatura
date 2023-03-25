@@ -88,6 +88,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><h4 class="author">Jenny Smith</h4></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	rawHTML = `<html><body><span class="wrapper--detail__writer">Jenny Smith</span></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
