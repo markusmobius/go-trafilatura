@@ -56,7 +56,7 @@ var (
 	rxAuthorSpaceChars   = regexp.MustCompile(`(?i)[._+]`)
 	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)[^\w]+$|\b\s+(am|on|for|at|in|to|from|of|via|with)\b\s+(.*)`)
-	rxAuthorSeparator    = regexp.MustCompile(`(?i);|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
+	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 
 	metaNameAuthor      = []string{"author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author"} // twitter:creator
 	metaNameTitle       = []string{"title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title"}
