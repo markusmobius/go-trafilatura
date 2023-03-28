@@ -59,11 +59,25 @@ var (
 	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
-	metaNameAuthor      = sliceToMap("author", "byl", "dc.creator", "dcterms.creator", "sailthru.author", "citation_author", "parsely-author") // twitter:creator
-	metaNameTitle       = sliceToMap("title", "dc.title", "dcterms.title", "fb_title", "sailthru.title", "twitter:title", "citation_title", "parsely-title")
-	metaNameDescription = sliceToMap("description", "dc.description", "dcterms.description", "dc:description", "sailthru.description", "twitter:description")
-	metaNamePublisher   = sliceToMap("copyright", "dc.publisher", "dcterms.publisher", "publisher", "citation_journal_title")
-	metaNameTag         = sliceToMap("keywords", "parsely-tags")
+	metaNameAuthor = sliceToMap(
+		"author", "byl", "citation_author",
+		"dc.creator", "dc.creator.aut", "dc:creator",
+		"dcterms.creator", "dcterms.creator.aut", "parsely-author",
+		"sailthru.author", "shareaholic:article_author_name") // questionable: twitter:creator
+	metaNameTitle = sliceToMap(
+		"citation_title", "dc.title", "dcterms.title", "fb_title",
+		"parsely-title", "sailthru.title", "shareaholic:title",
+		"title", "twitter:title")
+	metaNameDescription = sliceToMap(
+		"dc.description", "dc:description",
+		"dcterms.abstract", "dcterms.description",
+		"description", "sailthru.description", "twitter:description")
+	metaNamePublisher = sliceToMap(
+		"citation_journal_title", "copyright", "dc.publisher",
+		"dc:publisher", "dcterms.publisher", "publisher") // questionable: citation_publisher
+	metaNameTag = sliceToMap(
+		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
+		"shareaholic:keywords", "tags")
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
@@ -80,6 +94,8 @@ type Metadata struct {
 	Date        time.Time
 	Categories  []string
 	Tags        []string
+	ID          string
+	Fingerprint string
 	License     string
 }
 
