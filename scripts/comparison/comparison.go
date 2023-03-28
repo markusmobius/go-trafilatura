@@ -80,7 +80,7 @@ func main() {
 			logrus.Warnf("readability error in %s: %v", strURL, err)
 		}
 
-		duration := time.Now().Sub(start)
+		duration := time.Since(start)
 		ev = evaluateResult(result, entry)
 		evReadability = mergeEvaluationResult(evReadability, ev)
 		evReadability.Duration += duration
@@ -92,7 +92,7 @@ func main() {
 			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
 		}
 
-		duration = time.Now().Sub(start)
+		duration = time.Since(start)
 		ev = evaluateResult(result, entry)
 		evDomDistiller = mergeEvaluationResult(evDomDistiller, ev)
 		evDomDistiller.Duration += duration
@@ -104,7 +104,7 @@ func main() {
 			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
 		}
 
-		duration = time.Now().Sub(start)
+		duration = time.Since(start)
 		ev = evaluateResult(result, entry)
 		evTrafilatura = mergeEvaluationResult(evTrafilatura, ev)
 		evTrafilatura.Duration += duration
@@ -116,7 +116,7 @@ func main() {
 			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
 		}
 
-		duration = time.Now().Sub(start)
+		duration = time.Since(start)
 		ev = evaluateResult(result, entry)
 		evTrafilaturaFallback = mergeEvaluationResult(evTrafilaturaFallback, ev)
 		evTrafilaturaFallback.Duration += duration
