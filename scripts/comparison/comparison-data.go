@@ -4567,4 +4567,99 @@ var comparisonData = map[string]comparisonEntry{
 		With:        []string{"but the path looks clear to scale up to 80TB.", "hat means an 80TB hard drive is theoretically possible.", "per square inch. Based on to"},
 		Without:     []string{"nd a Masters in Computer Games Development from Abertay University.", "Read the latest from Matthew Humphries", "Honest, Objective Reviews"},
 	},
+	"https://klubjagiellonski.pl/2021/04/22/nowa-zelandia-platny-urlop-dla-rodzicow-poronionego-dziecka-jak-to-wyglada-w-polsce/": {
+		File:    "Nowa Zelandia_ płatny urlop dla rodziców poronionego dziecka. Jak to wygląda w Polsce_ — Klub Jagielloński.html",
+		With:    []string{"Trzy dni", "w życie w kwietniu.", "Ustawa Holidays"},
+		Without: []string{"korzystamy z cookies.", "Czytasz właśnie nowy", "Twój email"},
+	},
+	"https://liberte.pl/koncesjonowana-opozycja/": {
+		File:    "Koncesjonowana opozycja -Leszek Jażdżewski - Liberté!.html",
+		With:    []string{"Pakt lewicy z PiS", "Podsumujmy. Lewica", "na salonach władzy."},
+		Without: []string{"Fundusz Odbudowy, lewica, PiS", "Inne artykuły autora", "Polityka prywatności"},
+	},
+	"https://www.dwutygodnik.com/artykul/9491-winda-w-chmurach.html": {
+		File:    "Winda w chmurach _ Obyczaje _ Dwutygodnik _ Dwutygodnik.html",
+		With:    []string{"Ludzie ci", "Aleksandra Zbroja przedstawia się", "Mireczka, i bez niego."},
+		Without: []string{"11 minut czytania", "Historyczka nowoczesnej kultury polskiej", "IWONA KURZ"},
+	},
+	"https://publica.pl/teksty/rafalska-finowie-odkrywaja-wino-68379.html": {
+		File:    "Finowie odkrywają wino _ Res Publica Nowa.html",
+		With:    []string{"Nie mogąc konkurować", "W Finlandii obowiązuje", "koncepcję „zero waste”"},
+		Without: []string{"marca 2021", "Rozmowa z dr nauk", "Wino lepsze od"},
+	},
+	"https://spidersweb.pl/2021/05/windows-10-flash.html": {
+		File:    "Windows 10 od lipca przestanie obsługiwać Adobe Flash.html",
+		With:    []string{"W październiku na", "wspomniane cyberbezpieczeństwo.", "nigdy go nie obsługiwały."},
+		Without: []string{"do dyskusji", "Używamy informacji zapisanych", "UDOSTĘPNIJ"},
+	},
+	"https://www.polityka.pl/tygodnikpolityka/swiat/2116825,1,krolowa-elzbieta-wyplywa-w-swiat-sygnal-dla-chin-i-rosji.read": {
+		File:    "„Królowa Elżbieta” wypływa w świat. Sygnał dla Chin i Rosji - Polityka.pl.html",
+		With:    []string{"Pierwszy rejs HMS", "Bandera podąża za handlem", "zaważyła na jego trasie."},
+		Without: []string{"Czytaj też", "Były dowódca wojsk USA", "starszy analityk"},
+	},
+	"https://www.rp.pl/Polityka/305049888-Unijne-fundusze-coraz-blizej-Sejm-zaglosowal-za.html": {
+		File:    "Unijne fundusze coraz bliżej. Sejm zagłosował _za_ - Polityka - rp.pl.html",
+		With:    []string{"To jest moment fundamentalny", "Ciężar dyskusji przeniesie", "Na lepszą konkurencyjność gospodarki"},
+		Without: []string{"Licencja na publikację", "Reklama", "Dowiedz się więcej", "Rafał Guz", "Publikacja:"},
+	},
+	"https://forsal.pl/gospodarka/pkb/artykuly/8150873,ile-jest-warta-godzina-pracy.html": {
+		File:    "Ile jest warta godzina pracy_ W tych krajach praca popłaca - Forsal.pl.html",
+		With:    []string{"Portal Statista powołuje", "54,4 dolara.", "Oto kraje, w"},
+		Without: []string{"ShutterStock", "Ten tekst przeczytasz", "Źródło:"},
+	},
+	"https://wiadomosci.dziennik.pl/polityka/artykuly/8156148,dezubekizacja-trybunal-konstytucyjny-wyrok-termin.html": {
+		File:    "Dezubekizacja – reaktywacja. Czyli daty mają znaczenie - Dziennik.pl.html",
+		With:    []string{"Historia dezubekizacji przed", "12 maja. Tego", "Skarżący powołali się"},
+		Without: []string{"Trybunał Konstytucyjny", "CZYTAJ WIĘCEJ W", "Materiał chroniony prawem"},
+	},
+	"https://dorzeczy.pl/ekonomia/183131/eurostat-polska-z-najnizszym-bezrobociem-w-calej-ue.html": {
+		File:    "Eurostat_ Polska z najniższym bezrobociem w całej UE.html",
+		With:    []string{"Wyrównana sezonowo stopa", "Holandia (3,5 proc.).", "najniższa w UE – podał Eurostat."},
+		Without: []string{"Praca w magazynie", "Źródło:", "NAJNOWSZE"},
+	},
+	"https://www.portalspozywczy.pl/handel/wiadomosci/eurocash-rusza-z-innowacyjna-platforma-handlu,198264.html": {
+		File:    "Eurocash rusza z Innowacyjną Platformą Handlu - Handel dystrybucja.html",
+		With:    []string{"Jest to zintegrowany system", "kasowy IPH POS.", "dostęp do IPH za 1 zł."},
+		Without: []string{"Szukasz lokalu handlowego", "Materiał chroniony prawem", "więcej informacji:"},
+	},
+	"https://wiadomosci.gazeta.pl/wiadomosci/7,114883,27025667,ziemniaki-na-szostej-surowka-na-dziesiatej-jak-pomoc-zeby.html#s=BoxMMt2": {
+		File:    "_Ziemniaki na szóstej, surówka na dziesiątej_. Jak pomagać, żeby nie zaszkodzić_ [PORADNIK W PIGUŁCE].html",
+		With:    []string{"pomóc osobie niewidomej", "Osoby niewidome, słabowidzące:", "może wypaść z wózka."},
+		Without: []string{"Agencja Gazeta", "cocopanda.pl", "Komentarze"},
+	},
+	"https://www.radiomaryja.pl/informacje/sprzeciw-wobec-atakow-na-fundacje-lux-veritatis/": {
+		File:    "Sprzeciw wobec ataków na Fundację Lux Veritatis – RadioMaryja.pl.html",
+		With:    []string{"Watchdog wytoczył", "Nie możemy pozwolić na", "nękania Fundacji Lux Veritatis"},
+		Without: []string{"więcej]", "drukuj", "RIRM"},
+	},
+	"https://www.wsieciprawdy.pl/sieci-ipn-czyli-element-infrastruktury-krytycznej-pnews-4715.html": {
+		File:    "„Sieci”_ IPN, czyli element infrastruktury krytycznej Tygodnik Sieci.html",
+		With:    []string{"Zadania Instytutu Pamięci", "co zechcą - czytamy.", "łamach nowego wydania"},
+		Without: []string{"opublikowano:", "Zobacz także", "Zapraszamy też do subskrypcji"},
+	},
+	"https://wpolityce.pl/gospodarka/549052-jest-zgoda-pe-na-umowe-handlowa-miedzy-ue-a-londynem": {
+		File:    "Jest zgoda PE na umowę handlową między UE a Londynem.html",
+		With:    []string{"Zgoda PE jest", "i otwiera nową erę", "„historycznym błędem”"},
+		Without: []string{"opublikowano", "aja/PAP", "Czekamy na Wasze"},
+	},
+	"https://www.osw.waw.pl/pl/publikacje/analizy/2021-04-20/rosyjskie-zamachy-w-czechach-kontekst-krajowy-implikacje-perspektywy": {
+		File:    "Rosyjskie zamachy w Czechach – kontekst krajowy, implikacje, perspektywy.html",
+		With:    []string{"17 kwietnia na konferencji", "Informacja o noszącym", "Media czeskie i brytyjskie"},
+		Without: []string{"DO WYSŁUCHANIA W SERWISIE", "Mateusz Seroka", "Publikacje"},
+	},
+	"https://www.wirtualnemedia.pl/artykul/maciej-krzysztoszek-rzecznik-prasowy-amica-menedzer-komunikacji-zewnetrznej": {
+		File:    "Maciej Krzysztoszek rzecznik prasowy Amica menedżer komunikacji zewnętrznej.html",
+		With:    []string{"w dziale marketingu.", "Mickiewicza w Poznaniu.", "i komunikacją wewnętrzną."},
+		Without: []string{"Zmiany personalne", "polecamy", "Podziel się"},
+	},
+	"https://menway.interia.pl/historia/news-angus-barbieri-nie-jadl-przez-382-dni,nId,5222535": {
+		File:    "Angus Barbieri. Nie jadł przez 382 dni - Menway w INTERIA.PL.html",
+		With:    []string{"Angus pochodził ze", "nie dłuższy niż 40 dni.", "Początkowo Barbieri znajdował", "cukru oraz mleka."},
+		Without: []string{"domena publiczna", "Opuszczony Dom", " Poniedziałek"},
+	},
+	"https://energetyka24.com/rosjanie-sugeruja-natychmiastowe-odciecie-polski-od-gazu": {
+		File:    "Rosjanie sugerują natychmiastowe odcięcie Polski od gazu - Energetyka24.html",
+		With:    []string{"Rosjanie twierdzą, że z", "Danię do Polski.", "konkluduje finobzor.ru."},
+		Without: []string{"ZOBACZ TAKŻE", "Reklama", "Prosimy o zaznaczenie", "Czyżewski"},
+	},
 }
