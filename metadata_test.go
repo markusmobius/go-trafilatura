@@ -285,6 +285,16 @@ func Test_Metadata_Sitename(t *testing.T) {
 	assert.Equal(t, "Home", metadata.Title)
 }
 
+func Test_Metadata_License(t *testing.T) {
+	rawHTML := `<html><body><p><a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC BY-SA</a></p></body></html>`
+	metadata := testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "CC BY-SA 4.0", metadata.License)
+
+	rawHTML = `<html><body><p><a href="https://licenses.org/unknown" rel="license">Unknown</a></p></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Unknown", metadata.License)
+}
+
 func Test_Metadata_MetaTags(t *testing.T) {
 	rawHTML := `<html><head>
 			<meta property="og:title" content="Open Graph Title" />

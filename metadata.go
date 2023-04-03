@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"encoding/json"
+	"fmt"
 	nurl "net/url"
 	"regexp"
 	"strings"
@@ -39,16 +40,17 @@ import (
 )
 
 var (
-	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
-	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
-	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
-	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
-	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
-	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
-	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
-	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
-	rxCategoryHref   = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
-	rxTagHref        = regexp.MustCompile(`(?i)/tags?/`)
+	rxCommaSeparator  = regexp.MustCompile(`\s*[,;]\s*`)
+	rxTitleCleaner    = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
+	rxJsonSymbol      = regexp.MustCompile(`[{\\}]`)
+	rxNameJson        = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
+	rxUrlCheck        = regexp.MustCompile(`(?i)https?://|/`)
+	rxDomainFinder    = regexp.MustCompile(`(?i)https?://[^/]+`)
+	rxSitenameFinder  = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
+	rxCcLicenseFinder = regexp.MustCompile(`(?i)/(by|by-sa|by-nd|by-nc|by-nc-sa|by-nc-nd|zero)/([1-9]\.[0-9])`)
+	rxHtmlStripTag    = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
+	rxCategoryHref    = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
+	rxTagHref         = regexp.MustCompile(`(?i)/tags?/`)
 
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|by|von) `)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
@@ -190,12 +192,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	}
 
 	// License
-	for _, element := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
-		if text := trim(etree.Text(element)); text != "" {
-			metadata.License = text
-			break
-		}
-	}
+	metadata.License = extractLicense(doc)
 
 	return metadata
 }
@@ -827,6 +824,28 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 			if lenText > 2 && lenText < limit {
 				return text
 			}
+		}
+	}
+
+	return ""
+}
+
+// extractLicense search the HTML code for license information and parse it.
+func extractLicense(doc *html.Node) string {
+	for _, a := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
+		// Check in href for CC license
+		if href := trim(dom.GetAttribute(a, "href")); href != "" {
+			parts := rxCcLicenseFinder.FindStringSubmatch(href)
+			if len(parts) > 0 {
+				return fmt.Sprintf("CC %s %s",
+					strings.ToUpper(parts[1]),
+					parts[2])
+			}
+		}
+
+		// Check in text
+		if text := trim(etree.Text(a)); text != "" {
+			return text
 		}
 	}
 
