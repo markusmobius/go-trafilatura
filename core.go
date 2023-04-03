@@ -117,9 +117,13 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	var lenComments int
 	var commentsBody *html.Node
 
-	if !opts.ExcludeComments {
+	if !opts.ExcludeComments { // Comment is included
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
+	} else { // Comment is excluded
+		if opts.FavorPrecision {
+			pruneUnwantedNodes(doc, RemovedCommentXpaths)
+		}
 	}
 
 	// Extract content
@@ -853,6 +857,13 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 // here we use go-readability and go-domdistiller. Since there are difference in
 // implementation between them, here we do it a bit differently compared to the original code.
 func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+	// Bypass for favor recall
+	originalText := trim(etree.IterText(originalExtract, " "))
+	lenOriginal := utf8.RuneCountInString(originalText)
+	if opts.FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
+		return originalExtract, originalText
+	}
+
 	// Prepare fallback candidates
 	fallbackCandidates := opts.FallbackCandidates
 
@@ -868,7 +879,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		}
 
 		// Here we append nil to fallback candidates. This nil value is used to
-		// notify Trafilatura to run Go-DomDistiller for that candidate. We do iy
+		// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
 		// this way to make sure that dom-distiller will only be run if readability
 		// result is still not good enough to use.
 		fallbackCandidates = append(fallbackCandidates, nil)
@@ -881,9 +892,6 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	}
 
 	// Compare
-	originalText := trim(etree.IterText(originalExtract, " "))
-	lenOriginal := utf8.RuneCountInString(originalText)
-
 	for i, candidate := range fallbackCandidates {
 		// Use dom-distiller if necessary
 		if candidate == nil {
@@ -900,11 +908,16 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		lenCandidate := utf8.RuneCountInString(candidateText)
 		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
 
-		// Check if this candidate can be used
-		candidateUsable := (lenOriginal == 0 && lenCandidate > 0) || (lenCandidate > 2*lenOriginal) ||
-			(lenOriginal == 0 && lenCandidate > opts.Config.MinExtractedSize)
+		// TODO: This part is pretty different compared to the original.
+		// Check if this candidate can be used, either because it pass length check
+		// or because we need to favor recall.
+		candidateUsable := false ||
+			(lenOriginal == 0 && lenCandidate > 0) ||
+			(lenCandidate > 2*lenOriginal) ||
+			(lenOriginal == 0 && lenCandidate > opts.Config.MinExtractedSize*2)
+		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
 
-		if candidateUsable {
+		if candidateUsable || mustFavorRecall {
 			originalExtract = candidate
 			lenOriginal = lenCandidate
 			logInfo(opts, "candidate-%d usable: %s", i+1, originalUrl)

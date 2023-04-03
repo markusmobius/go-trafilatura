@@ -544,3 +544,19 @@ func Test_Links(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<a>CC BY-SA license</a>")
 }
+
+func Test_PrecisionRecall(t *testing.T) {
+	var opts Options
+	var result *ExtractResult
+	htmlStr := `<html><body><p>This here is the text.</p></body></html>`
+
+	// Favor precision
+	opts = Options{FavorPrecision: true}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotNil(t, result)
+
+	// Favor recall
+	opts = Options{FavorRecall: true}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotNil(t, result)
+}
