@@ -99,6 +99,9 @@ type Options struct {
 	// targets (experimental).
 	IncludeLinks bool
 
+	// BlacklistedAuthors is list of author names to be excluded from extraction result.
+	BlacklistedAuthors []string
+
 	// Deduplicate specify whether to remove duplicate segments and sections.
 	Deduplicate bool
 

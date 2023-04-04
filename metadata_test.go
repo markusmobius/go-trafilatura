@@ -84,11 +84,19 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><a href="" rel="author">Jenny "The Author" Smith</a></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	rawHTML = `<html><body><span class="author">Jenny Smith</span></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
 	rawHTML = `<html><body><h4 class="author">Jenny Smith</h4></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	rawHTML = `<html><body><h4 class="author">Jenny Smith — Trafilatura</h4></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
@@ -100,7 +108,19 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><figure data-component="Figure"><div class="author">Jenny Smith</div></figure></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Author)
+
+	rawHTML = `<html><body><div class="sidebar"><div class="author">Jenny Smith</div></figure></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Author)
+
 	rawHTML = `<html><body><a class="author">Jenny Smith</a></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	rawHTML = `<html><body><a class="author">Jenny Smith <div class="title">Editor</div></a></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
@@ -207,6 +227,12 @@ func Test_Metadata_Authors(t *testing.T) {
 	rawHTML = `<html><head><meta name="citation_author" content="Jenny Smith and John Smith"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+
+	// Blacklist
+	opts := Options{BlacklistedAuthors: []string{"Fake Author"}}
+	rawHTML = `<html><body><meta itemprop="author" content="Fake Author"/><a class="author">Jenny Smith from Trafilatura</a></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML, opts)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
 }
 
 func Test_Metadata_URLs(t *testing.T) {

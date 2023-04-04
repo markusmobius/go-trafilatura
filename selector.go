@@ -28,12 +28,27 @@ var MetaTitleXpaths = []string{
 }
 
 var MetaAuthorXpaths = []string{
-	`//*[(self::a or self::address or self::link or self::p or self::span or self::strong)][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me"]|//author`,                                         // specific
-	`//*[(self::a or self::div or self::span or self::p or self::strong)][contains(@class, "author-name") or contains(@class, "authorName") or contains(@class, "author name")]`,                                                       // almost specific
-	`//*[(self::a or self::div or self::span or self::p or self::h4 or self::h3)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline"]`,                                          // almost generic
-	`//*[(self::a or self::div or self::span or self::p)][contains(@class, "authors") or contains(@class, "byline") or contains(@class, "submitted-by") or contains(@class, "posted-by")]`,                                             // generic
-	`//*[contains(@class, "author") or contains(@class, "Author") or contains(@id, "Author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer")]`, // any element
-	`//*[(self::a or self::span)][@class="username" or @class="BBL"]`, // not common
+	// specific
+	`//*[(self::a or self::address or self::link or self::p or self::span or self::strong)][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me"]|//author`,
+	// almost specific
+	`//*[(self::a or self::div or self::span or self::p or self::strong)][contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name")]`,
+	// almost generic
+	`//*[(self::a or self::div or self::span or self::p or self::h4 or self::h3)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline"]`,
+	// generic
+	`//*[(self::a or self::div or self::span or self::p)][contains(@class, "authors") or contains(@class, "byline") or contains(@class, "ByLine") or contains(@class, "submitted-by") or contains(@class, "posted-by")]`,
+	// any element
+	`//*[contains(@class, "author") or contains(@class, "Author") or contains(@id, "Author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer") or contains(@class, "byline")]`,
+	// not common
+	`//*[(self::a or self::span)][@class="username" or @class="BBL"]`,
+}
+
+var MetaAuthorDiscardXpaths = []string{
+	`.//*[(self::div or self::section or self::a)][@id='comments' or @class='comments' or @class='title' or @class='date' or
+    contains(@id, 'commentlist') or contains(@class, 'commentlist') or contains(@class, 'sidebar') or contains(@class, 'is-hidden')
+    or contains(@id, 'comment-list') or contains(@class, 'comments-list') or contains(@class, 'embedly-instagram') or contains(@id, 'ProductReviews') or
+    starts-with(@id, 'comments') or contains(@data-component, "Figure") or contains(@class, "article-share") or contains(@class, "article-support") or contains(@class, "print") or contains(@class, "category")
+    or starts-with(@class, 'comments') or starts-with(@class, 'Comments')]`,
+	"//*[(self::time or self::figure)]",
 }
 
 var MetaCategoriesXpaths = []string{
@@ -136,7 +151,8 @@ var DiscardedContentXpaths = []string{
 	contains(@class, "embedded") or contains(@class, "embed")
 	or contains(@id, "teaser") or contains(@class, "teaser") or
 	contains(translate(@class, "T","t"), "teaser")
-	or contains(@id, "newsletter") or contains(@class, "newsletter") or
+	or contains(@id, "newsletter") or contains(@class, "newsletter")
+    or contains(@class, "subnav") or
 	contains(@id, "cookie") or contains(@class, "cookie") or contains(@id, "tags")
 	or contains(@class, "tags")  or contains(@id, "sidebar") or
 	contains(@class, "sidebar") or contains(@id, "banner") or contains(@class, "banner")
@@ -173,8 +189,10 @@ var DiscardedContentXpaths = []string{
 var DiscardedCommentXpaths = []string{
 	`.//*[(self::div or self::section)][starts-with(@id, "respond")]`,
 	`.//cite|.//quote`,
-	`.//*[@class="comments-title" or contains(@class, "comments-title") or contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
-    contains(@class, "-reply-") or contains(@class, "message") or
+	`.//*[@class="comments-title" or contains(@class, "comments-title") or
+    contains(@class, "nocomments") or starts-with(@id, "reply-") or
+    starts-with(@class, "reply-") or contains(@class, "-reply-") or contains(@class, "message")
+    or contains(@class, "signin") or
     contains(@id, "akismet") or contains(@class, "akismet") or contains(@style, "display:none")]`,
 }
 
