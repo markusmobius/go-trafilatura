@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	nurl "net/url"
-	"os"
-	fp "path/filepath"
 	"strings"
 	"time"
 
@@ -18,7 +16,7 @@ import (
 	"golang.org/x/net/html"
 )
 
-func main() {
+func compareContentExtraction() {
 	var (
 		nDocument             int
 		evNothing             evaluationResult
@@ -38,13 +36,10 @@ func main() {
 		}
 
 		// Open file
-		f, err := os.Open(fp.Join("test-files", "comparison", entry.File))
+		f, err := openDataFile(entry.File)
 		if err != nil {
-			f, err = os.Open(fp.Join("test-files", "mock", entry.File))
-			if err != nil {
-				logrus.Errorf("failed to open %s: %v", entry.File, err)
-				continue
-			}
+			logrus.Error(err)
+			continue
 		}
 
 		// Read all content of the file so it can be used multiple times
