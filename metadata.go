@@ -658,7 +658,7 @@ func normalizeAuthors(authors string, input string) string {
 		}
 
 		// If necessary, convert to title
-		if strings.ToLower(a) == a {
+		if !unicode.IsUpper(getRune(a, 0)) || strings.ToLower(a) == a {
 			a = strings.Title(a)
 		}
 
@@ -667,6 +667,7 @@ func normalizeAuthors(authors string, input string) string {
 		if !strings.Contains(authors, a) && !tracked &&
 			!rxPrefixHttp.MatchString(a) &&
 			!rxAuthorEmail.MatchString(a) {
+			tracker[a] = struct{}{}
 			listAuthor = append(listAuthor, a)
 		}
 	}
