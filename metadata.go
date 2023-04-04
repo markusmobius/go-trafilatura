@@ -602,21 +602,40 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 
 // extractLicense search the HTML code for license information and parse it.
 func extractLicense(doc *html.Node) string {
+	// Look for links labeled as license
 	for _, a := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
-		// Check in href for CC license
-		if href := trim(dom.GetAttribute(a, "href")); href != "" {
-			parts := rxCcLicenseFinder.FindStringSubmatch(href)
-			if len(parts) > 0 {
-				return fmt.Sprintf("CC %s %s",
-					strings.ToUpper(parts[1]),
-					parts[2])
-			}
+		if result := parseLicenseElement(a); result != "" {
+			return result
 		}
+	}
 
-		// Check in text
-		if text := trim(etree.Text(a)); text != "" {
-			return text
+	// Probe footer elements for CC links
+	selector := `//footer//a|//div[contains(@class, "footer") or contains(@id, "footer")]//a`
+	for _, node := range htmlxpath.Find(doc, selector) {
+		if result := parseLicenseElement(node); result != "" {
+			return result
 		}
+	}
+
+	return ""
+}
+
+// parseLicenseElement probes a link for identifiable free license cues.
+// Parse the href attribute first and then the link text.
+func parseLicenseElement(node *html.Node) string {
+	// Check in href for CC license
+	if href := trim(dom.GetAttribute(node, "href")); href != "" {
+		parts := rxCcLicenseFinder.FindStringSubmatch(href)
+		if len(parts) > 0 {
+			return fmt.Sprintf("CC %s %s",
+				strings.ToUpper(parts[1]),
+				parts[2])
+		}
+	}
+
+	// Check in text
+	if text := trim(etree.Text(node)); text != "" {
+		return text
 	}
 
 	return ""

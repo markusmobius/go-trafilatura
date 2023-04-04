@@ -312,6 +312,7 @@ func Test_Metadata_Sitename(t *testing.T) {
 }
 
 func Test_Metadata_License(t *testing.T) {
+	// From <a> rel
 	rawHTML := `<html><body><p><a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC BY-SA</a></p></body></html>`
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "CC BY-SA 4.0", metadata.License)
@@ -319,6 +320,23 @@ func Test_Metadata_License(t *testing.T) {
 	rawHTML = `<html><body><p><a href="https://licenses.org/unknown" rel="license">Unknown</a></p></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Unknown", metadata.License)
+
+	// Footer
+	rawHTML = `<html><body><footer><a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA</a></footer></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "CC BY-SA 4.0", metadata.License)
+
+	// Real world footer test: netzpolitik.org
+	rawHTML = `<html><body>
+	<div class="footer__navigation">
+		<p class="footer__licence">
+			<strong>Lizenz: </strong>
+			Die von uns verfassten Inhalte stehen, soweit nicht anders vermerkt, unter der Lizenz
+			<a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA 4.0.</a>
+		</p>
+	</div></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "CC BY-NC-SA 4.0", metadata.License)
 }
 
 func Test_Metadata_MetaTags(t *testing.T) {
