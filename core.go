@@ -967,12 +967,38 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		// TODO: This part is pretty different compared to the original.
 		// Check if this candidate can be used, either because it pass length check
 		// or because we need to favor recall.
-		candidateUsable := false ||
-			(lenOriginal == 0 && lenCandidate > 0) ||
-			(lenCandidate > 2*lenOriginal) ||
-			(lenOriginal == 0 && lenCandidate > opts.Config.MinExtractedSize*2)
-		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
+		var candidateUsable bool
 
+		switch {
+		case lenCandidate == 0 || lenCandidate == lenOriginal:
+			candidateUsable = false
+		case lenOriginal == 0 && lenCandidate > 0:
+			candidateUsable = true
+		case lenOriginal > 2*lenCandidate:
+			candidateUsable = false
+		case lenCandidate > 2*lenOriginal:
+			candidateUsable = true
+		default: // borderline case
+			tables := dom.GetElementsByTagName(doc, "table")
+			paragraphs := dom.GetElementsByTagName(doc, "p")
+			nTable, nParagraph := len(tables), len(paragraphs)
+
+			var pTextLength int
+			for _, p := range paragraphs {
+				pText := trim(etree.IterText(p, " "))
+				pTextLength += utf8.RuneCountInString(pText)
+			}
+
+			if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else if nTable > nParagraph && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else {
+				candidateUsable = false
+			}
+		}
+
+		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
 		if candidateUsable || mustFavorRecall {
 			originalExtract = candidate
 			lenOriginal = lenCandidate
