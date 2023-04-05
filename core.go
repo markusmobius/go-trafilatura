@@ -392,6 +392,11 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
+		if opts.FavorRecall {
+			potentialTags = duplicateMap(potentialTags)
+			potentialTags["div"] = struct{}{}
+		}
+
 		recoverWildText(doc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
 	} else {
