@@ -311,8 +311,20 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		deleteByLinkDensity(subTree, "dl", false)
 		deleteByLinkDensity(subTree, "p", false)
 
+		// Also filter fw/head, table and quote elements?
+		if opts.FavorPrecision {
+			deleteByLinkDensity(subTree, "h1", false)
+			deleteByLinkDensity(subTree, "h2", false)
+			deleteByLinkDensity(subTree, "h3", false)
+			deleteByLinkDensity(subTree, "h4", false)
+			deleteByLinkDensity(subTree, "h5", false)
+			deleteByLinkDensity(subTree, "h6", false)
+			deleteByLinkDensity(subTree, "summary", false)
+		}
+
 		// Define iteration strategy
-		if _, exist := potentialTags["table"]; exist {
+		_, tableIsPotentialTag := potentialTags["table"]
+		if tableIsPotentialTag || opts.FavorPrecision {
 			tables := etree.Iter(subTree, "table")
 			for i := len(tables) - 1; i >= 0; i-- {
 				if linkDensityTestTables(tables[i]) {
