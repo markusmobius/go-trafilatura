@@ -373,8 +373,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		// Remove trailing titles
 		finalChildren := dom.Children(resultBody)
 		for i := len(finalChildren) - 1; i >= 0; i-- {
-			switch dom.TagName(finalChildren[i]) {
-			case "h1", "h2", "h3", "h4", "h5", "h6":
+			tagName := dom.TagName(finalChildren[i])
+			if inMap(tagName, mapXmlHeadTags) {
 				etree.Remove(finalChildren[i])
 				continue
 			}
