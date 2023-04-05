@@ -716,6 +716,10 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 	newRow := etree.Element("tr")
 	i := 0
 
+	// Prepare potential tags with div
+	potentialTagsWithDiv := duplicateMap(potentialTags)
+	potentialTagsWithDiv["div"] = struct{}{}
+
 	// TODO: we are supposed to strip structural elements here, but I'm not so sure.
 	// Check it again later, I guess.
 	etree.StripTags(tableElement, "thead", "tbody", "tfoot")
@@ -733,6 +737,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 		} else if subElementTag == "td" || subElementTag == "th" {
 			newChildElem := etree.Element(subElementTag)
 
+			// Process childless element
 			if len(dom.Children(subElement)) == 0 {
 				processedCell := processNode(subElement, cache, opts)
 				if processedCell != nil {
@@ -740,35 +745,24 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 					etree.SetTail(newChildElem, etree.Tail(processedCell))
 				}
 			} else {
+				// Proceed with iteration, fix for nested elements
 				for _, child := range etree.Iter(subElement) {
 					childTag := dom.TagName(child)
 
-					isDiv := childTag == "div"
-					isDone := childTag == "done"
-					isItem := inMap(childTag, mapXmlItemTags)
-					isList := inMap(childTag, mapXmlListTags)
-					_, isPotential := potentialTags[childTag]
-					if !isPotential && !isDiv && !isDone && !isItem && !isList {
-						childText, childTail := etree.Text(child), etree.Tail(child)
-						logWarn(opts, "unexpected in table: %s %s %s", childTag, childText, childTail)
-						child.Data = "done"
-						continue
+					var processedSubChild *html.Node
+					if inMap(childTag, mapXmlCellTags) || inMap(childTag, mapXmlHiTags) {
+						processedSubChild = handleTextNode(child, cache, true, opts)
+					} else {
+						processedSubChild = handleTextElem(child, potentialTagsWithDiv, cache, opts)
 					}
 
-					isCode := childTag == "code"
-					isHi := inMap(childTag, mapXmlHiTags)
-					isRef := inMap(childTag, mapXmlRefTags)
-					isQuote := inMap(childTag, mapXmlQuoteTags)
-					if !isCode && !isHi && !isRef && !isQuote {
-						child.Data = "td"
-					}
-
-					processedSubChild := handleTextNode(child, cache, true, opts)
 					if processedSubChild != nil {
 						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
 						etree.SetText(subChildElement, etree.Text(processedSubChild))
 						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
 					}
+
+					child.Data = "done"
 				}
 			}
 
