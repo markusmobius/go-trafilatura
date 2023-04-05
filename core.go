@@ -275,6 +275,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 	if !opts.ExcludeTables {
 		potentialTags["table"] = struct{}{}
+		potentialTags["tr"] = struct{}{}
+		potentialTags["th"] = struct{}{}
+		potentialTags["td"] = struct{}{}
 	}
 
 	if opts.IncludeImages {
@@ -310,9 +313,10 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Define iteration strategy
 		if _, exist := potentialTags["table"]; exist {
-			for _, table := range etree.Iter(subTree, "table") {
-				if linkDensityTestTables(table) {
-					etree.Remove(table)
+			tables := etree.Iter(subTree, "table")
+			for i := len(tables) - 1; i >= 0; i-- {
+				if linkDensityTestTables(tables[i]) {
+					etree.Remove(tables[i])
 				}
 			}
 		}
@@ -422,8 +426,8 @@ func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) 
 		}
 	}
 
-	for _, elem := range nodesToDelete {
-		etree.Remove(elem)
+	for i := len(nodesToDelete) - 1; i >= 0; i-- {
+		etree.Remove(nodesToDelete[i])
 	}
 }
 
@@ -452,7 +456,7 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 		return handleFormatting(element, cache, opts)
 	} else if tagName == "table" {
 		if _, exist := potentialTags["table"]; exist {
-			return handleTable(element, cache, opts)
+			return handleTable(element, potentialTags, cache, opts)
 		}
 	} else if inMap(tagName, mapXmlGraphicTags) {
 		if _, exist := potentialTags["img"]; exist {
@@ -707,7 +711,7 @@ func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.
 }
 
 // handleTable process single table element.
-func handleTable(tableElement *html.Node, cache *lru.Cache, opts Options) *html.Node {
+func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	newTable := etree.Element(("table"))
 	newRow := etree.Element("tr")
 	i := 0
@@ -727,17 +731,58 @@ func handleTable(tableElement *html.Node, cache *lru.Cache, opts Options) *html.
 				newRow = etree.Element("tr")
 			}
 		} else if subElementTag == "td" || subElementTag == "th" {
-			processedCell := processNode(subElement, cache, opts)
-			if processedCell == nil || !textCharsTest(etree.Text(processedCell)) {
-				continue
+			newChildElem := etree.Element(subElementTag)
+
+			if len(dom.Children(subElement)) == 0 {
+				processedCell := processNode(subElement, cache, opts)
+				if processedCell != nil {
+					etree.SetText(newChildElem, etree.Text(processedCell))
+					etree.SetTail(newChildElem, etree.Tail(processedCell))
+				}
+			} else {
+				for _, child := range etree.Iter(subElement) {
+					childTag := dom.TagName(child)
+
+					isDiv := childTag == "div"
+					isDone := childTag == "done"
+					isItem := inMap(childTag, mapXmlItemTags)
+					isList := inMap(childTag, mapXmlListTags)
+					_, isPotential := potentialTags[childTag]
+					if !isPotential && !isDiv && !isDone && !isItem && !isList {
+						childText, childTail := etree.Text(child), etree.Tail(child)
+						logWarn(opts, "unexpected in table: %s %s %s", childTag, childText, childTail)
+						child.Data = "done"
+						continue
+					}
+
+					isCode := childTag == "code"
+					isHi := inMap(childTag, mapXmlHiTags)
+					isRef := inMap(childTag, mapXmlRefTags)
+					isQuote := inMap(childTag, mapXmlQuoteTags)
+					if !isCode && !isHi && !isRef && !isQuote {
+						child.Data = "td"
+					}
+
+					processedSubChild := handleTextNode(child, cache, true, opts)
+					if processedSubChild != nil {
+						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
+						etree.SetText(subChildElement, etree.Text(processedSubChild))
+						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+					}
+				}
 			}
 
-			newSub := etree.SubElement(newRow, subElementTag)
-			etree.SetText(newSub, etree.Text(processedCell))
+			// Add to tree
+			if etree.Text(newChildElem) != "" || len(dom.Children(newChildElem)) > 0 {
+				dom.AppendChild(newRow, newChildElem)
+			}
 		} else if subElementTag == "table" && i > 1 {
 			// beware of nested tables
 			break
 		}
+
+		// Clean up
+		subElement.Data = "done"
 	}
 
 	// End of processing

@@ -94,14 +94,16 @@ func removeHtmlCommentNode(doc *html.Node) {
 
 // pruneHTML deletes selected empty elements
 func pruneHTML(doc *html.Node) {
-	for _, subElement := range dom.GetElementsByTagName(doc, "*") {
+	allElements := dom.GetElementsByTagName(doc, "*")
+	for i := len(allElements) - 1; i >= 0; i-- {
+		subElement := allElements[i]
 		tagName := dom.TagName(subElement)
 		if _, exist := emptyTagsToRemove[tagName]; !exist {
 			continue
 		}
 
 		if len(dom.ChildNodes(subElement)) == 0 {
-			etree.Remove(subElement)
+			subElement.Parent.RemoveChild(subElement)
 		}
 	}
 }

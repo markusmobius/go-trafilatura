@@ -45,13 +45,11 @@ func SubElement(parent *html.Node, tagName string) *html.Node {
 // the text content and children of the element into its parent.
 func StripTags(tree *html.Node, tags ...string) {
 	// Fetch all suitable elements
-	var elements []*html.Node
 	for _, tag := range tags {
-		elements = append(elements, dom.GetElementsByTagName(tree, tag)...)
-	}
-
-	for _, element := range elements {
-		Strip(element)
+		elements := dom.GetElementsByTagName(tree, tag)
+		for i := len(elements) - 1; i >= 0; i-- {
+			Strip(elements[i])
+		}
 	}
 }
 
@@ -61,14 +59,11 @@ func StripTags(tree *html.Node, tags ...string) {
 // you explicitly set the keepTail argument to true.
 func StripElements(tree *html.Node, keepTail bool, tags ...string) {
 	// Fetch all suitable elements
-	var elements []*html.Node
 	for _, tag := range tags {
-		elements = append(elements, dom.GetElementsByTagName(tree, tag)...)
-	}
-
-	// Remove each element
-	for _, element := range elements {
-		Remove(element, keepTail)
+		elements := dom.GetElementsByTagName(tree, tag)
+		for i := len(elements) - 1; i >= 0; i-- {
+			Remove(elements[i], keepTail)
+		}
 	}
 }
 

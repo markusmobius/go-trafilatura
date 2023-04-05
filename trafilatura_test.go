@@ -89,8 +89,9 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Contains(t, result.ContentText, "ABC")
 
 	// Quotes
+	potentialTags := duplicateMap(tagCatalog)
 	assert.Nil(t, handleQuotes(etree.Element("blockquote"), nil, zeroOpts))
-	assert.Nil(t, handleTable(etree.Element("table"), nil, zeroOpts))
+	assert.Nil(t, handleTable(etree.Element("table"), potentialTags, nil, zeroOpts))
 
 	// Nested <p> with trailing line break
 	element, second := etree.Element("p"), etree.Element("p")
@@ -129,6 +130,32 @@ func Test_ExoticTags(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
+
+	// Tables with nested elements
+	htmlString = `<html><body><article>` +
+		`<table>` +
+		`<tr><td><b>Present Tense</b></td>` +
+		`<td>I buy</td>` +
+		`<td>you buy</td>` +
+		`<td>he/she/it buys</td>` +
+		`<td>we buy</td>` +
+		`<td>you buy</td>` +
+		`<td>they buy</td>` +
+		`</tr>` +
+		`</table></article></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
+		`<tr>`+
+		`<td>`+
+		`<b>Present Tense</b>`+
+		`</td>`+
+		`<td>I buy</td>`+
+		`<td>you buy</td>`+
+		`<td>he/she/it buys</td>`+
+		`<td>we buy</td>`+
+		`<td>you buy</td>`+
+		`<td>they buy</td>`+
+		`</tr>`)
 }
 
 func Test_Cache(t *testing.T) {
