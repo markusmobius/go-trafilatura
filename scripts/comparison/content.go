@@ -18,13 +18,15 @@ import (
 
 func compareContentExtraction() {
 	var (
-		nDocument             int
-		evNothing             evaluationResult
-		evEverything          evaluationResult
-		evTrafilatura         evaluationResult
-		evTrafilaturaFallback evaluationResult
-		evReadability         evaluationResult
-		evDomDistiller        evaluationResult
+		nDocument              int
+		evNothing              evaluationResult
+		evEverything           evaluationResult
+		evTrafilatura          evaluationResult
+		evTrafilaturaFallback  evaluationResult
+		evTrafilaturaPrecision evaluationResult
+		evTrafilaturaRecall    evaluationResult
+		evReadability          evaluationResult
+		evDomDistiller         evaluationResult
 	)
 
 	for strURL, entry := range comparisonData {
@@ -116,6 +118,30 @@ func compareContentExtraction() {
 		evTrafilaturaFallback = mergeEvaluationResult(evTrafilaturaFallback, ev)
 		evTrafilaturaFallback.Duration += duration
 
+		// Trafilatura + fallback + precision
+		start = time.Now()
+		result, err = runTrafilaturaPrecision(url, doc, docReadability, docDistiller)
+		if err != nil {
+			logrus.Warnf("trafilatura precision error in %s: %v", strURL, err)
+		}
+
+		duration = time.Since(start)
+		ev = evaluateResult(result, entry)
+		evTrafilaturaPrecision = mergeEvaluationResult(evTrafilaturaPrecision, ev)
+		evTrafilaturaPrecision.Duration += duration
+
+		// Trafilatura + fallback + recall
+		start = time.Now()
+		result, err = runTrafilaturaRecall(url, doc, docReadability, docDistiller)
+		if err != nil {
+			logrus.Warnf("trafilatura recall error in %s: %v", strURL, err)
+		}
+
+		duration = time.Since(start)
+		ev = evaluateResult(result, entry)
+		evTrafilaturaRecall = mergeEvaluationResult(evTrafilaturaRecall, ev)
+		evTrafilaturaRecall.Duration += duration
+
 		// Counter
 		nDocument++
 	}
@@ -137,6 +163,12 @@ func compareContentExtraction() {
 
 	fmt.Printf("Trafilatura+Fallback: %s\n", evTrafilaturaFallback.info())
 	fmt.Printf("\t%s\n\n", evTrafilaturaFallback.scoreInfo())
+
+	fmt.Printf("Trafilatura Precision: %s\n", evTrafilaturaPrecision.info())
+	fmt.Printf("\t%s\n\n", evTrafilaturaPrecision.scoreInfo())
+
+	fmt.Printf("Trafilatura Recall: %s\n", evTrafilaturaRecall.info())
+	fmt.Printf("\t%s\n\n", evTrafilaturaRecall.scoreInfo())
 }
 
 func evaluateResult(result string, entry comparisonEntry) evaluationResult {
@@ -183,6 +215,7 @@ func runTrafilatura(url *nurl.URL, doc *html.Node) (string, error) {
 		OriginalURL:     url,
 		NoFallback:      true,
 		ExcludeComments: true,
+		ExcludeTables:   false,
 	})
 
 	if err != nil {
@@ -197,6 +230,41 @@ func runTrafilaturaFallback(url *nurl.URL, doc *html.Node, fallbackCandidates ..
 		OriginalURL:        url,
 		NoFallback:         false,
 		ExcludeComments:    true,
+		ExcludeTables:      false,
+		FallbackCandidates: fallbackCandidates,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return result.ContentText, nil
+}
+
+func runTrafilaturaPrecision(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
+	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
+		OriginalURL:        url,
+		NoFallback:         false,
+		FavorPrecision:     true,
+		ExcludeComments:    true,
+		ExcludeTables:      false,
+		FallbackCandidates: fallbackCandidates,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return result.ContentText, nil
+}
+
+func runTrafilaturaRecall(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
+	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
+		OriginalURL:        url,
+		NoFallback:         false,
+		FavorRecall:        true,
+		ExcludeComments:    true,
+		ExcludeTables:      false,
 		FallbackCandidates: fallbackCandidates,
 	})
 
