@@ -618,6 +618,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	// Handle with children
+	var unwantedChildren []*html.Node
 	processedElements := make(map[*html.Node]struct{})
 	for _, child := range dom.GetElementsByTagName(element, "*") {
 		childTag := dom.TagName(child)
@@ -625,13 +626,13 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		// Make sure child is potential element
 		if _, exist := potentialTags[childTag]; !exist && childTag != "done" {
 			logWarn(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
-			etree.Remove(child)
+			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
 
 		// If necessary remove duplicate child
 		if opts.Deduplicate && cache != nil && duplicateTest(child, cache, opts) {
-			etree.Remove(child)
+			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
 
@@ -658,6 +659,11 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		processedElements[child] = struct{}{}
 	}
 
+	// Remove unwanted child
+	for i := len(unwantedChildren) - 1; i >= 0; i-- {
+		etree.Remove(unwantedChildren[i])
+	}
+
 	// Remove empty elements. Do it backward, to make sure all children
 	// is removed before its parent.
 	children := dom.GetElementsByTagName(element, "*")
@@ -670,7 +676,9 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	// Clean trailing line break
-	for _, br := range dom.QuerySelectorAll(element, "br,hr") {
+	lineBreaks := dom.QuerySelectorAll(element, "br,hr")
+	for i := len(lineBreaks) - 1; i >= 0; i-- {
+		br := lineBreaks[i]
 		if br.NextSibling == nil || etree.Tail(br) == "" {
 			etree.Remove(br)
 		}
