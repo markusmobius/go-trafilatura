@@ -470,6 +470,18 @@ func Test_External(t *testing.T) {
 	str := `<html><body>` + strings.Repeat("<p>Non è inglese.</p>", 20) + `</body></html>`
 	result, _ := Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
+
+	// No tables
+	f, _ := os.Open(filepath.Join("test-files", "simple", "apache.html"))
+	doc, _ = html.Parse(f)
+
+	opts = Options{ExcludeTables: false}
+	result, _ = ExtractDocument(doc, opts)
+	assert.Contains(t, result.ContentText, "localhost:80")
+
+	opts = Options{ExcludeTables: true}
+	result, _ = ExtractDocument(doc, opts)
+	assert.NotContains(t, result.ContentText, "localhost:80")
 }
 
 func Test_Images(t *testing.T) {

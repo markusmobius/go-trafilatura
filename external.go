@@ -59,16 +59,22 @@ func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 func sanitizeTree(tree *html.Node, opts Options) {
 	// Get list of tags to sanitize
 	sanitizeList := duplicateMap(tagsToSanitize)
+
 	if opts.IncludeImages {
 		delete(sanitizeList, "img")
 		delete(sanitizeList, "image")
 	}
 
+	if opts.ExcludeTables {
+		sanitizeList["table"] = struct{}{}
+	}
+
 	// Delete unnecessary elements
-	for _, elem := range dom.GetElementsByTagName(tree, "*") {
-		elemTag := dom.TagName(elem)
+	subElements := dom.GetElementsByTagName(tree, "*")
+	for i := len(subElements) - 1; i >= 0; i-- {
+		elemTag := dom.TagName(subElements[i])
 		if _, exist := sanitizeList[elemTag]; exist {
-			etree.Remove(elem, true)
+			etree.Remove(subElements[i], true)
 		}
 	}
 
