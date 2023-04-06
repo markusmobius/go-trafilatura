@@ -29,6 +29,12 @@ import (
 	"golang.org/x/net/html"
 )
 
+var tagsToSanitize = sliceToMap(
+	"aside", "audio", "button", "fieldset", "figure", "footer", "iframe",
+	"input", "label", "link", "nav", "noindex", "noscript",
+	"object", "option", "select", "source", "svg", "time",
+)
+
 func tryReadability(doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-readability
 	article, err := readability.FromDocument(doc, opts.OriginalURL)
@@ -57,46 +63,24 @@ func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 // sanitizeTree converts and sanitize the output from the generic
 // fallback algorithm (post-processing).
 func sanitizeTree(tree *html.Node, opts Options) {
-	// Get list of tags to sanitize
-	sanitizeList := duplicateMap(tagsToSanitize)
+	// 1. Clean
+	docCleaning(tree, opts.ExcludeTables, opts.IncludeImages)
 
-	if opts.IncludeImages {
-		delete(sanitizeList, "img")
-		delete(sanitizeList, "image")
-	}
-
-	if opts.ExcludeTables {
-		sanitizeList["table"] = struct{}{}
-	}
-
-	// Delete unnecessary elements
 	subElements := dom.GetElementsByTagName(tree, "*")
 	for i := len(subElements) - 1; i >= 0; i-- {
 		elemTag := dom.TagName(subElements[i])
-		if _, exist := sanitizeList[elemTag]; exist {
-			etree.Remove(subElements[i], true)
+		if _, exist := tagsToSanitize[elemTag]; exist {
+			subElements[i].Parent.RemoveChild(subElements[i])
 		}
 	}
 
-	// Handle links
-	strippingList := duplicateMap(tagsToStrip)
-	strippingList["span"] = struct{}{}
-
 	if !opts.IncludeLinks {
-		strippingList["a"] = struct{}{}
+		etree.StripTags(tree, "a")
 	}
 
-	if opts.IncludeImages {
-		delete(strippingList, "img")
-	}
+	etree.StripTags(tree, "span")
 
-	for tagName := range strippingList {
-		etree.StripTags(tree, tagName)
-	}
-
-	pruneHTML(tree)
-
-	// Sanitize
+	// 2. Sanitize
 	var sanitizationList []string
 	uniqueTags := make(map[string]struct{})
 	for _, node := range dom.GetElementsByTagName(tree, "*") {

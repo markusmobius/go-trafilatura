@@ -63,12 +63,6 @@ var formatTagCatalog = sliceToMap(
 	"samp", "tt", "var", "sub", "sup",
 )
 
-var tagsToSanitize = sliceToMap(
-	"aside", "audio", "button", "fieldset", "figure", "footer", "iframe",
-	"img", "image", "input", "label", "link", "nav", "noindex", "noscript",
-	"object", "option", "select", "source", "svg", "time",
-)
-
 var validTagCatalog = sliceToMap(
 	"a", "abbr", "address", "area", "b", "base", "bdo", "blockquote", "body", "br", "button",
 	"caption", "cite", "code", "col", "colgroup", "dd", "del", "dfn", "div", "dl", "dt", "em",
