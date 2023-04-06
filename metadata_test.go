@@ -337,6 +337,20 @@ func Test_Metadata_License(t *testing.T) {
 	</div></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "CC BY-NC-SA 4.0", metadata.License)
+
+	// This is not a license
+	rawHTML = `<html><body><footer class="entry-footer">
+		<span class="cat-links">Posted in <a href="https://sallysbakingaddiction.com/category/seasonal/birthday/" rel="category tag">Birthday</a></span>
+	</footer></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.License)
+
+	// This is a license
+	rawHTML = `<html><body><footer class="entry-footer">
+		<span>The license is <a href="https://example.org/1">CC BY-NC</a></span>
+	</footer></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "CC BY-NC", metadata.License)
 }
 
 func Test_Metadata_MetaTags(t *testing.T) {

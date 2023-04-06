@@ -39,17 +39,19 @@ import (
 )
 
 var (
-	rxCommaSeparator  = regexp.MustCompile(`\s*[,;]\s*`)
-	rxTitleCleaner    = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
-	rxJsonSymbol      = regexp.MustCompile(`[{\\}]`)
-	rxNameJson        = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
-	rxUrlCheck        = regexp.MustCompile(`(?i)https?://|/`)
-	rxDomainFinder    = regexp.MustCompile(`(?i)https?://[^/]+`)
-	rxSitenameFinder  = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
-	rxCcLicenseFinder = regexp.MustCompile(`(?i)/(by|by-sa|by-nd|by-nc|by-nc-sa|by-nc-nd|zero)/([1-9]\.[0-9])`)
-	rxHtmlStripTag    = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
-	rxCategoryHref    = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
-	rxTagHref         = regexp.MustCompile(`(?i)/tags?/`)
+	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
+	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
+	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
+	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
+	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
+	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
+	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
+	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
+	rxCategoryHref   = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
+	rxTagHref        = regexp.MustCompile(`(?i)/tags?/`)
+
+	rxCcLicense     = regexp.MustCompile(`(?i)/(by-nc-nd|by-nc-sa|by-nc|by-nd|by-sa|by|zero)/([1-9]\.[0-9])`)
+	rxCcLicenseText = regexp.MustCompile(`(?i)(cc|creative commons) (by-nc-nd|by-nc-sa|by-nc|by-nd|by-sa|by|zero) ?([1-9]\.[0-9])?`)
 
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|words|by|von) `)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
@@ -604,7 +606,7 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 func extractLicense(doc *html.Node) string {
 	// Look for links labeled as license
 	for _, a := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
-		if result := parseLicenseElement(a); result != "" {
+		if result := parseLicenseElement(a, false); result != "" {
 			return result
 		}
 	}
@@ -612,7 +614,7 @@ func extractLicense(doc *html.Node) string {
 	// Probe footer elements for CC links
 	selector := `//footer//a|//div[contains(@class, "footer") or contains(@id, "footer")]//a`
 	for _, node := range htmlxpath.Find(doc, selector) {
-		if result := parseLicenseElement(node); result != "" {
+		if result := parseLicenseElement(node, true); result != "" {
 			return result
 		}
 	}
@@ -622,20 +624,23 @@ func extractLicense(doc *html.Node) string {
 
 // parseLicenseElement probes a link for identifiable free license cues.
 // Parse the href attribute first and then the link text.
-func parseLicenseElement(node *html.Node) string {
+func parseLicenseElement(node *html.Node, strict bool) string {
 	// Check in href for CC license
 	if href := trim(dom.GetAttribute(node, "href")); href != "" {
-		parts := rxCcLicenseFinder.FindStringSubmatch(href)
-		if len(parts) > 0 {
-			return fmt.Sprintf("CC %s %s",
-				strings.ToUpper(parts[1]),
-				parts[2])
+		if parts := rxCcLicense.FindStringSubmatch(href); len(parts) > 0 {
+			return fmt.Sprintf("CC %s %s", strings.ToUpper(parts[1]), parts[2])
 		}
 	}
 
 	// Check in text
 	if text := trim(etree.Text(node)); text != "" {
-		return text
+		if !strict {
+			return text
+		}
+
+		if parts := rxCcLicenseText.FindStringSubmatch(text); len(parts) > 0 {
+			return parts[0]
+		}
 	}
 
 	return ""
