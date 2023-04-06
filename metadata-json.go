@@ -48,6 +48,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 					isPerson := strObjType == "Person"
 					isArticle := strings.Contains(strObjType, "Article") ||
 						strObjType == "SocialMediaPosting" ||
+						strObjType == "BlogPosting" ||
 						strObjType == "Report"
 
 					switch {
