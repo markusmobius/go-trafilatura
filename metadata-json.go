@@ -12,7 +12,7 @@ import (
 // extractJsonLd search metadata from JSON+LD data following the Schema.org guidelines
 // (https://schema.org). Here we don't really care about error here, so if parse failed
 // we just return the original metadata.
-func extractJsonLd(doc *html.Node, originalMetadata Metadata) Metadata {
+func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Metadata {
 	// Find all script nodes that contain JSON+Ld schema
 	scriptNodes1 := dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`)
 	scriptNodes2 := dom.QuerySelectorAll(doc, `script[type="application/settings+json"]`)
@@ -32,6 +32,7 @@ func extractJsonLd(doc *html.Node, originalMetadata Metadata) Metadata {
 		data := map[string]interface{}{}
 		err := json.Unmarshal([]byte(jsonLdText), &data)
 		if err != nil {
+			logWarn(opts, "error in JSON metadata extraction: %v", err)
 			continue
 		}
 

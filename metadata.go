@@ -113,7 +113,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// only a single word, so I decided to not implement it here.
 
 	// Extract metadata from JSON-LD and override
-	metadata = extractJsonLd(doc, metadata)
+	metadata = extractJsonLd(opts, doc, metadata)
 	metadata.Author = removeBlacklistedAuthors(metadata.Author, opts)
 
 	// Try extracting from DOM element using selectors
