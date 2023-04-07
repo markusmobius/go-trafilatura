@@ -20,6 +20,8 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 	// Process each script node
 	var metadata Metadata
+	categoryTracker := map[string]struct{}{}
+
 	for _, script := range scriptNodes {
 		// Get the json text inside the script
 		jsonLdText := dom.TextContent(script)
@@ -28,98 +30,50 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 			continue
 		}
 
-		// Decode JSON text, assuming it is an object
-		data := map[string]interface{}{}
-		err := json.Unmarshal([]byte(jsonLdText), &data)
+		// Decode JSON+LD text
+		persons, articles, err := decodeJsonLd(jsonLdText)
 		if err != nil {
 			logWarn(opts, "error in JSON metadata extraction: %v", err)
 			continue
 		}
 
-		// Find articles and persons inside JSON+LD recursively
-		persons := make([]map[string]interface{}, 0)
-		articles := make([]map[string]interface{}, 0)
-
-		var findImportantObjects func(obj map[string]interface{})
-		findImportantObjects = func(obj map[string]interface{}) {
-			// First check if this object type matches with our need.
-			if objType, hasType := obj["@type"]; hasType {
-				if strObjType, isString := objType.(string); isString {
-					isPerson := strObjType == "Person"
-					isArticle := strings.Contains(strObjType, "Article") ||
-						strings.Contains(strObjType, "Posting") ||
-						strObjType == "Report"
-
-					switch {
-					case isArticle:
-						articles = append(articles, obj)
-						return
-
-					case isPerson:
-						persons = append(persons, obj)
-						return
-					}
-				}
-			}
-
-			// If not, look in its children
-			for _, value := range obj {
-				switch v := value.(type) {
-				case map[string]interface{}:
-					findImportantObjects(v)
-
-				case []interface{}:
-					for _, item := range v {
-						itemObject, isObject := item.(map[string]interface{})
-						if isObject {
-							findImportantObjects(itemObject)
-						}
-					}
-				}
-			}
-		}
-
-		findImportantObjects(data)
-
 		// Extract metadata from each article
 		for _, article := range articles {
+			// Grab "author" property from schema with @type "Person"
 			if metadata.Author == "" {
-				// For author, if taken from schema, we only want it from schema with type "Person"
-				metadata.Author = extractJsonArticleThingName(article, "author", "Person")
+				metadata.Author = getSchemaName(article["author"], "Person")
 				metadata.Author = validateMetadataAuthor(metadata.Author)
 			}
 
+			// Grab sitename
 			if metadata.Sitename == "" {
-				metadata.Sitename = extractJsonArticleThingName(article, "publisher")
+				metadata.Sitename = getSchemaName(article["publisher"])
 			}
 
-			if len(metadata.Categories) == 0 {
-				if section, exist := article["articleSection"]; exist {
-					category := extractJsonString(section)
-					metadata.Categories = append(metadata.Categories, category)
-				}
+			// Grab category
+			category := trim(getValue[string](article, "articleSection"))
+			if _, tracked := categoryTracker[category]; category != "" && !tracked {
+				categoryTracker[category] = struct{}{}
+				metadata.Categories = append(metadata.Categories, category)
 			}
 
+			// Grab title
 			if metadata.Title == "" {
-				if name, exist := article["name"]; exist {
-					metadata.Title = extractJsonString(name)
-				}
+				metadata.Title = trim(getValue[string](article, "name"))
 			}
 
 			// If title is empty or only consist of one word, try to look in headline
 			if metadata.Title == "" || strWordCount(metadata.Title) == 1 {
-				for key, value := range article {
-					if !strings.Contains(strings.ToLower(key), "headline") {
+				for attr := range article {
+					if !strings.Contains(strings.ToLower(attr), "headline") {
 						continue
 					}
 
-					title := extractJsonString(value)
-					if title == "" || strings.Contains(title, "...") {
-						continue
+					title := trim(getValue[string](article, attr))
+					if title != "" && !strings.Contains(title, "...") {
+						metadata.Title = title
+						break
 					}
-
-					metadata.Title = title
-					break
 				}
 			}
 		}
@@ -128,10 +82,10 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		if metadata.Author == "" {
 			names := []string{}
 			for _, person := range persons {
-				personName := extractJsonThingName(person)
-				personName = validateMetadataAuthor(personName)
-				if personName != "" {
-					names = append(names, personName)
+				name := getSchemaName(person)
+				name = validateMetadataAuthor(name)
+				if name != "" {
+					names = append(names, name)
 				}
 			}
 
@@ -169,65 +123,110 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	return originalMetadata
 }
 
-func extractJsonArticleThingName(article map[string]interface{}, key string, allowedTypes ...string) string {
-	// Fetch value from the key
-	value, exist := article[key]
-	if !exist {
-		return ""
+func decodeJsonLd(rawJsonLd string) (persons, articles []map[string]any, err error) {
+	// Decode JSON text, assuming it is an object
+	data := map[string]any{}
+	err = json.Unmarshal([]byte(rawJsonLd), &data)
+	if err != nil {
+		return
 	}
 
-	return extractJsonThingName(value, allowedTypes...)
+	// Find articles and persons inside JSON+LD recursively
+	var findImportantObjects func(obj map[string]any)
+	findImportantObjects = func(obj map[string]any) {
+		// Check if this object is either Article or Person
+		objType := getValue[string](obj, "@type")
+		switch {
+		case objType == "Person":
+			persons = append(persons, obj)
+
+		case strings.Contains(objType, "Article"),
+			strings.Contains(objType, "Posting"),
+			objType == "Report":
+			articles = append(articles, obj)
+		}
+
+		// Continue to look in its sub values
+		for _, value := range obj {
+			switch v := value.(type) {
+			case map[string]any:
+				findImportantObjects(v)
+
+			case []any:
+				for _, item := range v {
+					if subObj, isObj := item.(map[string]any); isObj {
+						findImportantObjects(subObj)
+					}
+				}
+			}
+		}
+	}
+
+	// Look and return
+	findImportantObjects(data)
+	return
 }
 
-func extractJsonThingName(iface interface{}, allowedTypes ...string) string {
-	// Decode the value of interface
-	switch val := iface.(type) {
-	case string:
-		// There are some case where the string contains an unescaped
-		// JSON, so try to handle it here
-		if rxJsonSymbol.MatchString(val) {
-			matches := rxNameJson.FindStringSubmatch(val)
-			if len(matches) == 0 {
-				return ""
-			}
-			val = matches[1]
+func getValue[T comparable](obj map[string]any, key string) T {
+	// If value is T type, return it
+	value := obj[key]
+	if v, isT := value.(T); isT {
+		return v
+	}
+
+	// If not, return its zero value
+	var zero T
+	return zero
+}
+
+func getSchemaName(v any, schemaTypes ...string) string {
+	// First, check if its string
+	if value, isString := v.(string); isString {
+		// There are some case where the name string contains an unescaped JSON,
+		// so try to handle it here.
+		parts := rxNameJson.FindStringSubmatch(value)
+		if rxJsonSymbol.MatchString(value) && len(parts) > 0 {
+			value = parts[1]
 		}
 
-		// Clean up the string
-		return trim(val)
+		// Return cleaned up string
+		return trim(value)
+	}
 
-	case map[string]interface{}:
-		// If it's object, make sure its type allowed
-		if len(allowedTypes) > 0 {
-			if objType, hasType := val["@type"]; hasType {
-				if strObjType, isString := objType.(string); isString {
-					if !strIn(strObjType, allowedTypes...) {
-						return ""
-					}
-				}
-			}
+	// Second, check if its schema
+	if value, isObject := v.(map[string]any); isObject {
+		// If there are schema types specified, make sure this schema is one of those types.
+		// If not, we just return empty handed.
+		schemaType := getValue[string](value, "@type")
+		if len(schemaTypes) > 0 && (schemaType == "" || !strIn(schemaType, schemaTypes...)) {
+			return ""
 		}
 
-		// Return its name
-		if iName, exist := val["name"]; exist {
-			return extractJsonString(iName)
+		// If this schema has "name" string property, try it
+		name := trim(getValue[string](value, "name"))
+
+		// If name is empty and its @type is Person, try name combination
+		if name == "" && schemaType == "Person" {
+			givenName := getValue[string](value, "givenName")
+			additionalName := getValue[string](value, "additionalName")
+			familyName := getValue[string](value, "familyName")
+			name = trim(givenName + " " + additionalName + " " + familyName)
 		}
 
-	case []interface{}:
-		// If it's array, merge names into one
-		names := []string{}
-		for _, entry := range val {
-			switch entryVal := entry.(type) {
-			case string:
-				entryVal = trim(entryVal)
-				names = append(names, entryVal)
+		// If name still empty, try alternate name
+		if name == "" {
+			name = trim(getValue[string](value, "alternateName"))
+		}
 
-			case map[string]interface{}:
-				if iName, exist := entryVal["name"]; exist {
-					if name := extractJsonString(iName); name != "" {
-						names = append(names, name)
-					}
-				}
+		return name
+	}
+
+	// Finally, check if its array
+	if values, isArray := v.([]any); isArray {
+		var names []string
+		for _, value := range values {
+			if name := getSchemaName(value, schemaTypes...); name != "" {
+				names = append(names, name)
 			}
 		}
 
@@ -236,13 +235,6 @@ func extractJsonThingName(iface interface{}, allowedTypes ...string) string {
 		}
 	}
 
-	return ""
-}
-
-func extractJsonString(iface interface{}) string {
-	if s, isString := iface.(string); isString {
-		return trim(s)
-	}
-
+	// If nothing found, just return empty
 	return ""
 }

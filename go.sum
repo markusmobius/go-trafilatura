@@ -261,7 +261,6 @@ github.com/markusmobius/go-domdistiller v0.0.0-20210628034231-85945987016d h1:0H
 github.com/markusmobius/go-domdistiller v0.0.0-20210628034231-85945987016d/go.mod h1:1e3SLFlQR6Yrz/T3InDERSMrBneVk6JLPlUAIWKQ5+o=
 github.com/markusmobius/go-htmldate v0.0.0-20220308152507-fd2f53623d43 h1:SobKJL6jX270q821NfGcZ0swZEB8JT+V1MflzPQajPk=
 github.com/markusmobius/go-htmldate v0.0.0-20220308152507-fd2f53623d43/go.mod h1:afifGyfcc85hvOtr/QSqRSU5TRnLkrIK7kivYay1gw8=
-github.com/matoous/go-nanoid v1.5.0 h1:VRorl6uCngneC4oUQqOYtO3S0H5QKFtKuKycFG3euek=
 github.com/matoous/go-nanoid v1.5.0/go.mod h1:zyD2a71IubI24efhpvkJz+ZwfwagzgSO6UNiFsZKN7U=
 github.com/matoous/go-nanoid/v2 v2.0.0 h1:d19kur2QuLeHmJBkvYkFdhFBzLoo1XVm2GgTpL+9Tj0=
 github.com/matoous/go-nanoid/v2 v2.0.0/go.mod h1:FtS4aGPVfEkxKxhdWPAspZpZSh1cOjtM7Ej/So3hR0g=
