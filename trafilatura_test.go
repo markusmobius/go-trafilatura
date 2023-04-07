@@ -482,6 +482,20 @@ func Test_External(t *testing.T) {
 	opts = Options{ExcludeTables: true}
 	result, _ = ExtractDocument(doc, opts)
 	assert.NotContains(t, result.ContentText, "localhost:80")
+
+	// Table sub elements
+	f, _ = os.Open(filepath.Join("test-files", "simple", "scam.html"))
+	doc, _ = html.Parse(f)
+
+	opts = Options{ExcludeTables: true, NoFallback: true}
+	result, _ = ExtractDocument(doc, opts)
+	assert.Nil(t, result)
+
+	opts = Options{ExcludeTables: true, NoFallback: false}
+	result, _ = ExtractDocument(doc, opts)
+	assert.NotNil(t, result)
+	assert.NotContains(t, result.ContentText, "Uncensored Hosting")
+	assert.NotContains(t, result.ContentText, "ChooseBetter")
 }
 
 func Test_Images(t *testing.T) {

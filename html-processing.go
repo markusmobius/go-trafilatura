@@ -43,6 +43,9 @@ func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
 
 	if excludeTables {
 		cleaningList["table"] = struct{}{}
+		cleaningList["td"] = struct{}{}
+		cleaningList["th"] = struct{}{}
+		cleaningList["tr"] = struct{}{}
 	}
 
 	if includeImages {
