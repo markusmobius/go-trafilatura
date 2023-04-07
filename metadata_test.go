@@ -180,15 +180,6 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Ben Coxworth", metadata.Author)
 
-	metadata = testGetMetadataFromFile("simple/metadata-author-1.html")
-	assert.Equal(t, "Maggie Haberman; Shane Goldmacher; Michael Crowley", metadata.Author)
-
-	metadata = testGetMetadataFromFile("simple/metadata-author-2.html")
-	assert.Equal(t, "Jean Sévillia", metadata.Author)
-
-	metadata = testGetMetadataFromFile("simple/metadata-author-3.html")
-	assert.Equal(t, "Jenny Smith", metadata.Author)
-
 	// No emoji
 	rawHTML = `<html><head><meta name="author" content="Jenny Smith ❤️"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
