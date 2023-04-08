@@ -700,7 +700,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		return processedElement
 	}
 
-	logWarn(opts, "discarding p-child: %s", trim(etree.ToString(processedElement)))
+	logDebug(opts, "discarding p-child: %s", trim(etree.ToString(processedElement)))
 	return nil
 }
 
