@@ -37,3 +37,9 @@ func logWarn(opts Options, format string, args ...interface{}) {
 		logrus.Warnf(format, args...)
 	}
 }
+
+func logDebug(opts Options, format string, args ...interface{}) {
+	if opts.EnableLog {
+		logrus.Debugf(format, args...)
+	}
+}

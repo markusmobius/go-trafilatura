@@ -625,7 +625,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 		// Make sure child is potential element
 		if _, exist := potentialTags[childTag]; !exist && childTag != "done" {
-			logWarn(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
+			logDebug(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
 			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
@@ -883,7 +883,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		}
 	}
 
-	logWarn(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
+	logDebug(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
 	return nil
 }
 
