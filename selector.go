@@ -142,7 +142,7 @@ var DiscardedContentXpaths = []string{
 	// self::article or self::link
 	`.//*[(self::div or self::item or self::ol or self::ul or self::dl
     or self::p or self::section or self::span)][
-	contains(@id, "related") or contains(translate(@class, "R","r"), "related") or
+	contains(@id, "related") or contains(translate(@class, "R", "r"), "related") or
 	contains(@id, "viral") or contains(@class, "viral") or
 	starts-with(@id, "shar") or starts-with(@class, "shar") or contains(@class, "share-") or
 	contains(@id, "social") or contains(@class, "social") or contains(@class, "sociable") or
@@ -184,7 +184,7 @@ var DiscardedContentXpaths = []string{
 	contains(@class, "-reply-") or contains(@class, "message") or contains(@id, "akismet") or contains(@class, "akismet")]`,
 	// hidden
 	`.//*[starts-with(@class, "hide-") or contains(@class, "hide-print") or contains(@id, "hidden")
-	or contains(@style, "hidden") or contains(@hidden, "hidden") or contains(@class, "noprint") or contains(@style, "display:none") or contains(@class, " hidden")]`,
+	or contains(@style, "hidden") or contains(@hidden, "hidden") or contains(@class, "noprint") or contains(@style, "display:none") or contains(@class, " hidden") or @aria-hidden="true"]`,
 }
 
 var DiscardedCommentXpaths = []string{
