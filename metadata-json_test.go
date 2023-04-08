@@ -26,4 +26,7 @@ func Test_MetadataJson_Authors(t *testing.T) {
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-6.html")
 	assert.Equal(t, "Douglas Noel Adams", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-7.html")
+	assert.Empty(t, metadata.Categories)
 }
