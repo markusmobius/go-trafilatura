@@ -144,7 +144,8 @@ var OverallDiscardedContentXpaths = []string{
     or self::p or self::section or self::span)][
 	contains(@id, "related") or contains(translate(@class, "R", "r"), "related") or
 	contains(@id, "viral") or contains(@class, "viral") or
-	starts-with(@id, "shar") or starts-with(@class, "shar") or contains(@class, "share-") or
+	starts-with(@id, "shar") or starts-with(@class, "shar") or
+	contains(@class, "share-") or
 	contains(@id, "social") or contains(@class, "social") or contains(@class, "sociable") or
 	contains(@id, "syndication") or contains(@class, "syndication") or
 	starts-with(@id, "jp-") or starts-with(@id, "dpsp-content") or
@@ -185,9 +186,20 @@ var OverallDiscardedContentXpaths = []string{
 	or contains(@style, "hidden") or contains(@hidden, "hidden") or contains(@class, "noprint") or contains(@style, "display:none") or contains(@class, " hidden") or @aria-hidden="true"]`,
 }
 
-var PrecisionDiscardedContentXpaths = []string{
+// conflicts:
+// contains(@id, "header") or contains(@class, "header") or
+// class contains "cats" (categories, also tags?)
+// or contains(@class, "hidden ")  or contains(@class, "-hide")
+
+var AdditionalDiscardedContentXpaths = []string{
 	`.//*[(self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span)]
 	[contains(translate(@id, "T","t"), "teaser") or contains(translate(@class, "T","t"), "teaser")]`,
+}
+
+var PrecisionDiscardedContentXpaths = []string{
+	`.//header`,
+	`.//*[(self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span)]
+	[contains(@id, "link") or contains(@class, "link")]`,
 }
 
 var DiscardedCommentXpaths = []string{
