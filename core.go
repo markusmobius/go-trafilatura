@@ -299,7 +299,12 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Prune
-		pruneUnwantedNodes(subTree, DiscardedContentXpaths)
+		pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths)
+
+		if !opts.FavorRecall {
+			pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
+		}
+
 		if !opts.IncludeImages {
 			pruneUnwantedNodes(subTree, DiscardedImageXpaths)
 		}
@@ -891,7 +896,12 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	logInfo(opts, "recovering wild text elements")
 
 	// Prune
-	pruneUnwantedNodes(doc, DiscardedContentXpaths)
+	pruneUnwantedNodes(doc, OverallDiscardedContentXpaths)
+
+	// Get rid of additional elements
+	pruneUnwantedNodes(doc, PrecisionDiscardedContentXpaths)
+
+	// Decide if images are preserved
 	if _, exist := potentialTags["img"]; !exist {
 		pruneUnwantedNodes(doc, DiscardedImageXpaths)
 	}

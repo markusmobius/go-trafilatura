@@ -134,7 +134,7 @@ var RemovedCommentXpaths = []string{
     ]`,
 }
 
-var DiscardedContentXpaths = []string{
+var OverallDiscardedContentXpaths = []string{
 	`.//*[contains(@id, "footer") or contains(@class, "footer") or
 	contains(@id, "bottom") or contains(@class, "bottom")]`,
 	// related posts, sharing jp-post-flair jp-relatedposts, news outlets + navigation
@@ -149,8 +149,6 @@ var DiscardedContentXpaths = []string{
 	contains(@id, "syndication") or contains(@class, "syndication") or
 	starts-with(@id, "jp-") or starts-with(@id, "dpsp-content") or
 	contains(@class, "embedded") or contains(@class, "embed")
-	or contains(@id, "teaser") or contains(@class, "teaser") or
-	contains(translate(@class, "T","t"), "teaser")
 	or contains(@id, "newsletter") or contains(@class, "newsletter")
     or contains(@class, "subnav") or
 	contains(@id, "cookie") or contains(@class, "cookie") or contains(@id, "tags")
@@ -187,6 +185,11 @@ var DiscardedContentXpaths = []string{
 	or contains(@style, "hidden") or contains(@hidden, "hidden") or contains(@class, "noprint") or contains(@style, "display:none") or contains(@class, " hidden") or @aria-hidden="true"]`,
 }
 
+var PrecisionDiscardedContentXpaths = []string{
+	`.//*[(self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span)]
+	[contains(translate(@id, "T","t"), "teaser") or contains(translate(@class, "T","t"), "teaser")]`,
+}
+
 var DiscardedCommentXpaths = []string{
 	`.//*[(self::div or self::section)][starts-with(@id, "respond")]`,
 	`.//cite|.//quote`,
@@ -198,7 +201,7 @@ var DiscardedCommentXpaths = []string{
 }
 
 var DiscardedImageXpaths = []string{
-	`.//*[(self::div or self::item or self::ol or self::ul or self::li or
+	`.//*[(self::div or self::dd or self::dt or self::li or self::ol or self::ul or
 	self::p or self::section or self::span)][
 	contains(@id, "caption") or contains(@class, "caption")]`,
 }

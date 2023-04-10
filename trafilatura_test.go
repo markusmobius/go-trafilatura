@@ -49,10 +49,12 @@ var (
 	zeroOpts = Options{
 		NoFallback:  false,
 		OriginalURL: exampleURL,
-		Config: &Config{
-			MinOutputSize:    0,
-			MinExtractedSize: 0,
-		},
+		Config:      zeroConfig,
+	}
+
+	zeroConfig = &Config{
+		MinOutputSize:    0,
+		MinExtractedSize: 0,
 	}
 
 	defaultOpts = Options{
@@ -601,15 +603,34 @@ func Test_Links(t *testing.T) {
 func Test_PrecisionRecall(t *testing.T) {
 	var opts Options
 	var result *ExtractResult
-	htmlStr := `<html><body><p>This here is the text.</p></body></html>`
+	var htmlStr string
 
-	// Favor precision
+	// Basic test
+	htmlStr = `<html><body><p>This here is the text.</p></body></html>`
+
 	opts = Options{FavorPrecision: true}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
 
-	// Favor recall
 	opts = Options{FavorRecall: true}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
+
+	// Teaser text
+	htmlStr = `<html><body>
+		<div class="article-body">
+			<div class="teaser-content">
+				<p>This here is a teaser text.</p>
+			</div>
+			<p>This here is the text.</p>
+		</div>
+	</body></html>`
+
+	opts = Options{FavorRecall: true, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, result.ContentText, "teaser text")
+
+	opts = Options{FavorRecall: false, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotContains(t, result.ContentText, "teaser text")
 }
