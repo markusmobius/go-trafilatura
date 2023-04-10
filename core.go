@@ -500,7 +500,7 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 		etree.SetText(processedElement, text)
 	}
 
-	for _, child := range etree.Iter(element, "dd", "dt", "li") {
+	for _, child := range etree.Iter(element, listXmlItemTags...) {
 		newChild := dom.CreateElement(dom.TagName(child))
 
 		if len(dom.Children(child)) == 0 {
@@ -512,16 +512,29 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 			}
 		} else {
 			for _, subElement := range etree.Iter(child) {
-				processedSubChild := handleTextNode(subElement, cache, false, opts)
-				if processedSubChild != nil {
-					subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
-					etree.SetText(subChildElement, etree.Text(processedSubChild))
-					etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+				// Beware of nested list
+				var processedSubChild *html.Node
+				if inMap(dom.TagName(subElement), mapXmlListTags) {
+					processedSubChild = handleLists(subElement, cache, opts)
+					if processedSubChild != nil {
+						dom.AppendChild(newChild, processedSubChild)
+					}
+				} else {
+					processedSubChild := handleTextNode(subElement, cache, false, opts)
+					if processedSubChild != nil {
+						subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
+						etree.SetText(subChildElement, etree.Text(processedSubChild))
+						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
 
-					subElementTag := dom.TagName(subElement)
-					subElementTarget := dom.GetAttribute(subElement, "href")
-					if inMap(subElementTag, mapXmlRefTags) && subElementTarget != "" {
-						dom.SetAttribute(subChildElement, "href", subElementTarget)
+						if subTag := dom.TagName(subElement); inMap(subTag, mapXmlRefTags) {
+							if target := dom.GetAttribute(subElement, "target"); target != "" {
+								dom.SetAttribute(subChildElement, "target", target)
+							}
+
+							if href := dom.GetAttribute(subElement, "href"); href != "" {
+								dom.SetAttribute(subChildElement, "href", href)
+							}
+						}
 					}
 				}
 
@@ -530,7 +543,7 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 				}
 			}
 
-			etree.StripTags(newChild, "dd", "dt", "li")
+			// etree.StripTags(newChild, "dd", "dt", "li")
 		}
 
 		if etree.Text(newChild) != "" || len(dom.Children(newChild)) > 0 {

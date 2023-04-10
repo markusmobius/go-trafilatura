@@ -158,6 +158,33 @@ func Test_ExoticTags(t *testing.T) {
 		`<td>you buy</td>`+
 		`<td>they buy</td>`+
 		`</tr>`)
+
+	// Nested list
+	htmlString = `<html><body><article>` +
+		`<ul>` + // first list
+		`<li>Coffee</li>` +
+		`<li>Tea` +
+		`<ul>` + // second list inside first
+		`<li>Black tea</li>` +
+		`<li>Green tea</li>` +
+		`</ul>` +
+		`</li>` +
+		`<li>Milk</li>` +
+		`</ul>` +
+		`</article></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
+		`<ul>`+
+		`<li>Coffee</li>`+
+		`<li>`+
+		`<li>Tea</li>`+
+		`<ul>`+
+		`<li>Black tea</li>`+
+		`<li>Green tea</li>`+
+		`</ul>`+
+		`</li>`+
+		`<li>Milk</li>`+
+		`</ul>`)
 }
 
 func Test_Cache(t *testing.T) {
