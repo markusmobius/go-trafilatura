@@ -209,9 +209,14 @@ func Test_Formatting(t *testing.T) {
 		return etree.ToString(r.ContentNode)
 	}
 
-	// Simple
-	r := strings.NewReader("<html><body><p><b>This here is in bold font.</b></p></body></html>")
+	// Trailing line break
+	r := strings.NewReader("<html><body><p>This here is the text.<br/></p></body></html>")
 	result, _ := Extract(r, zeroOpts)
+	assert.NotContains(t, fnHtml(result), "<br/>")
+
+	// Simple
+	r = strings.NewReader("<html><body><p><b>This here is in bold font.</b></p></body></html>")
+	result, _ = Extract(r, zeroOpts)
 	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold font.</b></p>")
 
 	// Nested
@@ -299,6 +304,13 @@ func Test_Formatting(t *testing.T) {
 	assert.Contains(t, fnHtml(result), `<p>The easiest way to check if a Python string contains a substring is to use the <code>in</code> operator.`)
 	assert.Contains(t, fnHtml(result), `The <code>in</code> operator is used to check data structures for membership in Python.`)
 	assert.Contains(t, fnHtml(result), `It returns a Boolean (either <code>True</code> or <code>False</code>) and can be used as follows:`)
+
+	// Double <p> elems
+	r = strings.NewReader("<html><body><p>AAA, <p>BBB</p>, CCC.</p></body></html>")
+	result, _ = Extract(r, Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig})
+	assert.Contains(t, result.ContentText, "AAA")
+	assert.Contains(t, result.ContentText, "BBB")
+	assert.Contains(t, result.ContentText, "CCC")
 }
 
 func Test_Baseline(t *testing.T) {
@@ -501,6 +513,10 @@ func Test_External(t *testing.T) {
 }
 
 func Test_Images(t *testing.T) {
+	// File type
+	assert.True(t, isImageFile("test.jpg"))
+	assert.False(t, isImageFile("test.txt"))
+
 	// Image handler
 	img := handleImage(etree.FromString(`<img src="test.jpg"/>`))
 	assert.NotNil(t, img)
@@ -600,6 +616,27 @@ func Test_Links(t *testing.T) {
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<a>CC BY-SA license</a>")
 }
 
+func Test_ExtractionOptions(t *testing.T) {
+	var opts Options
+	var result *ExtractResult
+	htmlStr := `<html>
+		<head><meta http-equiv="content-language" content="EN"/></head>
+		<body><div="article-body"><p>Text.</p></div></body>
+	</html>`
+
+	opts = Options{Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotNil(t, result)
+
+	opts = Options{HasEssentialMetadata: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Nil(t, result)
+
+	opts = Options{TargetLanguage: "de", Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Nil(t, result)
+}
+
 func Test_PrecisionRecall(t *testing.T) {
 	var opts Options
 	var result *ExtractResult
@@ -631,6 +668,10 @@ func Test_PrecisionRecall(t *testing.T) {
 	assert.Contains(t, result.ContentText, "teaser text")
 
 	opts = Options{FavorRecall: false, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotContains(t, result.ContentText, "teaser text")
+
+	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
 }
