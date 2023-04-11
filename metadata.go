@@ -220,6 +220,7 @@ func examineMeta(doc *html.Node) Metadata {
 		// Make sure content is not empty
 		content := dom.GetAttribute(node, "content")
 		content = rxHtmlStripTag.ReplaceAllString(content, "")
+		content = html.UnescapeString(content)
 		content = trim(content)
 		if content == "" {
 			continue
@@ -290,8 +291,9 @@ func examineMeta(doc *html.Node) Metadata {
 		metadata.Sitename = tmpSitename
 	}
 
-	// Clean up author
+	// Clean up author and tags
 	metadata.Author = validateMetadataAuthor(metadata.Author)
+	metadata.Tags = normalizeTags(metadata.Tags...)
 	return metadata
 }
 
@@ -307,6 +309,7 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 
 		// Make sure node has content attribute
 		content := dom.GetAttribute(node, "content")
+		content = html.UnescapeString(content)
 		content = trim(content)
 		if content == "" {
 			continue
@@ -655,6 +658,11 @@ func normalizeAuthors(authors string, input string) string {
 	input = rxAuthorSpecialChars.ReplaceAllString(input, "")
 	input = rxAuthorSpaceChars.ReplaceAllString(input, " ")
 
+	// Fix HTML entities
+	if strings.Contains(input, "&#") || strings.Contains(input, "&amp;") {
+		input = html.UnescapeString(input)
+	}
+
 	// Prepare list of current authors
 	listAuthor := strings.Split(authors, "; ")
 	if len(listAuthor) == 1 && listAuthor[0] == "" {
@@ -697,6 +705,26 @@ func normalizeAuthors(authors string, input string) string {
 	}
 
 	return strings.Join(listAuthor, "; ")
+}
+
+func normalizeTags(currents ...string) []string {
+	var finalTags []string
+	tracker := map[string]struct{}{}
+
+	for _, current := range currents {
+		for _, entry := range strings.Split(current, ", ") {
+			entry = trim(entry)
+			entry = strings.ReplaceAll(entry, `"`, "")
+			entry = strings.ReplaceAll(entry, `'`, "")
+
+			if _, tracked := tracker[entry]; entry != "" && !tracked {
+				finalTags = append(finalTags, entry)
+				tracker[entry] = struct{}{}
+			}
+		}
+	}
+
+	return finalTags
 }
 
 func removeBlacklistedAuthors(current string, opts Options) string {

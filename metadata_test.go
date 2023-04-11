@@ -248,6 +248,10 @@ func Test_Metadata_Descriptions(t *testing.T) {
 	rawHTML := `<html><head><meta itemprop="description" content="Description"/></head><body></body></html>`
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Description", metadata.Description)
+
+	rawHTML = `<html><head><meta property="og:description" content="&amp;#13; A Northern Territory action plan, which includes plans to support development and employment on Aboriginal land, has received an update. &amp;#13..." /></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "A Northern Territory action plan, which includes plans to support development and employment on Aboriginal land, has received an update. ...", metadata.Description)
 }
 
 func Test_Metadata_Dates(t *testing.T) {
@@ -282,6 +286,13 @@ func Test_Metadata_Categories(t *testing.T) {
 	metadata := testGetMetadataFromHTML(rawHTML)
 	expected := []string{"Cat1", "Cat2"}
 	assert.Equal(t, expected, metadata.Categories)
+
+	rawHTML = `<html><head>
+		<meta name="keywords" content="sodium, salt, paracetamol, blood, pressure, high, heart, &amp;quot, intake, warning, study, &amp;quot, medicine, dissolvable, cardiovascular" />
+	</head></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	expected = []string{"sodium", "salt", "paracetamol", "blood", "pressure", "high", "heart", "intake", "warning", "study", "medicine", "dissolvable", "cardiovascular"}
+	assert.Equal(t, expected, metadata.Tags)
 }
 
 func Test_Metadata_Tags(t *testing.T) {
@@ -481,7 +492,7 @@ func Test_Metadata_RealPages(t *testing.T) {
 	// assert.Equal(t, "Phys", metadata.Sitename)
 	// assert.Equal(t, []string{"Archeology", "Fossils"}, metadata.Categories)
 	assert.Equal(t, []string{"Science", "Physics News", "Science news", "Technology News",
-		"Physics", "Materials", "Nanotech", "Technology", "Science"}, metadata.Tags)
+		"Physics", "Materials", "Nanotech", "Technology"}, metadata.Tags)
 	assert.Equal(t, url, metadata.URL)
 
 	// url = "https://gregoryszorc.com/blog/2020/01/13/mercurial%27s-journey-to-and-reflections-on-python-3/"
