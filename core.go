@@ -382,7 +382,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		finalChildren := dom.Children(resultBody)
 		for i := len(finalChildren) - 1; i >= 0; i-- {
 			tagName := dom.TagName(finalChildren[i])
-			if inMap(tagName, mapXmlHeadTags) {
+			if inMap(tagName, mapXmlHeadTags) || inMap(tagName, mapXmlRefTags) {
 				etree.Remove(finalChildren[i])
 				continue
 			}
@@ -621,7 +621,7 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		}
 	}
 
-	if title != nil && textCharsTest(dom.InnerText(title)) {
+	if title != nil && textCharsTest(etree.IterText(title, "")) {
 		return title
 	}
 

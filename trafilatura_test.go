@@ -599,10 +599,7 @@ func Test_Links(t *testing.T) {
 	linkOpts := Options{
 		NoFallback:   true,
 		IncludeLinks: true,
-		Config: &Config{
-			MinOutputSize:    0,
-			MinExtractedSize: 0,
-		},
+		Config:       zeroConfig,
 	}
 
 	// Test handleTextElem
@@ -626,6 +623,12 @@ func Test_Links(t *testing.T) {
 	htmlStr = `<html><body><p><a>Test link text.</a></p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
+
+	htmlStr = `<html><body><article><a>Segment 1</a><h1><a>Segment 2</a></h1><p>Segment 3</p></article></body></html>`
+	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
+	assert.Contains(t, result.ContentText, "1")
+	assert.Contains(t, result.ContentText, "2")
+	assert.Contains(t, result.ContentText, "3")
 
 	// Extracting document with links, from file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
