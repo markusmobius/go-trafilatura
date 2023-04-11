@@ -105,7 +105,6 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Clean document
 	docCleaning(doc, opts.ExcludeTables, opts.IncludeImages)
-	cleanedDoc := dom.Clone(doc, true)
 
 	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
 	// into the one that suitable for XML. However, since we prefer the results
@@ -130,7 +129,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Use fallback if necessary
 	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
-		postBody, tmpBodyText = compareExtraction(cleanedDoc, postBody, opts)
+		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
 		// Add baseline as additional fallback
 		if len(dom.Children(postBody)) == 0 {
 			postBody, tmpBodyText = baseline(docBackup)
