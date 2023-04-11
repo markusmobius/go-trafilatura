@@ -298,18 +298,20 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			continue
 		}
 
-		// Prune
+		// Prune the rest
 		pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths)
 
+		// Prune images
+		if !opts.IncludeImages {
+			pruneUnwantedNodes(subTree, DiscardedImageXpaths)
+		}
+
+		// Balance precision / recall
 		if !opts.FavorRecall {
 			pruneUnwantedNodes(subTree, AdditionalDiscardedContentXpaths)
 			if opts.FavorPrecision {
 				pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
 			}
-		}
-
-		if !opts.IncludeImages {
-			pruneUnwantedNodes(subTree, DiscardedImageXpaths)
 		}
 
 		// Remove elements by link density
@@ -356,7 +358,14 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			}
 		}
 
-		if utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*2 {
+		factor := 3
+		if opts.FavorRecall {
+			factor = 5
+		} else if opts.FavorPrecision {
+			factor = 1
+		}
+
+		if utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
