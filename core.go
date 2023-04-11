@@ -59,9 +59,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 // ExtractDocument parses the specified document and find the main readable content.
 func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
-	// Clone document to make sure the original kept untouched
-	doc = dom.Clone(doc, true)
-
 	//  Set default config
 	if opts.Config == nil {
 		opts.Config = DefaultConfig()
@@ -75,7 +72,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
-	// Backup the doc first
+	// Clone and backup document to make sure the original kept untouched
+	doc = dom.Clone(doc, true)
 	docBackup := dom.Clone(doc, true)
 
 	// Fetch metadata
@@ -107,6 +105,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Clean document
 	docCleaning(doc, opts.ExcludeTables, opts.IncludeImages)
+	cleanedDoc := dom.Clone(doc, true)
 
 	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
 	// into the one that suitable for XML. However, since we prefer the results
@@ -131,7 +130,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Use fallback if necessary
 	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
-		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
+		postBody, tmpBodyText = compareExtraction(cleanedDoc, postBody, opts)
 		// Add baseline as additional fallback
 		if len(dom.Children(postBody)) == 0 {
 			postBody, tmpBodyText = baseline(docBackup)
@@ -267,6 +266,7 @@ func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cac
 // extractContent find the main content of a page using a set of selectors, then
 // extract relevant elements, strip them of unwanted subparts and convert them.
 func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string) {
+	backupDoc := dom.Clone(doc, true)
 	resultBody := dom.CreateElement("body")
 
 	// Prepare potential tags
@@ -314,21 +314,15 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Remove elements by link density
-		deleteByLinkDensity(subTree, "div", true)
-		deleteByLinkDensity(subTree, "ul", false)
-		deleteByLinkDensity(subTree, "ol", false)
-		deleteByLinkDensity(subTree, "dl", false)
-		deleteByLinkDensity(subTree, "p", false)
+		deleteByLinkDensity(subTree, true, "div")
+		deleteByLinkDensity(subTree, false, listXmlListTags...)
+		deleteByLinkDensity(subTree, false, "p")
+		// deleteByLinkDensity(subTree, false, listXmlHeadTags...)
 
 		// Also filter fw/head, table and quote elements?
 		if opts.FavorPrecision {
-			deleteByLinkDensity(subTree, "h1", false)
-			deleteByLinkDensity(subTree, "h2", false)
-			deleteByLinkDensity(subTree, "h3", false)
-			deleteByLinkDensity(subTree, "h4", false)
-			deleteByLinkDensity(subTree, "h5", false)
-			deleteByLinkDensity(subTree, "h6", false)
-			deleteByLinkDensity(subTree, "summary", false)
+			deleteByLinkDensity(subTree, false, listXmlHeadTags...)
+			deleteByLinkDensity(subTree, false, listXmlQuoteTags...)
 		}
 
 		// Define iteration strategy
@@ -413,7 +407,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			potentialTags["div"] = struct{}{}
 		}
 
-		recoverWildText(doc, resultBody, potentialTags, cache, opts)
+		resultBody = dom.CreateElement("body")
+		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
 	}
 
@@ -426,11 +421,11 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 // deleteByLinkDensity determines the link density of elements with respect to
 // their length, and remove the elements identified as boilerplate.
-func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) {
+func deleteByLinkDensity(subTree *html.Node, backtracking bool, tagNames ...string) {
 	var nodesToDelete []*html.Node
 	textNodes := make(map[string][]*html.Node)
 
-	for _, elem := range etree.Iter(subTree, tagName) {
+	for _, elem := range etree.Iter(subTree, tagNames...) {
 		nonEmptyLinks, isHighDensity := linkDensityTest(elem)
 
 		if isHighDensity {
@@ -917,6 +912,13 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	logInfo(opts, "recovering wild text elements")
 
+	searchList := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
+	if opts.FavorRecall {
+		potentialTags = duplicateMap(potentialTags)
+		potentialTags["div"] = struct{}{}
+		searchList = append(searchList, "div")
+	}
+
 	// Prune
 	pruneUnwantedNodes(doc, OverallDiscardedContentXpaths)
 
@@ -941,9 +943,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	var processedElems []*html.Node
-	tagsToProcess := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
-
-	for _, element := range etree.Iter(doc, tagsToProcess...) {
+	for _, element := range etree.Iter(doc, searchList...) {
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
