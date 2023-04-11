@@ -127,7 +127,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Extract content
-	postBody, tmpBodyText, sureThing := extractContent(doc, cache, opts)
+	postBody, tmpBodyText := extractContent(doc, cache, opts)
 
 	// Use fallback if necessary
 	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
@@ -139,7 +139,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	} else {
 		// Rescue: try to use original/dirty tree
 		lenText := utf8.RuneCountInString(tmpBodyText)
-		if !sureThing && (opts.Config.MinExtractedSize == 0 || lenText < opts.Config.MinExtractedSize) {
+		if lenText < opts.Config.MinExtractedSize {
 			baselineBody, baselineText := baseline(docBackup)
 
 			// Make sure baseline is not worse than the original
@@ -266,8 +266,7 @@ func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cac
 
 // extractContent find the main content of a page using a set of selectors, then
 // extract relevant elements, strip them of unwanted subparts and convert them.
-func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string, bool) {
-	var sureThing bool
+func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string) {
 	resultBody := dom.CreateElement("body")
 
 	// Prepare potential tags
@@ -416,15 +415,13 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		recoverWildText(doc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
-	} else {
-		sureThing = true
 	}
 
 	// Filter output
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
 
-	return resultBody, tmpText, sureThing
+	return resultBody, tmpText
 }
 
 // deleteByLinkDensity determines the link density of elements with respect to
@@ -1140,7 +1137,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape from text paragraphs
 	results := make(map[string]struct{})
 	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
-		entry := trim(dom.TextContent(element))
+		entry := dom.TextContent(element)
 		if _, exist := results[entry]; !exist {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, entry)
@@ -1149,7 +1146,19 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	}
 
 	tmpText := trim(etree.IterText(postBody, "\n"))
-	return postBody, tmpText
+	if utf8.RuneCountInString(tmpText) > 0 {
+		return postBody, tmpText
+	}
+
+	// Default strategy: clean the tree and take everything
+	if body := dom.QuerySelector(doc, "body"); body != nil {
+		text := trim(etree.IterText(body, "\n"))
+		elem := etree.SubElement(postBody, "p")
+		etree.SetText(elem, text)
+		return postBody, text
+	}
+
+	return postBody, ""
 }
 
 // getLanguage returns the language of the text.
