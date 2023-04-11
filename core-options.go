@@ -52,10 +52,10 @@ func DefaultConfig() *Config {
 		MinDuplicateCheckSize: 100,
 		MaxDuplicateCount:     2,
 
-		MinExtractedSize:        200,
-		MinExtractedCommentSize: 10,
-		MinOutputSize:           10,
-		MinOutputCommentSize:    10,
+		MinExtractedSize:        250,
+		MinExtractedCommentSize: 1,
+		MinOutputSize:           1,
+		MinOutputCommentSize:    1,
 	}
 }
 
