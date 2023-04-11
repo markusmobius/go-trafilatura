@@ -1075,7 +1075,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		}
 
 		// Decode JSON text, assuming it is an object
-		data := map[string]interface{}{}
+		data := map[string]any{}
 		err := json.Unmarshal([]byte(jsonLdText), &data)
 		if err != nil {
 			continue
@@ -1083,9 +1083,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 
 		// Find article body recursively
 		var articleBody string
-		var findArticleBody func(obj map[string]interface{})
+		var findArticleBody func(obj map[string]any)
 
-		findArticleBody = func(obj map[string]interface{}) {
+		findArticleBody = func(obj map[string]any) {
 			for key, value := range obj {
 				switch v := value.(type) {
 				case string:
@@ -1095,14 +1095,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 						return
 					}
 
-				case map[string]interface{}:
+				case map[string]any:
 					findArticleBody(v)
 
-				case []interface{}:
+				case []any:
 					for _, item := range v {
-						itemObject, isObject := item.(map[string]interface{})
-						if isObject {
-							findArticleBody(itemObject)
+						if obj, isObject := item.(map[string]any); isObject {
+							findArticleBody(obj)
 						}
 					}
 				}
@@ -1132,7 +1131,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape from text paragraphs
 	results := make(map[string]struct{})
 	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
-		entry := dom.TextContent(element)
+		entry := trim(dom.TextContent(element))
 		if _, exist := results[entry]; !exist {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, entry)
