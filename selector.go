@@ -203,6 +203,14 @@ var PrecisionDiscardedContentXpaths = []string{
 	[contains(@id, "link") or contains(@class, "link")]`,
 }
 
+var DiscardedPaywallXpaths = []string{
+	`.//*[(self::div or self::p)][
+	contains(@id, "paywall") or contains(@id, "premium") or
+	contains(@class, "paid-content") or contains(@class, "paidcontent") or
+	contains(@class, "obfuscated") or contains(@class, "blurred")
+	]`,
+}
+
 var DiscardedCommentXpaths = []string{
 	`.//*[(self::div or self::section)][starts-with(@id, "respond")]`,
 	`.//cite|.//quote`,

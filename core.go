@@ -119,10 +119,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	if !opts.ExcludeComments { // Comment is included
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
-	} else { // Comment is excluded
-		if opts.FavorPrecision {
-			pruneUnwantedNodes(doc, RemovedCommentXpaths)
-		}
+	} else if opts.FavorPrecision {
+		pruneUnwantedNodes(doc, RemovedCommentXpaths)
 	}
 
 	// Extract content
@@ -287,6 +285,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Prune the rest
 		pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths)
+		pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
 
 		// Prune images
 		if !opts.IncludeImages {
@@ -910,6 +909,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 
 	// Prune
 	pruneUnwantedNodes(doc, OverallDiscardedContentXpaths)
+	pruneUnwantedNodes(doc, DiscardedPaywallXpaths)
 
 	// Get rid of additional elements
 	if !opts.FavorRecall {
