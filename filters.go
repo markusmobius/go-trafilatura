@@ -34,7 +34,10 @@ import (
 
 var (
 	rxHtmlLang   = regexp.MustCompile(`(?i)[a-z]{2}`)
-	rxTextFilter = regexp.MustCompile(`(?i)\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|Linkedin|Mail|PDF|Pinterest|Pocket|Print|Reddit|Twitter|Whatsapp|Xing|Mehr zum Thema:?|More on this.{,8}$)$`)
+	rxTextFilter = regexp.MustCompile(`(?i)` +
+		`\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|` +
+		`Linkedin|Mail|PDF|Pinterest|Pocket|Print|QQ|Reddit|Twitter|` +
+		`WeChat|WeiBo|Whatsapp|Xing|Mehr zum Thema:?|More on this.{,8}$)$`)
 )
 
 // checkHtmlLanguage checks HTML meta-elements for language information and

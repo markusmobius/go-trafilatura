@@ -33,7 +33,7 @@ var MetaAuthorXpaths = []string{
 	// almost specific
 	`//*[(self::a or self::div or self::span or self::p or self::strong)][contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name")]`,
 	// almost generic
-	`//*[(self::a or self::div or self::span or self::p or self::h4 or self::h3)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline"]`,
+	`//*[(self::a or self::div or self::span or self::p or self::h4 or self::h3)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline" or contains(@id, "zuozhe") or contains(@class, "zuozhe") or contains(@id, "bianji") or contains(@class, "bianji") or contains(@id, "xiaobian") or contains(@class, "xiaobian")]`,
 	// generic
 	`//*[(self::a or self::div or self::span or self::p)][contains(@class, "authors") or contains(@class, "byline") or contains(@class, "ByLine") or contains(@class, "submitted-by") or contains(@class, "posted-by")]`,
 	// any element
@@ -157,10 +157,9 @@ var OverallDiscardedContentXpaths = []string{
 	contains(@class, "sidebar") or contains(@id, "banner") or contains(@class, "banner")
 	or contains(@class, "meta") or
 	contains(@id, "menu") or contains(@class, "menu") or
-	starts-with(@id, "nav") or starts-with(@class, "nav") or
-	contains(@id, "navigation") or contains(translate(@class, "N","n"), "navigation")
-	or contains(@role, "navigation") or contains(@class, "navbar")
-	or contains(@class, "navbox") or starts-with(@class, "post-nav")
+	contains(translate(@id, "N", "n"), "nav") or contains(translate(@role, "N", "n"), "nav")
+    or starts-with(@class, "nav") or contains(translate(@class, "N","n"), "navigation") or
+    contains(@class, "navbar") or contains(@class, "navbox") or starts-with(@class, "post-nav")
 	or contains(@id, "breadcrumb") or contains(@class, "breadcrumb") or
 	contains(@id, "bread-crumb") or contains(@class, "bread-crumb") or
 	contains(@id, "author") or contains(@class, "author") or
@@ -176,9 +175,14 @@ var OverallDiscardedContentXpaths = []string{
     or contains(@class, "options")
     or contains(@class, "consent") or contains(@class, "modal-content")
 	or contains(@class, "paid-content") or contains(@class, "paidcontent")
+	or contains(@id, "premium-") or contains(@id, "paywall")
+    or contains(@class, "obfuscated") or contains(@class, "blurred")
     or contains(@class, " ad ")
     or contains(@class, "next-post")
-    or contains(@class, "message-container") or contains(@id, "message_container")]`,
+    or contains(@class, "message-container") or contains(@id, "message_container")
+    or contains(@class, "yin") or contains(@class, "zlylin") or
+    contains(@class, "xg1") or contains(@id, "bmdh")
+    or @data-lp-replacement-content]`,
 	// comment debris
 	`.//*[@class="comments-title" or contains(@class, "comments-title") or contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
 	contains(@class, "-reply-") or contains(@class, "message") or contains(@id, "akismet") or contains(@class, "akismet")]`,
