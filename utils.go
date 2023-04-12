@@ -24,7 +24,7 @@ import (
 )
 
 var (
-	rxImageExtension = regexp.MustCompile(`(?i)([^\s]+(\.(jpe?g|png|gif|bmp)))`)
+	rxImageExtension = regexp.MustCompile(`(?i)[^\s]+\.(avif|bmp|gif|hei[cf]|jpe?g|png|webp)(\b|$)`)
 )
 
 // trim removes unnecessary spaces within a text string.
