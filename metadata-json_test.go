@@ -24,6 +24,9 @@ func Test_MetadataJson_Authors(t *testing.T) {
 	metadata = testGetMetadataFromFile("simple/json-metadata-5.html")
 	assert.Equal(t, "Apple Spring Forward Event Live Blog", metadata.Title)
 
+	metadata = testGetMetadataFromFile("simple/json-metadata-5-b.html")
+	assert.Equal(t, "Apple Spring Forward Event Live Blog", metadata.Title)
+
 	metadata = testGetMetadataFromFile("simple/json-metadata-6.html")
 	assert.Equal(t, "Douglas Noel Adams", metadata.Author)
 
