@@ -355,6 +355,21 @@ func validateMetadataAuthor(author string) string {
 	return author
 }
 
+func examineTitleElement(doc *html.Node) (title, first, second string) {
+	titleNode := dom.QuerySelector(doc, "head > title")
+	if titleNode != nil {
+		title = dom.TextContent(titleNode)
+		title = trim(title)
+
+		matches := rxTitleCleaner.FindStringSubmatch(title)
+		if len(matches) > 0 {
+			first, second = matches[1], matches[2]
+		}
+	}
+
+	return
+}
+
 // extractDomTitle returns the document title from DOM elements.
 func extractDomTitle(doc *html.Node) string {
 	// If there are only one H1, use it as title
@@ -373,20 +388,14 @@ func extractDomTitle(doc *html.Node) string {
 	}
 
 	// Look in <title> tag
-	titleNode := dom.QuerySelector(doc, "head > title")
-	if titleNode != nil {
-		title := dom.TextContent(titleNode)
-		title = trim(title)
+	title, first, second := examineTitleElement(doc)
+	if first != "" && !strings.Contains(first, ".") {
+		title = first
+	} else if second != "" && !strings.Contains(second, ".") {
+		title = second
+	}
 
-		matches := rxTitleCleaner.FindStringSubmatch(title)
-		if len(matches) > 0 {
-			if !strings.Contains(matches[1], ".") {
-				title = matches[1]
-			} else if !strings.Contains(matches[2], ".") {
-				title = matches[2]
-			}
-		}
-
+	if title != "" {
 		return title
 	}
 
@@ -494,23 +503,11 @@ func extractDomURL(doc *html.Node, defaultURL *nurl.URL) string {
 
 // extractDomSitename extracts the name of a site from the main title (if it exists).
 func extractDomSitename(doc *html.Node) string {
-	titleNode := dom.QuerySelector(doc, "head > title")
-	if titleNode == nil {
-		return ""
-	}
-
-	titleText := trim(dom.TextContent(titleNode))
-	if titleText == "" {
-		return ""
-	}
-
-	matches := rxTitleCleaner.FindStringSubmatch(titleText)
-	if len(matches) > 0 {
-		if strings.Contains(matches[1], ".") {
-			return matches[1]
-		} else if strings.Contains(matches[2], ".") {
-			return matches[2]
-		}
+	_, first, second := examineTitleElement(doc)
+	if first != "" && strings.Contains(first, ".") {
+		return first
+	} else if second != "" && strings.Contains(second, ".") {
+		return second
 	}
 
 	return ""

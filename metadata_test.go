@@ -59,6 +59,10 @@ func Test_Metadata_Titles(t *testing.T) {
 
 	metadata = testGetMetadataFromFile("simple/metadata-title.html")
 	assert.Equal(t, "Semantic satiation", metadata.Title)
+
+	rawHTML = `<html><head><title> - Home</title></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "- Home", metadata.Title)
 }
 
 func Test_Metadata_Authors(t *testing.T) {
