@@ -52,6 +52,7 @@ func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 		SkipPagination: true,
 	}
 
+	doc = dom.Clone(doc, true)
 	res, err := distiller.Apply(doc, distillerOpts)
 	if err != nil {
 		return nil, err
