@@ -324,6 +324,10 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 // postCleaning is used to clean the extracted content.
 // This is additional function that doesn't exist in original.
 func postCleaning(doc *html.Node) {
+	if doc == nil {
+		return
+	}
+
 	// Remove empty nodes. Do it backward, to make sure all children
 	// is removed before its parent.
 	children := dom.GetElementsByTagName(doc, "*")

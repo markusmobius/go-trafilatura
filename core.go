@@ -74,7 +74,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Clone and backup document to make sure the original kept untouched
 	doc = dom.Clone(doc, true)
-	docBackup := dom.Clone(doc, true)
+	docBackup1 := dom.Clone(doc, true)
+	docBackup2 := dom.Clone(doc, true)
 
 	// Fetch metadata
 	metadata := extractMetadata(doc, opts)
@@ -129,23 +130,13 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Use fallback if necessary
 	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
-		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
-		// Add baseline as additional fallback
-		if len(dom.Children(postBody)) == 0 {
-			postBody, tmpBodyText = baseline(docBackup)
-		}
-	} else {
-		// Rescue: try to use original/dirty tree
-		lenText := utf8.RuneCountInString(tmpBodyText)
-		if lenText < opts.Config.MinExtractedSize {
-			baselineBody, baselineText := baseline(docBackup)
+		postBody, tmpBodyText = compareExtraction(docBackup1, postBody, opts)
+	}
 
-			// Make sure baseline is not worse than the original
-			lenBaselineText := utf8.RuneCountInString(baselineText)
-			if lenBaselineText > lenText {
-				postBody, tmpBodyText = baselineBody, baselineText
-			}
-		}
+	// Rescue: try to use original/dirty tree
+	lenText := utf8.RuneCountInString(tmpBodyText)
+	if lenText < opts.Config.MinExtractedSize {
+		postBody, tmpBodyText = baseline(docBackup2)
 	}
 
 	// Tree size sanity check
@@ -166,7 +157,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		logWarn(opts, "not enough comments: %s", opts.OriginalURL)
 	}
 
-	lenText := utf8.RuneCountInString(tmpBodyText)
+	lenText = utf8.RuneCountInString(tmpBodyText)
 	if lenText < opts.Config.MinOutputSize && lenComments < opts.Config.MinOutputCommentSize {
 		return nil, fmt.Errorf("text and comments are not long enough: %d %d", lenText, lenComments)
 	}
@@ -186,9 +177,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Post cleaning
 	postCleaning(postBody)
-	if commentsBody != nil {
-		postCleaning(commentsBody)
-	}
+	postCleaning(commentsBody)
 
 	return &ExtractResult{
 		ContentNode:  postBody,
@@ -345,7 +334,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		for _, p := range dom.GetElementsByTagName(subTree, "p") {
 			for _, node := range dom.ChildNodes(p) {
 				if node.Type == html.TextNode {
-					paragraphText += trim(node.Data)
+					paragraphText += node.Data
 				}
 			}
 		}
@@ -361,6 +350,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			potentialTags["div"] = struct{}{}
 		}
 
+		// Polish list of potential tags
 		if _, exist := potentialTags["a"]; !exist {
 			etree.StripTags(subTree, "a")
 		}

@@ -477,8 +477,13 @@ func Test_Filters(t *testing.T) {
 }
 
 func Test_External(t *testing.T) {
+	var f io.Reader
+	var opts Options
+	var doc *html.Node
+	var result *ExtractResult
+
 	// Remove unwanted elements
-	doc := docFromStr(`<html><body><footer>Test text</footer></body></html>`)
+	doc = docFromStr(`<html><body><footer>Test text</footer></body></html>`)
 	sanitizeTree(doc, defaultOpts)
 	assert.Empty(t, etree.IterText(doc, " "))
 
@@ -494,7 +499,7 @@ func Test_External(t *testing.T) {
 	assert.Len(t, dom.Children(mainTree), 1)
 
 	// Strip fancy tags while including links and images
-	opts := Options{IncludeLinks: true, IncludeImages: true}
+	opts = Options{IncludeLinks: true, IncludeImages: true}
 	doc = docFromStr(`<html><body><p>Text here <fancy>Test text</fancy><a href="">with a link</a>.</p><img src="test.jpg"/></body></html>`)
 	sanitizeTree(doc, opts)
 
@@ -509,11 +514,11 @@ func Test_External(t *testing.T) {
 	// Test language
 	opts = Options{TargetLanguage: "en"}
 	str := `<html><body>` + strings.Repeat("<p>Non è inglese.</p>", 20) + `</body></html>`
-	result, _ := Extract(strings.NewReader(str), opts)
+	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
 	// No tables
-	f, _ := os.Open(filepath.Join("test-files", "simple", "apache.html"))
+	f, _ = os.Open(filepath.Join("test-files", "simple", "apache.html"))
 	doc, _ = html.Parse(f)
 
 	opts = Options{ExcludeTables: false}
@@ -528,13 +533,13 @@ func Test_External(t *testing.T) {
 	f, _ = os.Open(filepath.Join("test-files", "simple", "scam.html"))
 	doc, _ = html.Parse(f)
 
-	opts = Options{ExcludeTables: true, NoFallback: true}
+	opts = Options{ExcludeTables: true, NoFallback: true, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
-	assert.Nil(t, result)
+	assert.Empty(t, result.ContentText)
 
-	opts = Options{ExcludeTables: true, NoFallback: false}
+	opts = Options{ExcludeTables: true, NoFallback: false, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
-	assert.NotNil(t, result)
+	assert.NotEmpty(t, result.ContentText)
 	assert.NotContains(t, result.ContentText, "Uncensored Hosting")
 	assert.NotContains(t, result.ContentText, "ChooseBetter")
 }
@@ -675,11 +680,11 @@ func Test_PrecisionRecall(t *testing.T) {
 	// Basic test
 	htmlStr = `<html><body><p>This here is the text.</p></body></html>`
 
-	opts = Options{FavorPrecision: true}
+	opts = Options{FavorPrecision: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
 
-	opts = Options{FavorRecall: true}
+	opts = Options{FavorRecall: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
 
