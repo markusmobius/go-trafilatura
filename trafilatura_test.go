@@ -363,6 +363,10 @@ func Test_Baseline(t *testing.T) {
 	_, result = baseline(doc)
 	assert.NotEmpty(t, result)
 	assert.Equal(t, "This is only a quote but it is better than nothing.", result)
+
+	doc = docFromStr("<html><body><div>   Document body...   </div><script> console.log('Hello world') </script></body></html>")
+	_, result = baseline(doc)
+	assert.Equal(t, "Document body...", result)
 }
 
 func Test_Language(t *testing.T) {

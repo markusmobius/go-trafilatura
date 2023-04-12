@@ -1111,6 +1111,12 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		}
 	}
 
+	// Basic tree cleaning
+	discardedElements := dom.QuerySelectorAll(doc, "aside,footer,script")
+	for i := len(discardedElements) - 1; i >= 0; i-- {
+		discardedElements[i].Parent.RemoveChild(discardedElements[i])
+	}
+
 	// Scrape from article tag
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
