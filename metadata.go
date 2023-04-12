@@ -36,6 +36,8 @@ import (
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"golang.org/x/net/html"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var (
@@ -86,6 +88,7 @@ var (
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
+	titleCaser            = cases.Title(language.English)
 )
 
 // Metadata is the metadata of the page.
@@ -170,7 +173,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 		// Capitalize
 		firstRune := getRune(metadata.Sitename, 0)
 		if !strings.Contains(metadata.Sitename, ".") && !unicode.IsUpper(firstRune) {
-			metadata.Sitename = strings.Title(metadata.Sitename)
+			metadata.Sitename = titleCaser.String(metadata.Sitename)
 		}
 	} else if metadata.URL != "" {
 		matches := rxSitenameFinder.FindStringSubmatch(metadata.URL)
@@ -691,7 +694,7 @@ func normalizeAuthors(authors string, input string) string {
 
 		// If necessary, convert to title
 		if !unicode.IsUpper(getRune(a, 0)) || strings.ToLower(a) == a {
-			a = strings.Title(a)
+			a = titleCaser.String(a)
 		}
 
 		// Save to list
