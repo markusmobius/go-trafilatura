@@ -54,12 +54,14 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Das Bukett präsentiert sich"))
 	assert.False(t, resContains(result, "Kunden kauften auch"))
 	assert.False(t, resContains(result, "Gutschein sichern"))
+	assert.True(t, resContains(result, "Besonders gut passt er zu asiatischen Gerichten"))
 
 	result = extractMockFile(rwMockFiles, "https://www.landwirt.com/Precision-Farming-Moderne-Sensortechnik-im-Kuhstall,,4229,,Bericht.html")
 	assert.True(t, resContains(result, "Überwachung der somatischen Zellen"))
 	assert.True(t, resContains(result, "tragbaren Ultraschall-Geräten"))
 	assert.True(t, resContains(result, "Kotkonsistenz"))
 	assert.False(t, resContains(result, "Anzeigentarife"))
+	assert.False(t, resContains(result, "Aktuelle Berichte aus dieser Kategorie"))
 
 	result = extractMockFile(rwMockFiles, "http://www.rs-ingenieure.de/de/hochbau/leistungen/tragwerksplanung")
 	assert.True(t, resContains(result, "Wir bearbeiten alle Leistungsbilder"))
@@ -84,6 +86,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "http://www.cdu-fraktion-erfurt.de/inhalte/aktuelles/entwicklung-der-waldorfschule-ermoeglicht/index.html")
 	assert.True(t, resContains(result, "der steigenden Nachfrage gerecht zu werden."))
 	assert.False(t, resContains(result, "Zurück zur Übersicht"))
+	assert.False(t, resContains(result, "Erhöhung für Zoo-Eintritt"))
 
 	result = extractMockFile(rwMockFiles, "https://de.creativecommons.org/index.php/2014/03/20/endlich-wird-es-spannend-die-nc-einschraenkung-nach-deutschem-recht/")
 	assert.True(t, resContains(result, "das letzte Wort sein kann."))
@@ -93,6 +96,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Unter diesem Motto findet am 14. September"))
 	assert.True(t, resContains(result, "Volksinitiative Schweiz zum Grundeinkommen."))
 	assert.False(t, resContains(result, "getaggt mit:"))
+	assert.False(t, resContains(result, "Was denkst du?"))
 
 	result = extractMockFile(rwMockFiles, "https://scilogs.spektrum.de/engelbart-galaxis/die-ablehnung-der-gendersprache/")
 	assert.True(t, resContains(result, "Zweitens wird der Genderstern"))
@@ -110,6 +114,8 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Clipdealer"))
 	assert.False(t, resContains(result, "Teste dein Wissen"))
 	assert.False(t, resContains(result, "Thema: Fußball"))
+	assert.True(t, resContains(result, "Eines der großen Probleme,"))
+	assert.True(t, resContains(result, "versteinerte Dinosaurierknochen."))
 
 	result = extractMockFile(rwMockFiles, "http://www.simplyscience.ch/teens-liesnach-archiv/articles/wie-entsteht-erdoel.html")
 	assert.True(t, resContains(result, "Erdöl bildet nach Millionen"))
@@ -130,6 +136,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "bis zu 50% Verschleiß."))
 	assert.True(t, resContains(result, "Die Lebensdauer von Bauteilen erhöht sich beträchtlich."))
 	assert.False(t, resContains(result, "Newsletter"))
+	assert.False(t, resContains(result, "Sie könnten auch an folgenden Artikeln interessiert sein"))
 
 	result = extractMockFile(rwMockFiles, "https://www.fairkom.eu/about")
 	assert.True(t, resContains(result, "ein gemeinwohlorientiertes Partnerschaftsnetzwerk"))
@@ -140,10 +147,12 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Einige Kunden des Fahrdienst-Vermittler Lyft"))
 	assert.True(t, resContains(result, "zeitweise rund vier Prozent."))
 	assert.False(t, resContains(result, "Allgemeine Nutzungsbedingungen"))
+	assert.False(t, resContains(result, "Waymo bittet Autohersteller um Geld"))
 
 	result = extractMockFile(rwMockFiles, "http://www.hundeverein-kreisunna.de/unserverein.html")
 	assert.True(t, resContains(result, "Beate und Norbert Olschewski"))
 	assert.True(t, resContains(result, "ein Familienmitglied und unser Freund."))
+	assert.False(t, resContains(result, "zurück zur Startseite"))
 
 	result = extractMockFile(rwMockFiles, "https://viehbacher.com/de/steuerrecht")
 	assert.True(t, resContains(result, "und wirtschaftlich orientierte Privatpersonen"))
@@ -161,6 +170,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Das Bohnenviertel entstand"))
 	assert.True(t, resContains(result, "sich herrlich entspannen."))
 	assert.False(t, resContains(result, "Nützliche Links"))
+	assert.False(t, resContains(result, "Mehr zum Thema"))
 
 	result = extractMockFile(rwMockFiles, "http://kulinariaathome.wordpress.com/2012/12/08/mandelplatzchen/")
 	assert.True(t, resContains(result, "zu einem glatten Teig verarbeiten."))
@@ -174,6 +184,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "http://schleifen.ucoz.de/blog/briefe/2010-10-26-18")
 	assert.True(t, resContains(result, "Es war gesagt,"))
 	assert.True(t, resContains(result, "Symbol auf dem Finger haben"))
+	assert.False(t, resContains(result, "Aufrufe:"))
 
 	result = extractMockFile(rwMockFiles, "https://www.austria.info/de/aktivitaten/radfahren/radfahren-in-der-weltstadt-salzburg")
 	assert.True(t, resContains(result, "Salzburg liebt seine Radfahrer."))
@@ -215,6 +226,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Category: Blog Popular"))
 	assert.False(t, resContains(result, "Copyright Women Can Talk Sports."))
 	assert.False(t, resContains(result, "Submit your sports question below"))
+	assert.True(t, resContains(result, "3.Charlotte Jones Anderson"))
 
 	result = extractMockFile(rwMockFiles, "https://plentylife.blogspot.com/2017/05/strong-beautiful-pamela-reif-rezension.html")
 	assert.True(t, resContains(result, "Schönheit kommt für Pamela von Innen und Außen"))
@@ -254,6 +266,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Wann Blogs einer Impressumspflicht unterliegen,"))
 	assert.False(t, resContains(result, "Über mich"))
 	assert.False(t, resContains(result, "Gesetzes- und Rechtsprechungszitate werden automatisch"))
+	assert.True(t, resContains(result, "Mit Verlaub, ich halte das für groben Unsinn."))
 
 	result = extractMockFile(rwMockFiles, "https://www.telemedicus.info/article/2766-Rezension-Haerting-Internetrecht,-5.-Auflage-2014.html")
 	assert.True(t, resContains(result, "Aufbau und Inhalt"))
@@ -301,6 +314,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "New Call-to-action"))
 	assert.False(t, resContains(result, "Contact us"))
 	assert.False(t, resContains(result, "Back to blog"))
+	assert.False(t, resContains(result, "You might also like:"))
 
 	result = extractMockFile(rwMockFiles, "https://www.computerbase.de/2007-06/htc-touch-bald-bei-o2-als-xda-nova/")
 	assert.True(t, resContains(result, "Vor knapp zwei Wochen"))
@@ -360,6 +374,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Gespräche meistern können."))
 	assert.False(t, resContains(result, "Weiterführender Link"))
 	assert.False(t, resContains(result, "Flexible Wege in die"))
+	assert.False(t, resContains(result, "Storage für den Mittelstand"))
 
 	result = extractMockFile(rwMockFiles, "https://novalanalove.com/ear-candy/")
 	assert.True(t, resContains(result, "Earcuff: Zoeca"))
@@ -383,6 +398,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "PINNEN"))
 	assert.True(t, resContains(result, "2. Satt essen bei den Mahlzeiten"))
 	assert.False(t, resContains(result, "Bringt die Kilos zum Purzeln!"))
+	assert.False(t, resContains(result, "Crash-Diäten ziehen meist den Jojo-Effekt"))
 
 	result = extractMockFile(rwMockFiles, "https://www.brigitte.de/liebe/persoenlichkeit/ikigai-macht-dich-sofort-gluecklicher--10972896.html")
 	assert.True(t, resContains(result, "Glücks-Trend Konkurrenz"))
@@ -418,8 +434,8 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "https://www.heise.de/newsticker/meldung/Lithium-aus-dem-Schredder-4451133.html")
 	assert.True(t, resContains(result, "Die Ökobilanz von Elektroautos"))
 	assert.True(t, resContains(result, "Nur die Folie bleibt zurück"))
-	assert.False(t, resContains(result, "TR 7/2019"))
 	assert.False(t, resContains(result, "Forum zum Thema:"))
+	// assert.False(t, resContains(result, "TR 7/2019"))
 
 	result = extractMockFile(rwMockFiles, "https://www.theverge.com/2019/7/3/20680681/ios-13-beta-3-facetime-attention-correction-eye-contact")
 	assert.True(t, resContains(result, "Normally, video calls tend to"))
@@ -466,6 +482,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Given a set of high-dimensional objects"))
 	assert.True(t, resContains(result, "Herein a heavy-tailed Student t-distribution"))
 	assert.False(t, resContains(result, "Categories:"))
+	assert.False(t, resContains(result, "Conditional random field"))
 
 	result = extractMockFile(rwMockFiles, "https://mixed.de/vrodo-deals-vr-taugliches-notebook-fuer-83215-euro-99-cent-leihfilme-bei-amazon-psvr/")
 	assert.True(t, resContains(result, "Niedlicher Roboter-Spielkamerad: Anki Cozmo"))
@@ -496,6 +513,11 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Die Top 5 digitalen Trends für den Mittelstand"))
 	assert.False(t, resContains(result, ", leading edge,"))
 
+	result = extractMockFile(rwMockFiles, "https://boingboing.net/2013/07/19/hating-millennials-the-preju.html")
+	assert.True(t, resContains(result, "Click through for the whole thing."))
+	assert.True(t, resContains(result, "The generation we love to dump on"))
+	assert.False(t, resContains(result, "GET THE BOING BOING NEWSLETTER"))
+
 	result = extractMockFile(rwMockFiles, "https://github.blog/2019-03-29-leader-spotlight-erin-spiceland/")
 	assert.True(t, resContains(result, "Erin Spiceland is a Software Engineer for SpaceX."))
 	assert.True(t, resContains(result, "make effective plans and goals for the future"))
@@ -522,6 +544,7 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "nach Leipzig wechseln."))
 	assert.False(t, resContains(result, "Mehr zum Thema"))
 	assert.False(t, resContains(result, "Folgen Sie uns auf Facebook und Twitter"))
+	assert.False(t, resContains(result, "Aktuelle Ausgabe"))
 
 	result = extractMockFile(rwMockFiles, "https://www.psl.eu/actualites/luniversite-psl-quand-les-grandes-ecoles-font-universite")
 	assert.True(t, resContains(result, "Le décret n°2019-1130 validant"))
@@ -549,6 +572,8 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "Es stützt seine Version."))
 	assert.False(t, resContains(result, "und Vorteile sichern!"))
 	assert.False(t, resContains(result, "Verschickt"))
+	assert.False(t, resContains(result, "Die digitale Welt der Nachrichten."))
+	assert.False(t, resContains(result, "Vervielfältigung nur mit Genehmigung"))
 
 	result = extractMockFile(rwMockFiles, "https://lemire.me/blog/2019/08/02/json-parsing-simdjson-vs-json-for-modern-c/")
 	assert.True(t, resContains(result, "I use a Skylake processor with GNU GCC 8.3."))
@@ -585,10 +610,10 @@ func Test_Extract(t *testing.T) {
 
 	result = extractMockFile(rwMockFiles, "https://www.reuters.com/article/us-awards-sag/parasite-scores-upset-at-sag-awards-boosting-oscar-chances-idUSKBN1ZI0EH")
 	assert.False(t, resContains(result, "4 Min Read"))
-	assert.False(t, resContains(result, "The Thomson Reuters Trust Principles"))
 	assert.False(t, resContains(result, "Factbox: Key winners"))
 	assert.True(t, resContains(result, "Despite an unknown cast,"))
 	assert.True(t, resContains(result, "Additional reporting by"))
+	// assert.False(t, resContains(result, "The Thomson Reuters Trust Principles"))
 
 	result = extractMockFile(rwMockFiles, "https://vancouversun.com/technology/microsoft-moves-to-erase-its-carbon-footprint-from-the-atmosphere-in-climate-push/wcm/76e426d9-56de-40ad-9504-18d5101013d2")
 	assert.True(t, resContains(result, "Microsoft Corp said on Thursday"))

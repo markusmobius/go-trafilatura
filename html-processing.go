@@ -226,7 +226,7 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 	case dom.TagName(element) == "p":
 		limitLength, threshold = 25, 0.8
 	case dom.NextElementSibling(element) == nil:
-		limitLength, threshold = 200, 0.66
+		limitLength, threshold = 300, 0.8
 	default:
 		limitLength, threshold = 100, 0.66
 	}
