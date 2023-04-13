@@ -294,7 +294,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Balance precision / recall
 		if !opts.FavorRecall {
-			subTree = pruneUnwantedNodes(subTree, AdditionalDiscardedContentXpaths)
+			subTree = pruneUnwantedNodes(subTree, DiscardedTeaserXpaths)
 			if opts.FavorPrecision {
 				subTree = pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
 			}
@@ -912,8 +912,9 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	searchList := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
 	if opts.FavorRecall {
 		potentialTags = duplicateMap(potentialTags)
+		potentialTags["br"] = struct{}{}
 		potentialTags["div"] = struct{}{}
-		searchList = append(searchList, "div")
+		searchList = append(searchList, "div", "br")
 	}
 
 	// Prune
@@ -922,7 +923,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 
 	// Get rid of additional elements
 	if !opts.FavorRecall {
-		doc = pruneUnwantedNodes(doc, AdditionalDiscardedContentXpaths)
+		doc = pruneUnwantedNodes(doc, DiscardedTeaserXpaths)
 		if opts.FavorPrecision {
 			doc = pruneUnwantedNodes(doc, PrecisionDiscardedContentXpaths)
 		}
