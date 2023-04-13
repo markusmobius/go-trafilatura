@@ -295,7 +295,7 @@ func examineMeta(doc *html.Node) Metadata {
 	}
 
 	// Clean up author and tags
-	metadata.Author = validateMetadataAuthor(metadata.Author)
+	metadata.Author = validateMetadataName(metadata.Author)
 	metadata.Tags = normalizeTags(metadata.Tags...)
 	return metadata
 }
@@ -338,21 +338,21 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 	return metadata
 }
 
-func validateMetadataAuthor(author string) string {
-	if author == "" {
-		return author
+func validateMetadataName(name string) string {
+	if name == "" {
+		return name
 	}
 
-	if !strings.Contains(author, " ") || strings.HasPrefix(author, "http") {
+	if !strings.Contains(name, " ") || strings.HasPrefix(name, "http") {
 		return ""
 	}
 
 	// Make sure author doesn't contain JSON symbols (in case JSON+LD has wrong format)
-	if rxJsonSymbol.MatchString(author) {
+	if rxJsonSymbol.MatchString(name) {
 		return ""
 	}
 
-	return author
+	return name
 }
 
 func examineTitleElement(doc *html.Node) (title, first, second string) {

@@ -31,7 +31,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		}
 
 		// Decode JSON+LD text
-		persons, articles, err := decodeJsonLd(jsonLdText)
+		persons, organizations, articles, err := decodeJsonLd(jsonLdText)
 		if err != nil {
 			logWarn(opts, "error in JSON metadata extraction: %v", err)
 			continue
@@ -42,7 +42,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 			// Grab "author" property from schema with @type "Person"
 			if metadata.Author == "" {
 				metadata.Author = getSchemaName(article["author"], "Person")
-				metadata.Author = validateMetadataAuthor(metadata.Author)
+				metadata.Author = validateMetadataName(metadata.Author)
 			}
 
 			// Grab sitename
@@ -83,7 +83,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 			names := []string{}
 			for _, person := range persons {
 				name := getSchemaName(person)
-				name = validateMetadataAuthor(name)
+				name = validateMetadataName(name)
 				if name != "" {
 					names = append(names, name)
 				}
@@ -91,6 +91,22 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 			if len(names) > 0 {
 				metadata.Author = strings.Join(names, "; ")
+			}
+		}
+
+		// If sitename not found, look in organizations
+		if metadata.Sitename == "" {
+			names := []string{}
+			for _, org := range organizations {
+				name := getSchemaName(org)
+				name = validateMetadataName(name)
+				if name != "" {
+					names = append(names, name)
+				}
+			}
+
+			if len(names) > 0 {
+				metadata.Sitename = strings.Join(names, "; ")
 			}
 		}
 
@@ -123,15 +139,8 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	return originalMetadata
 }
 
-func decodeJsonLd(rawJsonLd string) (persons, articles []map[string]any, err error) {
-	// Decode JSON text, assuming it is an object
-	data := map[string]any{}
-	err = json.Unmarshal([]byte(rawJsonLd), &data)
-	if err != nil {
-		return
-	}
-
-	// Find articles and persons inside JSON+LD recursively
+func decodeJsonLd(rawJsonLd string) (persons, organizations, articles []map[string]any, err error) {
+	// Prepare function to find articles and persons inside JSON+LD recursively
 	var findImportantObjects func(obj map[string]any)
 	findImportantObjects = func(obj map[string]any) {
 		// Check if this object is either Article or Person
@@ -140,9 +149,10 @@ func decodeJsonLd(rawJsonLd string) (persons, articles []map[string]any, err err
 		case objType == "Person":
 			persons = append(persons, obj)
 
-		case strings.Contains(objType, "Article"),
-			strings.Contains(objType, "Posting"),
-			objType == "Report":
+		case strings.Contains(objType, "Organization"):
+			organizations = append(organizations, obj)
+
+		case strings.Contains(objType, "Article"), strings.Contains(objType, "Posting"), objType == "Report":
 			articles = append(articles, obj)
 		}
 
@@ -162,8 +172,25 @@ func decodeJsonLd(rawJsonLd string) (persons, articles []map[string]any, err err
 		}
 	}
 
+	// First decode JSON text assuming it is an array
+	var dataList []map[string]any
+	err = json.Unmarshal([]byte(rawJsonLd), &dataList)
+	if err != nil {
+		// If not succeed, try it as an object
+		var data map[string]any
+		err = json.Unmarshal([]byte(rawJsonLd), &data)
+		if err == nil {
+			dataList = []map[string]any{data}
+		} else {
+			return
+		}
+	}
+
 	// Look and return
-	findImportantObjects(data)
+	for _, data := range dataList {
+		findImportantObjects(data)
+	}
+
 	return
 }
 

@@ -32,4 +32,30 @@ func Test_MetadataJson_Authors(t *testing.T) {
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-7.html")
 	assert.Empty(t, metadata.Categories)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-8.html")
+	assert.Equal(t, "Mickelson comments hurt new league: Norman", metadata.Title)
+	assert.Equal(t, "7News", metadata.Sitename)
+	assert.Equal(t, "Digital Staff", metadata.Author)
+	assert.Contains(t, metadata.Categories, "Golf")
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-9.html")
+	assert.Equal(t, "Australians stuck in Shanghai's COVID lockdown beg consular officials to help them flee", metadata.Title)
+	assert.Equal(t, "ABC News", metadata.Sitename)
+	assert.Equal(t, "Bill Birtles", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-10.html")
+	assert.Equal(t, "New York City Enters Higher Coronavirus Risk Level as Case Numbers Rise", metadata.Title)
+	assert.Equal(t, "The New York Times", metadata.Sitename)
+	assert.Equal(t, "Sharon Otterman; Emma G Fitzsimmons", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-11.html")
+	assert.Equal(t, "Decreto permite que consumidor cancele serviços de empresas via WhatsApp", metadata.Title)
+	assert.Equal(t, "UOL", metadata.Sitename)
+	assert.Equal(t, "Caio Mello", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-12.html")
+	assert.Equal(t, "12 words and phrases you need to survive in Hamburg", metadata.Title)
+	assert.Equal(t, "The Local", metadata.Sitename)
+	assert.Equal(t, "Alexander Johnstone", metadata.Author)
 }
