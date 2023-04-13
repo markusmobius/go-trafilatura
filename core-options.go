@@ -80,10 +80,10 @@ type Options struct {
 	// will be ignored but readability and dom-distiller won't be run.
 	FallbackCandidates []*html.Node
 
-	// FavorPrecision specify whether to prefer less text but correct extraction (weak effect).
+	// FavorPrecision specify whether to prefer less text but correct extraction.
 	FavorPrecision bool
 
-	// FavorRecall specify whether to prefer more text even when unsure (experimental).
+	// FavorRecall specify whether to prefer more text even when unsure.
 	FavorRecall bool
 
 	// ExcludeComments specify whether to exclude comments from the extraction result.
