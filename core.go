@@ -120,7 +120,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
 	} else if opts.FavorPrecision {
-		pruneUnwantedNodes(doc, RemovedCommentXpaths)
+		doc = pruneUnwantedNodes(doc, RemovedCommentXpaths)
 	}
 
 	// Extract content
@@ -205,7 +205,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 		}
 
 		// Prune
-		pruneUnwantedNodes(subTree, DiscardedCommentXpaths)
+		subTree = pruneUnwantedNodes(subTree, DiscardedCommentXpaths)
 		etree.StripTags(subTree, "a", "span")
 
 		// Extract comments
@@ -284,19 +284,19 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Prune the rest
-		pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths)
-		pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
+		subTree = pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths, true)
+		subTree = pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
 
 		// Prune images
 		if !opts.IncludeImages {
-			pruneUnwantedNodes(subTree, DiscardedImageXpaths)
+			subTree = pruneUnwantedNodes(subTree, DiscardedImageXpaths)
 		}
 
 		// Balance precision / recall
 		if !opts.FavorRecall {
-			pruneUnwantedNodes(subTree, AdditionalDiscardedContentXpaths)
+			subTree = pruneUnwantedNodes(subTree, AdditionalDiscardedContentXpaths)
 			if opts.FavorPrecision {
-				pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
+				subTree = pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
 			}
 		}
 
@@ -908,20 +908,20 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	// Prune
-	pruneUnwantedNodes(doc, OverallDiscardedContentXpaths)
-	pruneUnwantedNodes(doc, DiscardedPaywallXpaths)
+	doc = pruneUnwantedNodes(doc, OverallDiscardedContentXpaths, true)
+	doc = pruneUnwantedNodes(doc, DiscardedPaywallXpaths)
 
 	// Get rid of additional elements
 	if !opts.FavorRecall {
-		pruneUnwantedNodes(doc, AdditionalDiscardedContentXpaths)
+		doc = pruneUnwantedNodes(doc, AdditionalDiscardedContentXpaths)
 		if opts.FavorPrecision {
-			pruneUnwantedNodes(doc, PrecisionDiscardedContentXpaths)
+			doc = pruneUnwantedNodes(doc, PrecisionDiscardedContentXpaths)
 		}
 	}
 
 	// Decide if images are preserved
 	if _, exist := potentialTags["img"]; !exist {
-		pruneUnwantedNodes(doc, DiscardedImageXpaths)
+		doc = pruneUnwantedNodes(doc, DiscardedImageXpaths)
 	}
 
 	// Decide if links are preserved

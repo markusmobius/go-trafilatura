@@ -112,9 +112,22 @@ func pruneHTML(doc *html.Node) {
 }
 
 // pruneUnwantedNodes prune the HTML tree by removing unwanted sections.
-func pruneUnwantedNodes(tree *html.Node, queries []string) {
+func pruneUnwantedNodes(tree *html.Node, queries []string, withBackup ...bool) *html.Node {
+	var oldLen int
+	var backup *html.Node
+	backupEnabled := len(withBackup) > 0 && withBackup[0]
+
+	tree = dom.Clone(tree, true)
+	if backupEnabled {
+		backup = dom.Clone(tree, true)
+		oldLen = utf8.RuneCountInString(dom.TextContent(tree))
+	}
+
 	for _, query := range queries {
-		for _, subElement := range htmlxpath.Find(tree, query) {
+		subElements := htmlxpath.Find(tree, query)
+		for i := len(subElements) - 1; i >= 0; i-- {
+			subElement := subElements[i]
+
 			// Preserve tail text from deletion
 			tail := etree.Tail(subElement)
 			if tail != "" {
@@ -137,6 +150,15 @@ func pruneUnwantedNodes(tree *html.Node, queries []string) {
 			etree.Remove(subElement)
 		}
 	}
+
+	if backupEnabled {
+		newLen := utf8.RuneCountInString(dom.TextContent(tree))
+		if newLen <= oldLen/7 {
+			return backup
+		}
+	}
+
+	return tree
 }
 
 // handleTextNode converts, formats and probes potential text elements.

@@ -418,7 +418,7 @@ func extractDomTitle(doc *html.Node) string {
 // extractDomAuthor returns the document author from DOM elements.
 func extractDomAuthor(doc *html.Node) string {
 	clone := dom.Clone(doc, true)
-	pruneUnwantedNodes(clone, MetaAuthorDiscardXpaths)
+	clone = pruneUnwantedNodes(clone, MetaAuthorDiscardXpaths)
 
 	author := extractDomMetaSelectors(clone, 120, MetaAuthorXpaths)
 	if author != "" {
