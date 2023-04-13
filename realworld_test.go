@@ -109,13 +109,14 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "nach oben"))
 	assert.False(t, resContains(result, "Datenschutzerklärung"))
 
+	// Modified by taking only 1st article element...
 	result = extractMockFile(rwMockFiles, "https://www.demokratiewebstatt.at/thema/thema-umwelt-und-klima/woher-kommt-die-dicke-luft")
 	assert.True(t, resContains(result, "Millionen Menschen fahren jeden Tag"))
 	assert.False(t, resContains(result, "Clipdealer"))
 	assert.False(t, resContains(result, "Teste dein Wissen"))
 	assert.False(t, resContains(result, "Thema: Fußball"))
-	assert.True(t, resContains(result, "Eines der großen Probleme,"))
-	assert.True(t, resContains(result, "versteinerte Dinosaurierknochen."))
+	// assert.True(t, resContains(result, "Eines der großen Probleme,"))
+	// assert.True(t, resContains(result, "versteinerte Dinosaurierknochen."))
 
 	result = extractMockFile(rwMockFiles, "http://www.simplyscience.ch/teens-liesnach-archiv/articles/wie-entsteht-erdoel.html")
 	assert.True(t, resContains(result, "Erdöl bildet nach Millionen"))
