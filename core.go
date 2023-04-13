@@ -330,12 +330,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Check if there are enough <p> with text
 		var paragraphText string
-		for _, p := range dom.GetElementsByTagName(subTree, "p") {
-			for _, node := range dom.ChildNodes(p) {
-				if node.Type == html.TextNode {
-					paragraphText += node.Data
-				}
-			}
+		for _, p := range dom.GetElementsByTagName(doc, "p") {
+			paragraphText += dom.TextContent(p)
 		}
 
 		factor := 3
@@ -880,7 +876,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		return nil
 	}
 
-	// TODO: make a copy and prune it in case it contains sub-elements handled on their ownE
+	// TODO: make a copy and prune it in case it contains sub-elements handled on their own?
 	if tagName == "div" || tagName == "details" {
 		processedElement := handleTextNode(element, cache, false, opts)
 		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
