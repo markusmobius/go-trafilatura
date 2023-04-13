@@ -341,7 +341,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			factor = 1
 		}
 
-		if utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
+		if paragraphText == "" ||
+			utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
@@ -354,9 +355,22 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			etree.StripTags(subTree, "span")
 		}
 
+		// Fetch sub elements
+		subElements := dom.GetElementsByTagName(subTree, "*")
+
+		// Check if all sub elements are line break
+		subTagTracker := map[string]struct{}{}
+		for _, e := range subElements {
+			subTagTracker[dom.TagName(e)] = struct{}{}
+		}
+
+		if _, hasLineBreak := subTagTracker["br"]; len(subTagTracker) == 1 && hasLineBreak {
+			subElements = []*html.Node{subTree}
+		}
+
 		// Populate result body
 		var processedElems []*html.Node
-		for _, elem := range dom.GetElementsByTagName(subTree, "*") {
+		for _, elem := range subElements {
 			processed := handleTextElem(elem, potentialTags, cache, opts)
 			if processed != nil {
 				processedElems = append(processedElems, processed)
@@ -455,8 +469,7 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 		return handleParagraphs(element, potentialTags, cache, opts)
 	} else if inMap(tagName, mapXmlLbTags) {
 		if textCharsTest(etree.Tail(element)) {
-			element = processNode(element, cache, opts)
-			if element != nil {
+			if element = processNode(element, cache, opts); element != nil {
 				newElement := etree.Element("p")
 				etree.SetText(newElement, etree.Tail(element))
 				return newElement

@@ -103,6 +103,10 @@ func Strip(element *html.Node) {
 
 // ToString encode an element to string representation of its structure.
 func ToString(tree *html.Node, prettify ...bool) string {
+	if tree == nil {
+		return ""
+	}
+
 	// Create temporary container
 	container := dom.CreateElement("tmp")
 

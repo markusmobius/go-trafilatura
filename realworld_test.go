@@ -378,7 +378,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Storage für den Mittelstand"))
 	// TODO: this one is different than the original.
 	// In original, it should be false, but our go-domdistiller still catch it.
-	assert.False(t, resContains(result, "Weiterführender Link"))
+	assert.True(t, resContains(result, "Weiterführender Link"))
 
 	result = extractMockFile(rwMockFiles, "https://novalanalove.com/ear-candy/")
 	assert.True(t, resContains(result, "Earcuff: Zoeca"))

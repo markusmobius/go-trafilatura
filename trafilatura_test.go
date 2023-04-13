@@ -79,13 +79,17 @@ func Test_Trim(t *testing.T) {
 }
 
 func Test_ExoticTags(t *testing.T) {
+	var result *ExtractResult
+	var htmlString string
+	var opts Options
+
 	// Cover some edge cases with a specially crafted file
-	result := extractMockFile(trafilaturaMockFiles, "http://exotic_tags")
+	result = extractMockFile(trafilaturaMockFiles, "http://exotic_tags")
 	assert.Contains(t, result.ContentText, "Teletype text")
 	assert.Contains(t, result.ContentText, "My new car is silver.")
 
 	// Misformed HTML declaration
-	htmlString := `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 2012"http://www.w3.org/TR/html4/loose.dtd"><html><head></head><body><p>ABC</p></body></html>`
+	htmlString = `<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" 2012"http://www.w3.org/TR/html4/loose.dtd"><html><head></head><body><p>ABC</p></body></html>`
 	result, err := Extract(strings.NewReader(htmlString), zeroOpts)
 	assert.Nil(t, err)
 	assert.Contains(t, result.ContentText, "ABC")
@@ -105,6 +109,12 @@ func Test_ExoticTags(t *testing.T) {
 	converted := handleParagraphs(element, map[string]struct{}{"p": {}}, nil, zeroOpts)
 	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
+	// Naked div with <br>
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	htmlString = `<html><body><main><div>1.<br/>2.<br/>3.<br/></div></main></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Contains(t, result.ContentText, "1. 2. 3.")
+
 	// Malformed lists (common error)
 	lists := etree.FromString(`
 	<ul>Description of the list:
@@ -119,9 +129,7 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Contains(t, strResult, "Description")
 
 	// HTML5: <details>
-	opts := zeroOpts
-	opts.NoFallback = true
-
+	opts = Options{NoFallback: true, Config: zeroConfig}
 	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "Epcot Center")
