@@ -283,34 +283,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			continue
 		}
 
-		// Prune the rest
-		subTree = pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths, true)
-		subTree = pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
-
-		// Prune images
-		if !opts.IncludeImages {
-			subTree = pruneUnwantedNodes(subTree, DiscardedImageXpaths)
-		}
-
-		// Balance precision / recall
-		if !opts.FavorRecall {
-			subTree = pruneUnwantedNodes(subTree, DiscardedTeaserXpaths)
-			if opts.FavorPrecision {
-				subTree = pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
-			}
-		}
-
-		// Remove elements by link density
-		deleteByLinkDensity(subTree, true, "div")
+		// Prune the subtree
+		subTree = pruneUnwantedSections(subTree, opts)
 		deleteByLinkDensity(subTree, false, listXmlListTags...)
-		deleteByLinkDensity(subTree, false, "p")
-		// deleteByLinkDensity(subTree, false, listXmlHeadTags...)
-
-		// Also filter fw/head, table and quote elements?
-		if opts.FavorPrecision {
-			deleteByLinkDensity(subTree, false, listXmlHeadTags...)
-			deleteByLinkDensity(subTree, false, listXmlQuoteTags...)
-		}
 
 		// Define iteration strategy
 		_, tableIsPotentialTag := potentialTags["table"]
@@ -918,21 +893,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	// Prune
-	doc = pruneUnwantedNodes(doc, OverallDiscardedContentXpaths, true)
-	doc = pruneUnwantedNodes(doc, DiscardedPaywallXpaths)
-
-	// Get rid of additional elements
-	if !opts.FavorRecall {
-		doc = pruneUnwantedNodes(doc, DiscardedTeaserXpaths)
-		if opts.FavorPrecision {
-			doc = pruneUnwantedNodes(doc, PrecisionDiscardedContentXpaths)
-		}
-	}
-
-	// Decide if images are preserved
-	if _, exist := potentialTags["img"]; !exist {
-		doc = pruneUnwantedNodes(doc, DiscardedImageXpaths)
-	}
+	doc = pruneUnwantedSections(doc, opts)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {
@@ -1180,4 +1141,35 @@ func getLanguage(contentText, commentsText string) string {
 
 	lang := whatlanggo.DetectLang(langTest)
 	return lang.Iso6391()
+}
+
+func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
+	// Prune the rest
+	subTree = pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths, true)
+	subTree = pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
+
+	// Prune images
+	if !opts.IncludeImages {
+		subTree = pruneUnwantedNodes(subTree, DiscardedImageXpaths)
+	}
+
+	// Balance precision / recall
+	if !opts.FavorRecall {
+		subTree = pruneUnwantedNodes(subTree, DiscardedTeaserXpaths)
+		if opts.FavorPrecision {
+			subTree = pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
+		}
+	}
+
+	// Remove elements by link density
+	deleteByLinkDensity(subTree, true, "div")
+	deleteByLinkDensity(subTree, false, "p")
+
+	// Also filter fw/head, table and quote elements?
+	if opts.FavorPrecision {
+		deleteByLinkDensity(subTree, false, listXmlHeadTags...)
+		deleteByLinkDensity(subTree, false, listXmlQuoteTags...)
+	}
+
+	return subTree
 }

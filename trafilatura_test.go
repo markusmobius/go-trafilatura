@@ -153,6 +153,7 @@ func Test_ExoticTags(t *testing.T) {
 		`<td>they buy</td>` +
 		`</tr>` +
 		`</table></article></body></html>`
+	opts = Options{NoFallback: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
 		`<tr>`+
@@ -180,6 +181,7 @@ func Test_ExoticTags(t *testing.T) {
 		`<li>Milk</li>` +
 		`</ul>` +
 		`</article></body></html>`
+	opts = Options{NoFallback: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
 		`<ul>`+
@@ -641,17 +643,17 @@ func Test_Links(t *testing.T) {
 	assert.NotNil(t, processed)
 
 	// Extracting links with target
-	htmlStr := `<html><body><p><a href="testlink.html">Test link text.</a></p></body></html>`
+	htmlStr := `<html><body><p><a href="testlink.html">Test link text.</a>This part of the text has to be long enough.</p></body></html>`
 	result, _ := Extract(strings.NewReader(htmlStr), zeroOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
 
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<a href="testlink.html">Test link text.</a>This part of the text has to be long enough.`)
 
 	// Extracting links without target
-	htmlStr = `<html><body><p><a>Test link text.</a></p></body></html>`
+	htmlStr = `<html><body><p><a>Test link text.</a>This part of the text has to be long enough.</p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
-	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<a>Test link text.</a>This part of the text has to be long enough.`)
 
 	htmlStr = `<html><body><article><a>Segment 1</a><h1><a>Segment 2</a></h1><p>Segment 3</p></article></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
