@@ -24,7 +24,7 @@ package trafilatura
 var MetaTitleXpaths = []string{
 	`//*[(self::h1 or self::h2)][contains(@class, "post-title") or contains(@class, "entry-title") or contains(@class, "headline") or contains(@id, "headline") or contains(@itemprop, "headline") or contains(@class, "post__title")]`,
 	`//*[@class="entry-title" or @class="post-title"]`,
-	`//h1[contains(@class, "title") or contains(@id, "title")]`,
+	`//*[(self::h1 or self::h2 or self::h3)][contains(@class, "title") or contains(@id, "title")]`,
 }
 
 var MetaAuthorXpaths = []string{
@@ -55,21 +55,21 @@ var MetaCategoriesXpaths = []string{
 	`//div[starts-with(@class, 'post-info') or starts-with(@class, 'postinfo') or
 	starts-with(@class, 'post-meta') or starts-with(@class, 'postmeta') or
 	starts-with(@class, 'meta') or starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-info') or
-	starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a`,
-	`//p[starts-with(@class, 'postmeta') or starts-with(@class, 'entry-categories') or @class='postinfo' or @id='filedunder']//a`,
-	`//footer[starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-footer')]//a`,
-	`//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category"]//a`,
-	`//header[@class="entry-header"]//a`,
-	`//div[@class="row" or @class="tags"]//a`,
+	starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a[@href]`,
+	`//p[starts-with(@class, 'postmeta') or starts-with(@class, 'entry-categories') or @class='postinfo' or @id='filedunder']//a[@href]`,
+	`//footer[starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-footer')]//a[@href]`,
+	`//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category"]//a[@href]`,
+	`//header[@class="entry-header"]//a[@href]`,
+	`//div[@class="row" or @class="tags"]//a[@href]`,
 }
 
 var MetaTagsXpaths = []string{
-	`//div[@class="tags"]//a`,
-	`//p[starts-with(@class, 'entry-tags')]//a`,
+	`//div[@class="tags"]//a[@href]`,
+	`//p[starts-with(@class, 'entry-tags')]//a[@href]`,
 	`//div[@class="row" or @class="jp-relatedposts" or
 	@class="entry-utility" or starts-with(@class, 'tag') or
-	starts-with(@class, 'postmeta') or starts-with(@class, 'meta')]//a`,
-	`//*[@class="entry-meta" or contains(@class, "topics") or contains(@class, "tags-links")]//a`,
+	starts-with(@class, 'postmeta') or starts-with(@class, 'meta')]//a[@href]`,
+	`//*[@class="entry-meta" or contains(@class, "topics") or contains(@class, "tags-links")]//a[@href]`,
 }
 
 var ContentXpaths = []string{

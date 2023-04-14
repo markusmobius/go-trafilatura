@@ -296,7 +296,8 @@ func examineMeta(doc *html.Node) Metadata {
 
 	// Clean up author and tags
 	metadata.Author = validateMetadataName(metadata.Author)
-	metadata.Tags = normalizeTags(metadata.Tags...)
+	metadata.Categories = uniquifyLists(metadata.Categories...)
+	metadata.Tags = uniquifyLists(metadata.Tags...)
 	return metadata
 }
 
@@ -433,21 +434,19 @@ func extractDomURL(doc *html.Node, defaultURL *nurl.URL) string {
 	var url string
 
 	// Try canonical link first
-	linkNode := dom.QuerySelector(doc, `head link[rel="canonical"]`)
+	linkNode := dom.QuerySelector(doc, `link[rel="canonical"]`)
 	if linkNode != nil {
-		href := dom.GetAttribute(linkNode, "href")
-		href = trim(href)
+		href := trim(dom.GetAttribute(linkNode, "href"))
 		if href != "" && rxUrlCheck.MatchString(href) {
 			url = href
 		}
 	} else {
 		// Now try default language link
-		linkNodes := dom.QuerySelectorAll(doc, `head link[rel="alternate"]`)
+		linkNodes := dom.QuerySelectorAll(doc, `link[rel="alternate"]`)
 		for _, node := range linkNodes {
 			hreflang := dom.GetAttribute(node, "hreflang")
 			if hreflang == "x-default" {
-				href := dom.GetAttribute(node, "href")
-				href = trim(href)
+				href := trim(dom.GetAttribute(node, "href"))
 				if href != "" && rxUrlCheck.MatchString(href) {
 					url = href
 				}
@@ -520,12 +519,9 @@ func extractDomCategories(doc *html.Node) []string {
 	// Try using selectors
 	for _, query := range MetaCategoriesXpaths {
 		for _, node := range htmlxpath.Find(doc, query) {
-			href := dom.GetAttribute(node, "href")
-			href = strings.TrimSpace(href)
+			href := trim(dom.GetAttribute(node, "href"))
 			if href != "" && rxCategoryHref.MatchString(href) {
-				text := dom.TextContent(node)
-				text = trim(text)
-				if text != "" {
+				if text := trim(dom.TextContent(node)); text != "" {
 					categories = append(categories, text)
 				}
 			}
@@ -538,17 +534,19 @@ func extractDomCategories(doc *html.Node) []string {
 
 	// Fallback
 	if len(categories) == 0 {
-		node := dom.QuerySelector(doc, `head meta[property="article:section"]`)
-		if node != nil {
-			content := dom.GetAttribute(node, "content")
-			content = trim(content)
-			if content != "" {
+		selectors := []string{
+			`head meta[property="article:section"]`,
+			`head meta[name*="subject"]`}
+		mergedSelector := strings.Join(selectors, ", ")
+
+		for _, node := range dom.QuerySelectorAll(doc, mergedSelector) {
+			if content := trim(dom.GetAttribute(node, "content")); content != "" {
 				categories = append(categories, content)
 			}
 		}
 	}
 
-	return categories
+	return uniquifyLists(categories...)
 }
 
 // extractDomTags returns the tags of the document.
@@ -558,12 +556,9 @@ func extractDomTags(doc *html.Node) []string {
 	// Try using selectors
 	for _, query := range MetaTagsXpaths {
 		for _, node := range htmlxpath.Find(doc, query) {
-			href := dom.GetAttribute(node, "href")
-			href = strings.TrimSpace(href)
+			href := trim(dom.GetAttribute(node, "href"))
 			if href != "" && rxTagHref.MatchString(href) {
-				text := dom.TextContent(node)
-				text = trim(text)
-				if text != "" {
+				if text := trim(dom.TextContent(node)); text != "" {
 					tags = append(tags, text)
 				}
 			}
@@ -574,7 +569,16 @@ func extractDomTags(doc *html.Node) []string {
 		}
 	}
 
-	return tags
+	// Fallback
+	if len(tags) == 0 {
+		for _, node := range dom.QuerySelectorAll(doc, `head meta[name="keywords"]`) {
+			if content := trim(dom.GetAttribute(node, "content")); content != "" {
+				tags = append(tags, content)
+			}
+		}
+	}
+
+	return uniquifyLists(tags...)
 }
 
 func cleanCatTags(catTags []string) []string {
@@ -608,14 +612,15 @@ func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string
 // extractLicense search the HTML code for license information and parse it.
 func extractLicense(doc *html.Node) string {
 	// Look for links labeled as license
-	for _, a := range dom.QuerySelectorAll(doc, `a[rel="license"]`) {
+	for _, a := range dom.QuerySelectorAll(doc, `a[rel="license"][href]`) {
 		if result := parseLicenseElement(a, false); result != "" {
 			return result
 		}
 	}
 
 	// Probe footer elements for CC links
-	selector := `//footer//a|//div[contains(@class, "footer") or contains(@id, "footer")]//a`
+	selector := `//footer//a[@href]` + `|` +
+		`//div[contains(@class, "footer") or contains(@id, "footer")]//a[@href]`
 	for _, node := range htmlxpath.Find(doc, selector) {
 		if result := parseLicenseElement(node, true); result != "" {
 			return result
@@ -650,12 +655,15 @@ func parseLicenseElement(node *html.Node, strict bool) string {
 }
 
 func normalizeAuthors(authors string, input string) string {
+	if rxPrefixHttp.MatchString(input) || rxAuthorEmail.MatchString(input) {
+		return authors
+	}
+
 	// Clean up input string
 	input = trim(input)
 	input = gomoji.RemoveEmojis(input)
 	input = rxAuthorDigits.ReplaceAllString(input, "")
 	input = rxAuthorSocialMedia.ReplaceAllString(input, "")
-	input = rxAuthorSpecialChars.ReplaceAllString(input, "")
 	input = rxAuthorSpaceChars.ReplaceAllString(input, " ")
 
 	// Fix HTML entities
@@ -676,6 +684,7 @@ func normalizeAuthors(authors string, input string) string {
 	for _, a := range rxAuthorSeparator.Split(input, -1) {
 		// Clean the author
 		a = rxAuthorNickname.ReplaceAllString(a, "")
+		a = rxAuthorSpecialChars.ReplaceAllString(a, "")
 		a = rxAuthorPrefix.ReplaceAllString(a, "")
 		a = rxAuthorPreposition.ReplaceAllString(a, "")
 		a = trim(a)
@@ -696,35 +705,13 @@ func normalizeAuthors(authors string, input string) string {
 
 		// Save to list
 		_, tracked := tracker[a]
-		if !strings.Contains(authors, a) && !tracked &&
-			!rxPrefixHttp.MatchString(a) &&
-			!rxAuthorEmail.MatchString(a) {
+		if !strings.Contains(authors, a) && !tracked {
 			tracker[a] = struct{}{}
 			listAuthor = append(listAuthor, a)
 		}
 	}
 
 	return strings.Join(listAuthor, "; ")
-}
-
-func normalizeTags(currents ...string) []string {
-	var finalTags []string
-	tracker := map[string]struct{}{}
-
-	for _, current := range currents {
-		for _, entry := range strings.Split(current, ", ") {
-			entry = trim(entry)
-			entry = strings.ReplaceAll(entry, `"`, "")
-			entry = strings.ReplaceAll(entry, `'`, "")
-
-			if _, tracked := tracker[entry]; entry != "" && !tracked {
-				finalTags = append(finalTags, entry)
-				tracker[entry] = struct{}{}
-			}
-		}
-	}
-
-	return finalTags
 }
 
 func removeBlacklistedAuthors(current string, opts Options) string {

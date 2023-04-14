@@ -20,8 +20,6 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 	// Process each script node
 	var metadata Metadata
-	categoryTracker := map[string]struct{}{}
-
 	for _, script := range scriptNodes {
 		// Get the json text inside the script
 		jsonLdText := dom.TextContent(script)
@@ -41,20 +39,37 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		for _, article := range articles {
 			// Grab "author" property from schema with @type "Person"
 			if metadata.Author == "" {
-				metadata.Author = getSchemaName(article["author"], "Person")
-				metadata.Author = validateMetadataName(metadata.Author)
+				var validAuthors []string
+				for _, author := range getSchemaNames(article["author"], "Person") {
+					author = validateMetadataName(author)
+					author = normalizeAuthors("", author)
+					if author != "" {
+						validAuthors = append(validAuthors, author)
+					}
+				}
+
+				if len(validAuthors) > 0 {
+					metadata.Author = strings.Join(validAuthors, "; ")
+				}
 			}
 
 			// Grab sitename
 			if metadata.Sitename == "" {
-				metadata.Sitename = getSchemaName(article["publisher"])
+				if sitenames := getSchemaNames(article["publisher"]); len(sitenames) > 0 {
+					metadata.Sitename = sitenames[0]
+				}
 			}
 
 			// Grab category
 			category := trim(getValue[string](article, "articleSection"))
-			if _, tracked := categoryTracker[category]; category != "" && !tracked {
-				categoryTracker[category] = struct{}{}
+			if category != "" {
 				metadata.Categories = append(metadata.Categories, category)
+			}
+
+			// Grab tags
+			tags := getSchemaNames(article["keywords"])
+			if len(tags) > 0 {
+				metadata.Tags = append(metadata.Tags, tags...)
 			}
 
 			// Grab title
@@ -82,10 +97,12 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		if metadata.Author == "" {
 			names := []string{}
 			for _, person := range persons {
-				name := getSchemaName(person)
-				name = validateMetadataName(name)
-				if name != "" {
-					names = append(names, name)
+				for _, name := range getSchemaNames(person) {
+					name = validateMetadataName(name)
+					name = normalizeAuthors("", name)
+					if name != "" {
+						names = append(names, name)
+					}
 				}
 			}
 
@@ -98,10 +115,11 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		if metadata.Sitename == "" {
 			names := []string{}
 			for _, org := range organizations {
-				name := getSchemaName(org)
-				name = validateMetadataName(name)
-				if name != "" {
-					names = append(names, name)
+				for _, name := range getSchemaNames(org) {
+					name = validateMetadataName(name)
+					if name != "" {
+						names = append(names, name)
+					}
 				}
 			}
 
@@ -117,10 +135,19 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		}
 	}
 
-	// If available, override author and categories in original metadata
+	// Uniquify tags and categories
+	metadata.Tags = uniquifyLists(metadata.Tags...)
+	metadata.Categories = uniquifyLists(metadata.Categories...)
+
+	// If available, override author, categories and tags in original metadata
 	originalMetadata.Author = strOr(metadata.Author, originalMetadata.Author)
+
 	if len(metadata.Categories) > 0 {
 		originalMetadata.Categories = metadata.Categories
+	}
+
+	if len(metadata.Tags) > 0 {
+		originalMetadata.Tags = metadata.Tags
 	}
 
 	// If the new sitename exist and longer, override the original
@@ -132,9 +159,6 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	if originalMetadata.Title == "" {
 		originalMetadata.Title = metadata.Title
 	}
-
-	// Clean up authors
-	originalMetadata.Author = normalizeAuthors("", originalMetadata.Author)
 
 	return originalMetadata
 }
@@ -206,7 +230,7 @@ func getValue[T comparable](obj map[string]any, key string) T {
 	return zero
 }
 
-func getSchemaName(v any, schemaTypes ...string) string {
+func getSchemaNames(v any, schemaTypes ...string) []string {
 	// First, check if its string
 	if value, isString := v.(string); isString {
 		// There are some case where the name string contains an unescaped JSON,
@@ -217,7 +241,11 @@ func getSchemaName(v any, schemaTypes ...string) string {
 		}
 
 		// Return cleaned up string
-		return trim(value)
+		if value = trim(value); value != "" {
+			return []string{value}
+		} else {
+			return nil
+		}
 	}
 
 	// Second, check if its schema
@@ -226,7 +254,7 @@ func getSchemaName(v any, schemaTypes ...string) string {
 		// If not, we just return empty handed.
 		schemaType := getValue[string](value, "@type")
 		if len(schemaTypes) > 0 && (schemaType == "" || !strIn(schemaType, schemaTypes...)) {
-			return ""
+			return nil
 		}
 
 		// If this schema has "name" string property, try it
@@ -245,23 +273,29 @@ func getSchemaName(v any, schemaTypes ...string) string {
 			name = trim(getValue[string](value, "alternateName"))
 		}
 
-		return name
+		if name != "" {
+			return []string{name}
+		} else {
+			return nil
+		}
 	}
 
 	// Finally, check if its array
 	if values, isArray := v.([]any); isArray {
 		var names []string
 		for _, value := range values {
-			if name := getSchemaName(value, schemaTypes...); name != "" {
-				names = append(names, name)
+			if subNames := getSchemaNames(value, schemaTypes...); len(subNames) > 0 {
+				names = append(names, subNames...)
 			}
 		}
 
 		if len(names) > 0 {
-			return strings.Join(names, "; ")
+			return names
+		} else {
+			return nil
 		}
 	}
 
 	// If nothing found, just return empty
-	return ""
+	return nil
 }

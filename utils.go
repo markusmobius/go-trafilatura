@@ -68,3 +68,23 @@ func getRune(s string, idx int) rune {
 func isImageFile(imageSrc string) bool {
 	return imageSrc != "" && rxImageExtension.MatchString(imageSrc)
 }
+
+func uniquifyLists(currents ...string) []string {
+	var finalTags []string
+	tracker := map[string]struct{}{}
+
+	for _, current := range currents {
+		for _, entry := range strings.Split(current, ", ") {
+			entry = trim(entry)
+			entry = strings.ReplaceAll(entry, `"`, "")
+			entry = strings.ReplaceAll(entry, `'`, "")
+
+			if _, tracked := tracker[entry]; entry != "" && !tracked {
+				finalTags = append(finalTags, entry)
+				tracker[entry] = struct{}{}
+			}
+		}
+	}
+
+	return finalTags
+}
