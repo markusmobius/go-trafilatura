@@ -285,14 +285,14 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Prune the subtree
 		subTree = pruneUnwantedSections(subTree, opts)
-		deleteByLinkDensity(subTree, false, listXmlListTags...)
+		deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
 
 		// Define iteration strategy
 		_, tableIsPotentialTag := potentialTags["table"]
 		if tableIsPotentialTag || opts.FavorPrecision {
 			tables := etree.Iter(subTree, "table")
 			for i := len(tables) - 1; i >= 0; i-- {
-				if linkDensityTestTables(tables[i]) {
+				if linkDensityTestTables(tables[i], opts) {
 					etree.Remove(tables[i])
 				}
 			}
@@ -390,44 +390,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	etree.StripTags(resultBody, "div")
 
 	return resultBody, tmpText
-}
-
-// deleteByLinkDensity determines the link density of elements with respect to
-// their length, and remove the elements identified as boilerplate.
-func deleteByLinkDensity(subTree *html.Node, backtracking bool, tagNames ...string) {
-	var nodesToDelete []*html.Node
-	textNodes := make(map[string][]*html.Node)
-
-	for _, elem := range etree.Iter(subTree, tagNames...) {
-		nonEmptyLinks, isHighDensity := linkDensityTest(elem)
-
-		if isHighDensity {
-			nodesToDelete = append(nodesToDelete, elem)
-			continue
-		}
-
-		if backtracking && len(nonEmptyLinks) > 0 {
-			text := trim(dom.TextContent(elem))
-			if _, exist := textNodes[text]; !exist {
-				textNodes[text] = []*html.Node{elem}
-			} else {
-				textNodes[text] = append(textNodes[text], elem)
-			}
-		}
-	}
-
-	if backtracking {
-		for text, nodes := range textNodes {
-			textLength := utf8.RuneCountInString(text)
-			if textLength > 0 && textLength < 1000 && len(nodes) >= 3 {
-				nodesToDelete = append(nodesToDelete, nodes...)
-			}
-		}
-	}
-
-	for i := len(nodesToDelete) - 1; i >= 0; i-- {
-		etree.Remove(nodesToDelete[i])
-	}
 }
 
 // handleTextElem process text element and determine how to deal with its content.
@@ -1162,13 +1124,13 @@ func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 	}
 
 	// Remove elements by link density
-	deleteByLinkDensity(subTree, true, "div")
-	deleteByLinkDensity(subTree, false, "p")
+	deleteByLinkDensity(subTree, opts, true, "div")
+	deleteByLinkDensity(subTree, opts, false, "p")
 
 	// Also filter fw/head, table and quote elements?
 	if opts.FavorPrecision {
-		deleteByLinkDensity(subTree, false, listXmlHeadTags...)
-		deleteByLinkDensity(subTree, false, listXmlQuoteTags...)
+		deleteByLinkDensity(subTree, opts, false, listXmlHeadTags...)
+		deleteByLinkDensity(subTree, opts, false, listXmlQuoteTags...)
 	}
 
 	return subTree

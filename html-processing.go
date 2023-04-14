@@ -211,7 +211,7 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 
 // linkDensityTest check whether sections will be removed because it's rich in
 // links (probably boilerplate)
-func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
+func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	// Fetch links in node
 	links := dom.GetElementsByTagName(element, "a")
 	if len(links) == 0 {
@@ -225,10 +225,13 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 	switch {
 	case dom.TagName(element) == "p":
 		limitLength, threshold = 25, 0.8
+		if opts.FavorPrecision {
+			limitLength, threshold = 100, 0.8
+		}
 	case dom.NextElementSibling(element) == nil:
 		limitLength, threshold = 300, 0.8
 	default:
-		limitLength, threshold = 100, 0.66
+		limitLength, threshold = 100, 0.8
 	}
 
 	// Check if text of this node is within limit
@@ -236,15 +239,15 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 	textLength := utf8.RuneCountInString(text)
 	if textLength < limitLength {
 		// Collect link info
-		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links, opts)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return nonEmptyLinks, true
 		}
 
 		// Check if links data surpass threshold
-		if float64(linkLength) >= threshold*float64(textLength) ||
-			float64(nShortLinks)/float64(nNonEmptyLinks) >= threshold {
+		if float64(linkLength) > threshold*float64(textLength) ||
+			float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8 {
 			return nonEmptyLinks, true
 		}
 	}
@@ -254,7 +257,7 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 
 // linkDensityTestTables check whether a table will be removed because
 // it's rich in links (probably boilerplate)
-func linkDensityTestTables(table *html.Node) bool {
+func linkDensityTestTables(table *html.Node, opts Options) bool {
 	// Fetch links in table
 	links := dom.GetElementsByTagName(table, "a")
 	if len(links) == 0 {
@@ -266,7 +269,7 @@ func linkDensityTestTables(table *html.Node) bool {
 	textLength := utf8.RuneCountInString(text)
 	if textLength > 250 {
 		// Collect link info
-		linkLength, _, nonEmptyLinks := collectLinkInfo(links)
+		linkLength, _, nonEmptyLinks := collectLinkInfo(links, opts)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return true
@@ -287,7 +290,13 @@ func linkDensityTestTables(table *html.Node) bool {
 }
 
 // collectLinkInfo collects heuristics on link text.
-func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+	// Longer strings impact recall in favor of precision
+	threshold := 10
+	if opts.FavorPrecision {
+		threshold = 50
+	}
+
 	for _, link := range links {
 		text := trim(dom.TextContent(link))
 		textLength := utf8.RuneCountInString(text)
@@ -296,7 +305,7 @@ func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyL
 		}
 
 		linkLength += textLength
-		if textLength < 10 {
+		if textLength < threshold {
 			nShortLinks++
 		}
 
@@ -387,5 +396,48 @@ func postCleaning(doc *html.Node) {
 		}
 
 		element.Attr = newAttr
+	}
+}
+
+// deleteByLinkDensity determines the link density of elements with respect to
+// their length, and remove the elements identified as boilerplate.
+func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, tagNames ...string) {
+	var nodesToDelete []*html.Node
+	textNodes := make(map[string][]*html.Node)
+
+	for _, elem := range etree.Iter(subTree, tagNames...) {
+		nonEmptyLinks, isHighDensity := linkDensityTest(elem, opts)
+
+		if isHighDensity {
+			nodesToDelete = append(nodesToDelete, elem)
+			continue
+		}
+
+		if backtracking && len(nonEmptyLinks) > 0 {
+			text := trim(dom.TextContent(elem))
+			if _, exist := textNodes[text]; !exist {
+				textNodes[text] = []*html.Node{elem}
+			} else {
+				textNodes[text] = append(textNodes[text], elem)
+			}
+		}
+	}
+
+	if backtracking {
+		threshold := 100
+		if opts.FavorPrecision {
+			threshold = 200
+		}
+
+		for text, nodes := range textNodes {
+			textLength := utf8.RuneCountInString(text)
+			if textLength > 0 && textLength < threshold && len(nodes) >= 3 {
+				nodesToDelete = append(nodesToDelete, nodes...)
+			}
+		}
+	}
+
+	for i := len(nodesToDelete) - 1; i >= 0; i-- {
+		etree.Remove(nodesToDelete[i])
 	}
 }
