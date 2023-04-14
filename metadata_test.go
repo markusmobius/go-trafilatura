@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	nurl "net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -124,6 +125,15 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Empty(t, metadata.Author)
 
+	rawHTML = `<html><body>
+		<div class="quote">
+			<p>My quote here</p>
+			<p class="quote-author"><span>—</span> Jenny Smith</p>
+		</div>
+	</body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Author)
+
 	rawHTML = `<html><body><a class="author">Jenny Smith</a></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
@@ -149,6 +159,21 @@ func Test_Metadata_Authors(t *testing.T) {
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
 	rawHTML = `<html><body><h3 itemprop="author">Jenny Smith</h3></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	rawHTML = `<html><body>
+		<div class="article-meta article-meta-byline article-meta-with-photo article-meta-author-and-reviewer" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
+			<span class="article-meta-photo-wrap">
+				<img src="" alt="Jenny Smith" itemprop="image" class="article-meta-photo">
+			</span>
+			<span class="article-meta-contents">
+				<span class="article-meta-author">By <a href="" itemprop="url"><span itemprop="name">Jenny Smith</span></a></span>
+				<span class="article-meta-date">May 18 2022</span>
+				<span class="article-meta-reviewer">Reviewed by <a href="">Robert Smith</a></span>
+			</span>
+		</div>
+	</body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
@@ -435,6 +460,8 @@ func Test_Metadata_MetaTags(t *testing.T) {
 
 func Test_Metadata_RealPages(t *testing.T) {
 	var url string
+	var opts Options
+	var parsedURL *nurl.URL
 	var metadata Metadata
 
 	url = "http://blog.python.org/2016/12/python-360-is-now-available.html"
@@ -666,7 +693,9 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, url, metadata.URL)
 
 	url = "https://www.ndr.de/nachrichten/info/16-Coronavirus-Update-Wir-brauchen-Abkuerzungen-bei-der-Impfstoffzulassung,podcastcoronavirus140.html"
-	metadata = testGetMetadataFromURL(url)
+	parsedURL, _ = nurl.ParseRequestURI(url)
+	opts = Options{OriginalURL: parsedURL}
+	metadata = testGetMetadataFromURL(url, opts)
 	assert.Equal(t, url, metadata.URL)
 	assert.Contains(t, metadata.Author, "Korinna Hennig")
 	assert.Contains(t, metadata.Tags, "Ältere Menschen")
@@ -692,8 +721,11 @@ func testGetMetadataFromHTML(rawHTML string, customOpts ...Options) Metadata {
 	return extractMetadata(doc, defaultOpts)
 }
 
-func testGetMetadataFromURL(url string) Metadata {
+func testGetMetadataFromURL(url string, customOpts ...Options) Metadata {
 	doc := parseMockFile(metadataMockFiles, url)
+	if len(customOpts) > 0 {
+		return extractMetadata(doc, customOpts[0])
+	}
 	return extractMetadata(doc, defaultOpts)
 }
 

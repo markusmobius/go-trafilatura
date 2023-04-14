@@ -45,7 +45,7 @@ var (
 	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
 	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
 	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
-	rxUrlCheck       = regexp.MustCompile(`(?i)https?://|/`)
+	rxUrlCheck       = regexp.MustCompile(`(?i)https?://`)
 	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
 	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
@@ -55,7 +55,7 @@ var (
 	rxCcLicense     = regexp.MustCompile(`(?i)/(by-nc-nd|by-nc-sa|by-nc|by-nd|by-sa|by|zero)/([1-9]\.[0-9])`)
 	rxCcLicenseText = regexp.MustCompile(`(?i)(cc|creative commons) (by-nc-nd|by-nc-sa|by-nc|by-nd|by-sa|by|zero) ?([1-9]\.[0-9])?`)
 
-	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|words|by|von) `)
+	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|words|by|von|from) `)
 	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
 	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
 	rxAuthorSpaceChars   = regexp.MustCompile(`(?i)[._+]`)
@@ -64,7 +64,6 @@ var (
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)\b\s+(am|on|for|at|in|to|from|of|via|with|—|-)\s+(.*)`)
 	rxAuthorEmail        = regexp.MustCompile(`(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`)
 	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
-	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
 	metaNameAuthor = sliceToMap(
 		"article:author", "author", "byl", "citation_author",
@@ -651,7 +650,7 @@ func parseLicenseElement(node *html.Node, strict bool) string {
 }
 
 func normalizeAuthors(authors string, input string) string {
-	if rxPrefixHttp.MatchString(input) || rxAuthorEmail.MatchString(input) {
+	if rxUrlCheck.MatchString(input) || rxAuthorEmail.MatchString(input) {
 		return authors
 	}
 
