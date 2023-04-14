@@ -216,7 +216,8 @@ var DiscardedPaywallXpaths = []string{
 	`.//*[(self::div or self::p)][
 	contains(@id, "paywall") or contains(@id, "premium") or
 	contains(@class, "paid-content") or contains(@class, "paidcontent") or
-	contains(@class, "obfuscated") or contains(@class, "blurred")
+	contains(@class, "obfuscated") or contains(@class, "blurred") or
+    contains(@class, "restricted") or contains(@class, "overlay")
 	]`,
 }
 

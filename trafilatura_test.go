@@ -193,6 +193,18 @@ func Test_ExoticTags(t *testing.T) {
 		`</li>`+
 		`<li>Milk</li>`+
 		`</ul>`)
+
+	// Paywalls
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Equal(t, "1 3", result.ContentText)
+
+	opts = Options{NoFallback: false, Config: zeroConfig}
+	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Equal(t, "1 3", result.ContentText)
+
 }
 
 func Test_Cache(t *testing.T) {
