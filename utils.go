@@ -74,7 +74,12 @@ func uniquifyLists(currents ...string) []string {
 	tracker := map[string]struct{}{}
 
 	for _, current := range currents {
-		for _, entry := range strings.Split(current, ", ") {
+		separator := ","
+		if strings.Count(current, ";") > strings.Count(current, ",") {
+			separator = ";"
+		}
+
+		for _, entry := range strings.Split(current, separator) {
 			entry = trim(entry)
 			entry = strings.ReplaceAll(entry, `"`, "")
 			entry = strings.ReplaceAll(entry, `'`, "")

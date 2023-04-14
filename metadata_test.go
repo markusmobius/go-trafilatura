@@ -320,8 +320,19 @@ func Test_Metadata_Tags(t *testing.T) {
 }
 
 func Test_Metadata_Sitename(t *testing.T) {
-	rawHTML := `<html><head><title>sitemaps.org - Home</title></head><body/></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
+	var rawHTML string
+	var metadata Metadata
+
+	rawHTML = `<html><head><meta name="article:publisher" content="The Newspaper"/></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "The Newspaper", metadata.Sitename)
+
+	rawHTML = `<html><head><meta property="article:publisher" content="The Newspaper"/></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "The Newspaper", metadata.Sitename)
+
+	rawHTML = `<html><head><title>sitemaps.org - Home</title></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "sitemaps.org", metadata.Sitename)
 	assert.Equal(t, "Home", metadata.Title)
 }

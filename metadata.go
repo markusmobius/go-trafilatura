@@ -67,8 +67,8 @@ var (
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
 	metaNameAuthor = sliceToMap(
-		"author", "byl", "citation_author", "dc.creator", "dc.creator.aut",
-		"dc:creator", "article:author",
+		"article:author", "author", "byl", "citation_author",
+		"dc.creator", "dc.creator.aut", "dc:creator",
 		"dcterms.creator", "dcterms.creator.aut", "parsely-author",
 		"sailthru.author", "shareaholic:article_author_name") // questionable: twitter:creator
 	metaNameTitle = sliceToMap(
@@ -80,8 +80,9 @@ var (
 		"dcterms.abstract", "dcterms.description",
 		"description", "sailthru.description", "twitter:description")
 	metaNamePublisher = sliceToMap(
-		"citation_journal_title", "copyright", "dc.publisher",
-		"dc:publisher", "dcterms.publisher", "publisher") // questionable: citation_publisher
+		"article:publisher", "citation_journal_title", "copyright",
+		"dc.publisher", "dc:publisher", "dcterms.publisher",
+		"publisher") // questionable: citation_publisher
 	metaNameTag = sliceToMap(
 		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
 		"shareaholic:keywords", "tags")
@@ -241,6 +242,8 @@ func examineMeta(doc *html.Node) Metadata {
 				metadata.Tags = append(metadata.Tags, content)
 			case strIn(property, "author", "article:author"):
 				metadata.Author = normalizeAuthors(metadata.Author, content)
+			case property == "article:publisher":
+				metadata.Sitename = strOr(metadata.Sitename, content)
 			}
 			continue
 		}
@@ -306,7 +309,7 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 	var metadata Metadata
 
 	// Scan all <meta> nodes whose property starts with "og:"
-	for _, node := range dom.QuerySelectorAll(doc, `head > meta[property^="og:"]`) {
+	for _, node := range dom.QuerySelectorAll(doc, `meta[property^="og:"]`) {
 		// Get property name
 		propName := dom.GetAttribute(node, "property")
 		propName = trim(propName)
@@ -333,6 +336,8 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 			if isAbs, _ := isAbsoluteURL(content); isAbs {
 				metadata.URL = content
 			}
+		case "og:article:tag":
+			metadata.Tags = uniquifyLists(content)
 		}
 	}
 
