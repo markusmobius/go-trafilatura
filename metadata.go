@@ -67,8 +67,8 @@ var (
 	rxPrefixHttp         = regexp.MustCompile(`(?i)^http`)
 
 	metaNameAuthor = sliceToMap(
-		"author", "byl", "citation_author",
-		"dc.creator", "dc.creator.aut", "dc:creator",
+		"author", "byl", "citation_author", "dc.creator", "dc.creator.aut",
+		"dc:creator", "article:author",
 		"dcterms.creator", "dcterms.creator.aut", "parsely-author",
 		"sailthru.author", "shareaholic:article_author_name") // questionable: twitter:creator
 	metaNameTitle = sliceToMap(
