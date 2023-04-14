@@ -569,15 +569,6 @@ func extractDomTags(doc *html.Node) []string {
 		}
 	}
 
-	// Fallback
-	if len(tags) == 0 {
-		for _, node := range dom.QuerySelectorAll(doc, `head meta[name="keywords"]`) {
-			if content := trim(dom.GetAttribute(node, "content")); content != "" {
-				tags = append(tags, content)
-			}
-		}
-	}
-
 	return uniquifyLists(tags...)
 }
 

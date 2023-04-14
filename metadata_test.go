@@ -66,14 +66,18 @@ func Test_Metadata_Titles(t *testing.T) {
 }
 
 func Test_Metadata_Authors(t *testing.T) {
+	var opts Options
+	var rawHTML string
+	var metadata Metadata
+
 	// Normalization
 	assert.Equal(t, "Abc", normalizeAuthors("", "abc"))
 	assert.Equal(t, "Steve Steve", normalizeAuthors("", "Steve Steve 123"))
 	assert.Equal(t, "Steve Steve", normalizeAuthors("", "By Steve Steve"))
 
 	// Extraction
-	rawHTML := `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
+	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
 	rawHTML = `<html><head><meta name="author" content="Jenny Smith"/></head><body></body></html>`
@@ -224,10 +228,15 @@ func Test_Metadata_Authors(t *testing.T) {
 	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
 
 	// Blacklist
-	opts := Options{BlacklistedAuthors: []string{"Fake Author"}}
+	opts = Options{BlacklistedAuthors: []string{"Fake Author"}}
 	rawHTML = `<html><body><meta itemprop="author" content="Fake Author"/><a class="author">Jenny Smith from Trafilatura</a></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML, opts)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	opts = Options{BlacklistedAuthors: []string{"Jenny Smith"}}
+	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML, opts)
+	assert.Equal(t, "", metadata.Author)
 }
 
 func Test_Metadata_URLs(t *testing.T) {

@@ -196,6 +196,25 @@ func Test_ExoticTags(t *testing.T) {
 		`<li>Milk</li>`+
 		`</ul>`)
 
+	// Table with links
+	htmlString = `<html><body><article><table><tr><td><a href="test.html">` +
+		strings.Repeat("ABCD", 100) +
+		`</a></td></tr></table></article></body></html>`
+	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.NotContains(t, result.ContentText, "ABCD")
+
+	// Nested table
+	htmlString = `<html><body><article>
+		<table><th>1</th><table><tr><td>2</td></tr></table></table>
+		</article></body></html>`
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	// TODO: all elements are there, but output not nested
+	// TODO: th conversion
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<th>1</th>")
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
+
 	// Paywalls
 	opts = Options{NoFallback: true, Config: zeroConfig}
 	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
@@ -206,7 +225,6 @@ func Test_ExoticTags(t *testing.T) {
 	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
-
 }
 
 func Test_Cache(t *testing.T) {
@@ -681,8 +699,14 @@ func Test_ExtractionOptions(t *testing.T) {
 	var opts Options
 	var result *ExtractResult
 	htmlStr := `<html>
-		<head><meta http-equiv="content-language" content="EN"/></head>
-		<body><div="article-body"><p>Text.</p></div></body>
+		<head>
+			<meta http-equiv="content-language" content="EN" />
+		</head>
+		<body>
+			<div="article-body">
+				<p>Text.<!-- comment --></p>
+			</div>
+		</body>
 	</html>`
 
 	opts = Options{Config: zeroConfig}
@@ -735,4 +759,19 @@ func Test_PrecisionRecall(t *testing.T) {
 	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
+
+	// Never extracted
+	htmlStr = `<html><body><article><div><p>
+		<a href="test.html">1.</a>
+		<br />
+		<a href="test2.html">2.</a>
+	</p></div></article></body></html>`
+
+	opts = Options{FavorRecall: true, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotContains(t, result.ContentText, "1")
+
+	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotContains(t, result.ContentText, "1")
 }
