@@ -1004,7 +1004,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		}
 
 		// Extract text from candidate
-		candidateText := trim(etree.IterText(candidate, " "))
+		candidateText := trim(dom.TextContent(candidate))
 		lenCandidate := utf8.RuneCountInString(candidateText)
 		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
 
