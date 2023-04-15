@@ -700,7 +700,6 @@ func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.
 func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	newTable := etree.Element(("table"))
 	newRow := etree.Element("tr")
-	i := 0
 
 	// Prepare potential tags with div
 	potentialTagsWithDiv := duplicateMap(potentialTags)
@@ -711,9 +710,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 	etree.StripTags(tableElement, "thead", "tbody", "tfoot")
 
 	// Explore sub-elements
-	for _, subElement := range etree.Iter(tableElement) {
-		i++
-
+	for _, subElement := range dom.GetElementsByTagName(tableElement, "*") {
 		subElementTag := dom.TagName(subElement)
 		if subElementTag == "tr" {
 			if len(dom.Children(newRow)) > 0 {
@@ -732,7 +729,11 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 				}
 			} else {
 				// Proceed with iteration, fix for nested elements
-				for _, child := range etree.Iter(subElement) {
+				etree.SetText(newChildElem, etree.Text(subElement))
+				etree.SetTail(newChildElem, etree.Tail(subElement))
+				subElement.Data = "done"
+
+				for _, child := range dom.GetElementsByTagName(subElement, "*") {
 					childTag := dom.TagName(child)
 
 					var processedSubChild *html.Node
@@ -756,7 +757,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 			if etree.Text(newChildElem) != "" || len(dom.Children(newChildElem)) > 0 {
 				dom.AppendChild(newRow, newChildElem)
 			}
-		} else if subElementTag == "table" && i > 1 {
+		} else if subElementTag == "table" {
 			// beware of nested tables
 			break
 		}

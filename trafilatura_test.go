@@ -141,33 +141,6 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
 
-	// Tables with nested elements
-	htmlString = `<html><body><article>` +
-		`<table>` +
-		`<tr><td><b>Present Tense</b></td>` +
-		`<td>I buy</td>` +
-		`<td>you buy</td>` +
-		`<td>he/she/it buys</td>` +
-		`<td>we buy</td>` +
-		`<td>you buy</td>` +
-		`<td>they buy</td>` +
-		`</tr>` +
-		`</table></article></body></html>`
-	opts = Options{NoFallback: true, Config: zeroConfig}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
-		`<tr>`+
-		`<td>`+
-		`<b>Present Tense</b>`+
-		`</td>`+
-		`<td>I buy</td>`+
-		`<td>you buy</td>`+
-		`<td>he/she/it buys</td>`+
-		`<td>we buy</td>`+
-		`<td>you buy</td>`+
-		`<td>they buy</td>`+
-		`</tr>`)
-
 	// Nested list
 	htmlString = `<html><body><article>` +
 		`<ul>` + // first list
@@ -195,25 +168,6 @@ func Test_ExoticTags(t *testing.T) {
 		`</li>`+
 		`<li>Milk</li>`+
 		`</ul>`)
-
-	// Table with links
-	htmlString = `<html><body><article><table><tr><td><a href="test.html">` +
-		strings.Repeat("ABCD", 100) +
-		`</a></td></tr></table></article></body></html>`
-	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.NotContains(t, result.ContentText, "ABCD")
-
-	// Nested table
-	htmlString = `<html><body><article>
-		<table><th>1</th><table><tr><td>2</td></tr></table></table>
-		</article></body></html>`
-	opts = Options{NoFallback: true, Config: zeroConfig}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	// TODO: all elements are there, but output not nested
-	// TODO: th conversion
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<th>1</th>")
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
 
 	// Paywalls
 	opts = Options{NoFallback: true, Config: zeroConfig}
@@ -792,4 +746,227 @@ func Test_PrecisionRecall(t *testing.T) {
 	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
+}
+
+func Test_TableProcessing(t *testing.T) {
+	var opts Options
+	var processedTable *html.Node
+	var nodeValues []string
+	potentialTags := duplicateMap(tagCatalog)
+	iterNodeValues := func(root *html.Node) []string {
+		var nodeValues []string
+		for _, node := range etree.Iter(root) {
+			nodeTag := dom.TagName(node)
+			nodeText := trim(etree.Text(node))
+			if nodeText == "" {
+				nodeValues = append(nodeValues, nodeTag)
+			} else {
+				nodeValues = append(nodeValues, nodeTag+"-"+nodeText)
+			}
+		}
+		return nodeValues
+	}
+
+	// Simple table
+	tableSimpleCell := nodeFromStr(`<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>`)
+	processedTable = handleTable(tableSimpleCell, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td-cell1", "td-cell2", "tr", "td-cell3", "td-cell4"}, iterNodeValues(processedTable))
+
+	// If a cell contains 'exotic' tags, they are cleaned during the extraction
+	// Process and the content is merged with the parent e.g. <td>
+	tableCellWithChildren := nodeFromStr(`<table><tr><td><p>text</p><p>more text</p></td></tr></table>`)
+	processedTable = handleTable(tableCellWithChildren, potentialTags, nil, defaultOpts)
+	assert.Equal(t, `<table><tr><td><p>text</p><p>more text</p></td></tr></table>`, dom.OuterHTML(processedTable))
+
+	// Complex table that hasn't been cleaned yet
+	complexPage := docFromStr(`
+	<html><body>
+		<article>
+			<table>
+			<tbody>
+				<tr>
+				<td><small>text<br></small>
+					<h4>more_text</h4>
+				</td>
+				<td><a href='link'>linktext</a></td>
+				</tr>
+			</tbody>
+			</table>
+		</article>
+	</body></html>`)
+	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	result, _ := ExtractDocument(complexPage, opts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td>`)
+	// The result above is kind of a bit different compared to original, since in our port we have
+	// additional functions to remove empty elements from final result.
+
+	// Table cell with text and child
+	tableCellWithTextAndChild := nodeFromStr(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
+	processedTable = handleTable(tableCellWithTextAndChild, potentialTags, nil, defaultOpts)
+	assert.Equal(t, `<table><tr><td>text<p>more text</p></td></tr></table>`, dom.OuterHTML(processedTable))
+
+	// Table cell with link
+	tableCellWithLink := nodeFromStr(`<table><tr><td><a href='test'>link</a></td></tr></table>`)
+	processedTable = handleTable(tableCellWithLink, potentialTags, nil, defaultOpts)
+
+	nodeValues = iterNodeValues(dom.QuerySelector(processedTable, "td"))
+	assert.Equal(t, []string{"td", "p"}, nodeValues)
+
+	// Table with head
+	tableWithHead := nodeFromStr(`
+	<table>
+		<tr><th>Month</th><th>Days</th></tr>
+		<tr><td>January</td><td>31</td></tr>
+		<tr><td>February</td><td>28</td></tr>
+	</table>`)
+	processedTable = handleTable(tableWithHead, potentialTags, nil, defaultOpts)
+	assert.Equal(t, 3, len(dom.Children(processedTable)))
+
+	firstRow := dom.Children(processedTable)[0]
+	firstRowCells := dom.Children(firstRow)
+	assert.Equal(t, 2, len(firstRowCells))
+	assert.Equal(t, "th", dom.TagName(firstRowCells[0]))
+	assert.Equal(t, "th", dom.TagName(firstRowCells[1]))
+	assert.Equal(t, "Month", dom.TextContent(firstRowCells[0]))
+	assert.Equal(t, "Days", dom.TextContent(firstRowCells[1]))
+
+	// Table with head span
+	tableWithHeadSpan := nodeFromStr(`
+	<table>
+		<tr>
+			<th>Name</th>
+			<th>Adress</th>
+			<th colspan="2">Phone</th>
+		</tr>
+		<tr>
+			<td>Jane Doe</td>
+			<td>test@example.com</td>
+			<td>phone 1</td>
+			<td>phone 2</td>
+		</tr>
+	</table>`)
+	processedTable = handleTable(tableWithHeadSpan, potentialTags, nil, defaultOpts)
+	assert.Equal(t, 2, len(dom.Children(processedTable)))
+
+	firstRow = dom.Children(processedTable)[0]
+	firstRowCells = dom.Children(firstRow)
+	assert.Equal(t, 3, len(firstRowCells))
+	assert.Equal(t, "th", dom.TagName(firstRowCells[0]))
+	assert.Equal(t, "th", dom.TagName(firstRowCells[1]))
+	assert.Equal(t, "th", dom.TagName(firstRowCells[2]))
+
+	// Table cell with formatting
+	tableCellWithFormatting := nodeFromStr(`<table><tr><td><mark>highlighted text</mark></td></tr></table>`)
+	processedTable = handleTable(tableCellWithFormatting, potentialTags, nil, defaultOpts)
+	firstCell := dom.QuerySelector(processedTable, "td")
+	assert.NotNil(t, firstCell)
+	assert.Equal(t, dom.OuterHTML(firstCell), `<td><mark>highlighted text</mark></td>`)
+
+	// Table cell with span
+	tableCellWithSpan := nodeFromStr(`<table><tr><td><span style='sth'>span text</span></td></tr></table>`)
+	processedTable = handleTable(tableCellWithSpan, potentialTags, nil, defaultOpts)
+	firstCell = dom.QuerySelector(processedTable, "td")
+	assert.NotNil(t, firstCell)
+	assert.Equal(t, dom.OuterHTML(firstCell), `<td><p></p></td>`)
+
+	// Table with nested elements
+	tableNestedElements := docFromStr(`
+	<html><body>
+		<article>
+			<table>
+				<tr>
+					<td><b>Present Tense</b></td>
+					<td>I buy</td>
+					<td>you buy</td>
+					<td>he/she/it buys</td>
+					<td>we buy</td>
+					<td>you buy</td>
+					<td>they buy</td>
+				</tr>
+			</table>
+		</article>
+	</body></html>`)
+	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	result, _ = ExtractDocument(tableNestedElements, opts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
+		`<tr>`+
+		`<td><b>Present Tense</b></td>`+
+		`<td>I buy</td>`+
+		`<td>you buy</td>`+
+		`<td>he/she/it buys</td>`+
+		`<td>we buy</td>`+
+		`<td>you buy</td>`+
+		`<td>they buy</td>`+
+		`</tr>`)
+
+	// Table with links
+	// TODO: further tests and adjustsments
+	tableWithLinks := docFromStr(`` +
+		`<html><body><article><table><tr><td><a href="test.html">` +
+		strings.Repeat("ABCD", 100) +
+		`</a></td></tr></table></article></body></html>`)
+	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	result, _ = ExtractDocument(tableWithLinks, opts)
+	assert.NotContains(t, result.ContentText, "ABCD")
+
+	// Nested table 1
+	tableNested1 := docFromStr(`
+	<html><body><article>
+		<table><th>1</th><table><tr><td>2</td></tr></table></table>
+	</article></body></html>`)
+	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	result, _ = ExtractDocument(tableNested1, opts)
+	// TODO: all elements are there, but output not nested
+	// TODO: th conversion
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<th>1</th>")
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
+
+	// Nested table 2
+	tableNested2 := nodeFromStr(`
+	<table><tr><td>
+		<table><tr><td>1</td></tr></table>
+	</td></tr></table>`)
+	processedTable = handleTable(tableNested2, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td", "td-1"}, iterNodeValues(processedTable))
+
+	// Nested table - complex
+	tableNestedComplex := nodeFromStr(`
+	<table>
+		<tr>
+			<td>
+				<table><tr><td>1</td></tr></table>
+			</td>
+			<td>text1</td>
+		</tr>
+		<tr>
+			<td>text2</td>
+		</tr>
+	</table>`)
+	processedTable = handleTable(tableNestedComplex, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td", "td-1", "td-text1", "tr", "td-text2"}, iterNodeValues(processedTable))
+
+	// Table with list
+	tableWithList := nodeFromStr(`
+	<table>
+		<tr><td>
+			<p>a list</p>
+			<ul>
+				<li>one</li>
+				<li>two</li>
+			</ul>
+		</td></tr>
+	</table>`)
+	processedTable = handleTable(tableWithList, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul"}, iterNodeValues(processedTable))
+
+	// Broken table 1 (broken as in uncommon structure)
+	tableBroken1 := nodeFromStr(`<table><td>cell1</td><tr><td>cell2</td></tr></table>`)
+	processedTable = handleTable(tableBroken1, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td-cell1", "tr", "td-cell2"}, iterNodeValues(processedTable))
+
+	// Broken table 2
+	tableBroken2 := docFromStr(`<table><tr><p>text</p></tr><tr><td>cell</td></tr></table>`)
+	tableBroken2 = dom.QuerySelector(tableBroken2, "table")
+	processedTable = handleTable(tableBroken2, potentialTags, nil, defaultOpts)
+	assert.Equal(t, []string{"table", "tr", "td-cell"}, iterNodeValues(processedTable))
 }

@@ -88,3 +88,9 @@ func docFromStr(str string) *html.Node {
 	doc, _ := html.Parse(strings.NewReader(str))
 	return doc
 }
+
+func nodeFromStr(s string) *html.Node {
+	node := docFromStr(s)
+	node = dom.QuerySelector(node, "body > *:first-child")
+	return node
+}
