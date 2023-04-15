@@ -53,7 +53,7 @@ func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 	}
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Language
-	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"]`)
+	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"][content]`)
 	if len(metaNodes) > 0 {
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")
@@ -69,7 +69,7 @@ func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 	}
 
 	// Locale
-	metaNodes = dom.QuerySelectorAll(doc, `meta[property="og:locale"]`)
+	metaNodes = dom.QuerySelectorAll(doc, `meta[property="og:locale"][content]`)
 	if len(metaNodes) > 0 {
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")

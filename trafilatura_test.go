@@ -456,18 +456,18 @@ func Test_Filters(t *testing.T) {
 
 	// HTML lang filter
 	// No lang
-	opts.TargetLanguage = "en"
+	opts = Options{TargetLanguage: "en"}
 	doc := docFromStr(`<html><body></body></html>`)
 	assert.True(t, checkHtmlLanguage(doc, opts, false))
 
 	// Lang detection on content
 	str := `html><body><article><p>How many ages hence/Shall this our lofty scene be acted over,/In states unborn and accents yet unknown!</p></article></body></html>`
 
-	opts.TargetLanguage = "de"
+	opts = Options{TargetLanguage: "de"}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
-	opts.TargetLanguage = "en"
+	opts = Options{TargetLanguage: "en"}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.NotNil(t, result)
 
@@ -479,11 +479,16 @@ func Test_Filters(t *testing.T) {
 	p3 := "<p>Thus have I had thee as a dream doth flatter, In sleep a king, but waking no such matter.</p>"
 	str = `<html lang="en-US"><body>` + strings.Repeat(p3, 50) + `</body></html>`
 
-	opts.TargetLanguage = "en"
+	opts = Options{TargetLanguage: "en", NoFallback: true}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.NotNil(t, result)
 
-	opts.TargetLanguage = "de"
+	opts = Options{TargetLanguage: "de", NoFallback: true}
+	result, _ = Extract(strings.NewReader(str), opts)
+	assert.Nil(t, result)
+
+	str = `<html lang="de-DE"><body>` + strings.Repeat(p3, 50) + `</body></html>`
+	opts = Options{TargetLanguage: "de", NoFallback: true}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
