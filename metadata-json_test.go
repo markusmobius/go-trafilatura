@@ -62,4 +62,38 @@ func Test_MetadataJson_Authors(t *testing.T) {
 	metadata = testGetMetadataFromFile("simple/json-metadata-13.html")
 	assert.Equal(t, "Andreessen Horowitz", metadata.Sitename)
 	assert.Equal(t, "", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-14.html")
+	assert.Equal(t, "", metadata.Sitename)
+	assert.Equal(t, "", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-15.html")
+	assert.Equal(t, "", metadata.Sitename)
+	assert.Equal(t, "", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-16.html")
+	assert.Equal(t, "", metadata.Sitename)
+	assert.Equal(t, "", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-17.html")
+	assert.Equal(t, "", metadata.Sitename)
+	assert.Equal(t, "Apple Spring Forward Event Live Blog", metadata.Title)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-17-b.html")
+	assert.Equal(t, "", metadata.Sitename)
+	assert.Equal(t, "", metadata.Title)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-18.html")
+	assert.Equal(t, "EastEnders' June Brown leaves soap 'for good'", metadata.Title)
+	assert.Equal(t, "BBC News", metadata.Sitename)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-19.html")
+	assert.Equal(t, "BBC News", metadata.Sitename)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-20.html")
+	assert.Equal(t, "John Doe", metadata.Author)
+	assert.Equal(t, "How to Tie a Reef Knot", metadata.Title)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-21.html")
+	assert.Equal(t, "Bill Birtles; John Smith", metadata.Author)
 }

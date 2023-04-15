@@ -274,11 +274,18 @@ func getSchemaNames(v any, schemaTypes ...string) []string {
 			name = trim(getValue[string](value, "alternateName"))
 		}
 
+		// If at this point name is found, we can return it
 		if name != "" {
 			return []string{name}
-		} else {
-			return nil
 		}
+
+		// At this point name not found, so try it as array.
+		if vArray, isArray := value["name"].([]any); isArray {
+			return getSchemaNames(vArray, schemaTypes...)
+		}
+
+		// If nothing else, return nil
+		return nil
 	}
 
 	// Finally, check if its array
