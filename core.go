@@ -1054,8 +1054,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
 		tmpText := trim(dom.TextContent(articleElement))
-		lenText := utf8.RuneCountInString(tmpText)
-		if lenText > 0 {
+		if utf8.RuneCountInString(tmpText) > 100 {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, tmpText)
 			return postBody, tmpText
@@ -1074,19 +1073,25 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	}
 
 	tmpText := trim(etree.IterText(postBody, "\n"))
-	if utf8.RuneCountInString(tmpText) > 0 {
+	if utf8.RuneCountInString(tmpText) > 100 {
 		return postBody, tmpText
 	}
 
 	// Default strategy: clean the tree and take everything
 	if body := dom.QuerySelector(doc, "body"); body != nil {
 		text := trim(etree.IterText(body, "\n"))
-		elem := etree.SubElement(postBody, "p")
-		etree.SetText(elem, text)
-		return postBody, text
+		if utf8.RuneCountInString(text) > 100 {
+			elem := etree.SubElement(postBody, "p")
+			etree.SetText(elem, text)
+			return postBody, text
+		}
 	}
 
-	return postBody, ""
+	// New fallback
+	text := trim(dom.TextContent(doc))
+	elem := etree.SubElement(postBody, "p")
+	etree.SetText(elem, text)
+	return postBody, text
 }
 
 // getLanguage returns the language of the text.
