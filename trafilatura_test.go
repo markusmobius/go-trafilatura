@@ -179,6 +179,53 @@ func Test_ExoticTags(t *testing.T) {
 	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
+
+	// Edge cases
+	htmlString = `
+	<!DOCTYPE html>
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>A weird bug</title>
+	</head>
+	<body>
+		<div>
+			<h1>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</h1>
+			<h2>Sed et interdum lectus.</h2>
+			<p>Quisque molestie nunc eu arcu condimentum fringilla.</p>
+			<!-- strong can be changed to b, em, i, u, or kbd -->
+			<strong><a></a></strong>
+			<h2>Aliquam eget interdum elit, id posuere ipsum.</h2>
+			<p>Phasellus lectus erat, hendrerit sed tortor ac, dignissim vehicula metus.</p>
+		</div>
+	</body>
+	</html>`
+	opts = Options{IncludeLinks: true, IncludeImages: true}
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.NotEmpty(t, result.ContentText)
+
+	htmlString = `
+	<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>A weird bug</title>
+	</head>
+	<body>
+		<div id="content">
+			<h1>A header</h1>
+			<h2>Very specific bug so odd</h2>
+			<h3>Nested header</h3>
+			<p>Some "hyphenated-word quote" followed by a bit more text line.</p>
+			<em>
+				<p>em improperly wrapping p here</p>
+			</em>
+			<p>Text here</p>
+		</div>
+	</body>
+	</html>`
+	opts = Options{IncludeLinks: true, IncludeImages: true}
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.NotEmpty(t, result.ContentText)
 }
 
 func Test_LanguageClassifier(t *testing.T) {
