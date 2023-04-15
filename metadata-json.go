@@ -173,7 +173,8 @@ func decodeJsonLd(rawJsonLd string) (persons, organizations, articles []map[stri
 		case objType == "Person":
 			persons = append(persons, obj)
 
-		case strings.Contains(objType, "Organization"):
+		case objType == "WebSite",
+			strings.Contains(objType, "Organization"):
 			organizations = append(organizations, obj)
 
 		case strings.Contains(objType, "Article"), strings.Contains(objType, "Posting"), objType == "Report":

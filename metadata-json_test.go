@@ -58,4 +58,8 @@ func Test_MetadataJson_Authors(t *testing.T) {
 	assert.Equal(t, "12 words and phrases you need to survive in Hamburg", metadata.Title)
 	assert.Equal(t, "The Local", metadata.Sitename)
 	assert.Equal(t, "Alexander Johnstone", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-13.html")
+	assert.Equal(t, "Andreessen Horowitz", metadata.Sitename)
+	assert.Equal(t, "", metadata.Author)
 }
