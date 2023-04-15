@@ -614,9 +614,8 @@ func extractLicense(doc *html.Node) string {
 	}
 
 	// Probe footer elements for CC links
-	selector := `//footer//a[@href]` + `|` +
-		`//div[contains(@class, "footer") or contains(@id, "footer")]//a[@href]`
-	for _, node := range htmlxpath.Find(doc, selector) {
+	selector := `footer a[href], div[class*="footer"] a[href], div[id*="footer"] a[href]`
+	for _, node := range dom.QuerySelectorAll(doc, selector) {
 		if result := parseLicenseElement(node, true); result != "" {
 			return result
 		}

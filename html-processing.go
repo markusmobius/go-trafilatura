@@ -22,7 +22,6 @@
 package trafilatura
 
 import (
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -32,8 +31,6 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"golang.org/x/net/html"
 )
-
-var rxWords = regexp.MustCompile(`\w`)
 
 // docCleaning cleans the document by discarding unwanted elements
 func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
@@ -194,15 +191,15 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 	etree.SetText(node, text)
 	etree.SetTail(node, tail)
 
-	if rxWords.MatchString(text) {
-		if textFilter(node) {
-			return nil
-		}
+	if text == "" { // || !rxWords.MatchString(text) {
+		return nil
+	}
 
-		if opts.Deduplicate && cache != nil && duplicateTest(node, cache, opts) {
-			return nil
-		}
-	} else {
+	if textFilter(node) {
+		return nil
+	}
+
+	if opts.Deduplicate && cache != nil && duplicateTest(node, cache, opts) {
 		return nil
 	}
 
