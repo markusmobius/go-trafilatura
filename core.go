@@ -289,7 +289,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Prune the subtree
 		subTree = pruneUnwantedSections(subTree, opts)
-		deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
+		// TODO: second pass?
+		// deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
 
 		// Define iteration strategy
 		_, tableIsPotentialTag := potentialTags["table"]
@@ -850,12 +851,20 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	logInfo(opts, "recovering wild text elements")
 
-	searchList := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
+	var searchList []string
+	searchList = append(searchList, listXmlQuoteTags...)
+	searchList = append(searchList, "code", "p", "table")
+
 	if opts.FavorRecall {
 		potentialTags = duplicateMap(potentialTags)
-		potentialTags["br"] = struct{}{}
 		potentialTags["div"] = struct{}{}
-		searchList = append(searchList, "div", "br")
+		for _, t := range listXmlLbTags {
+			potentialTags[t] = struct{}{}
+		}
+
+		searchList = append(searchList, "div")
+		searchList = append(searchList, listXmlLbTags...)
+		searchList = append(searchList, listXmlListTags...)
 	}
 
 	// Prune
@@ -1118,10 +1127,21 @@ func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 
 	// Remove elements by link density
 	deleteByLinkDensity(subTree, opts, true, "div")
+	deleteByLinkDensity(subTree, opts, true, listXmlListTags...)
 	deleteByLinkDensity(subTree, opts, false, "p")
 
 	// Also filter fw/head, table and quote elements?
 	if opts.FavorPrecision {
+		// Delete trailing titles
+		children := dom.Children(subTree)
+		for i := len(children) - 1; i >= 0; i-- {
+			if inMap(dom.TagName(children[i]), mapXmlHeadTags) {
+				children[i].Parent.RemoveChild(children[i])
+				continue
+			}
+			break
+		}
+
 		deleteByLinkDensity(subTree, opts, false, listXmlHeadTags...)
 		deleteByLinkDensity(subTree, opts, false, listXmlQuoteTags...)
 	}
