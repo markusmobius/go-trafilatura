@@ -330,9 +330,10 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	etree.SetTail(element, tail)
 
 	// Adapt content string
-	if (tagName != "br" && tagName != "hr") && text == "" && tail != "" {
+	if !inMap(tagName, mapXmlLbTags) && text == "" && tail != "" {
 		etree.SetText(element, tail)
-		text = tail
+		etree.SetTail(element, "")
+		text, tail = tail, ""
 	}
 
 	// Content checks

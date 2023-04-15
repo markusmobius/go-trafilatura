@@ -4,7 +4,7 @@ var (
 	listXmlListTags    = []string{"ul", "ol", "dl"}
 	listXmlQuoteTags   = []string{"blockquote", "pre", "q"}
 	listXmlHeadTags    = []string{"h1", "h2", "h3", "h4", "h5", "h6", "summary"}
-	listXmlLbTags      = []string{"br", "hr"}
+	listXmlLbTags      = []string{"br", "hr", "lb"}
 	listXmlHiTags      = []string{"em", "i", "b", "strong", "u", "kbd", "samp", "tt", "var", "sub", "sup"}
 	listXmlRefTags     = []string{"a"}
 	listXmlGraphicTags = []string{"img"}
