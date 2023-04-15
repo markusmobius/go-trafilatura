@@ -412,11 +412,7 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 
 		if backtracking && len(nonEmptyLinks) > 0 {
 			text := trim(dom.TextContent(elem))
-			if _, exist := textNodes[text]; !exist {
-				textNodes[text] = []*html.Node{elem}
-			} else {
-				textNodes[text] = append(textNodes[text], elem)
-			}
+			textNodes[text] = append(textNodes[text], elem)
 		}
 	}
 
