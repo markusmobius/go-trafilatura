@@ -29,7 +29,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/abadojack/whatlanggo"
 	htmlxpath "github.com/antchfx/htmlquery"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
@@ -166,11 +165,16 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Sanity check on language
+	lang := languageClassifier(tmpBodyText, tmpComments)
 	if opts.TargetLanguage != "" {
-		lang := getLanguage(tmpBodyText, tmpComments)
 		if lang != opts.TargetLanguage {
 			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
 		}
+	}
+
+	// Put the captured language to metadata
+	if lang != "" {
+		metadata.Language = lang
 	}
 
 	// Post cleaning
@@ -1092,22 +1096,6 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	elem := etree.SubElement(postBody, "p")
 	etree.SetText(elem, text)
 	return postBody, text
-}
-
-// getLanguage returns the language of the text.
-func getLanguage(contentText, commentsText string) string {
-	lenContent := utf8.RuneCountInString(contentText)
-	lenComments := utf8.RuneCountInString(commentsText)
-
-	var langTest string
-	if lenComments > lenContent {
-		langTest = commentsText
-	} else {
-		langTest = contentText
-	}
-
-	lang := whatlanggo.DetectLang(langTest)
-	return lang.Iso6391()
 }
 
 func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {

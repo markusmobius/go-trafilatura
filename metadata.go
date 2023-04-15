@@ -105,6 +105,7 @@ type Metadata struct {
 	ID          string
 	Fingerprint string
 	License     string
+	Language    string
 }
 
 func extractMetadata(doc *html.Node, opts Options) Metadata {

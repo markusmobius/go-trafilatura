@@ -227,6 +227,19 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Equal(t, "1 3", result.ContentText)
 }
 
+func Test_LanguageClassifier(t *testing.T) {
+	var lang string
+
+	lang = languageClassifier("Hier ist ein Text auf Deutsch", "")
+	assert.Equal(t, "de", lang)
+
+	lang = languageClassifier("Hier ist ein Text auf Deutsch", "")
+	assert.NotEqual(t, "en", lang)
+
+	lang = languageClassifier("Hier ist ein Text auf Deutsch", "Die Kommentare sind aber etwas länger.")
+	assert.Equal(t, "de", lang)
+}
+
 func Test_Cache(t *testing.T) {
 	cache := lru.NewCache(2)
 
@@ -411,10 +424,10 @@ func Test_Baseline(t *testing.T) {
 
 func Test_Language(t *testing.T) {
 	// Main text
-	assert.Equal(t, "de", getLanguage("Hier ist ein Text auf Deutsch", ""))
+	assert.Equal(t, "de", languageClassifier("Hier ist ein Text auf Deutsch", ""))
 
 	// Comments text
-	assert.Equal(t, "de", getLanguage("This is English.", "Die Kommentare sind aber etwas länger."))
+	assert.Equal(t, "de", languageClassifier("This is English.", "Die Kommentare sind aber etwas länger."))
 }
 
 func Test_Filters(t *testing.T) {

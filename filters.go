@@ -26,6 +26,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/abadojack/whatlanggo"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
@@ -98,6 +99,22 @@ func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 
 	logWarn(opts, "no html language elements found")
 	return true
+}
+
+// languageClassifier returns the language of the text.
+func languageClassifier(contentText, commentsText string) string {
+	lenContent := utf8.RuneCountInString(contentText)
+	lenComments := utf8.RuneCountInString(commentsText)
+
+	var langTest string
+	if lenComments > lenContent {
+		langTest = commentsText
+	} else {
+		langTest = contentText
+	}
+
+	lang := whatlanggo.DetectLang(langTest)
+	return lang.Iso6391()
 }
 
 // textFilter filters out unwanted text
