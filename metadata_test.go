@@ -32,6 +32,44 @@ import (
 	"golang.org/x/net/html"
 )
 
+func Test_Metadata(t *testing.T) {
+	rawHTML := `
+	<html>
+
+	<head>
+		<title>Test Title</title>
+		<meta itemprop="author" content="Jenny Smith" />
+		<meta property="og:url" content="https://example.org" />
+		<meta itemprop="description" content="Description" />
+		<meta property="og:published_time" content="2017-09-01" />
+		<meta name="article:publisher" content="The Newspaper" />
+		<meta property="image" content="https://example.org/example.jpg" />
+	</head>
+
+	<body>
+		<p class="entry-categories">
+			<a href="https://example.org/category/cat1/">Cat1</a>,
+			<a href="https://example.org/category/cat2/">Cat2</a>
+		</p>
+		<p>
+			<a href="https://creativecommons.org/licenses/by-sa/4.0/" rel="license">CC BY-SA</a>
+		</p>
+	</body>
+
+	</html>`
+
+	metadata := testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Test Title", metadata.Title)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+	assert.Equal(t, "https://example.org", metadata.URL)
+	assert.Equal(t, "Description", metadata.Description)
+	assert.Equal(t, "The Newspaper", metadata.Sitename)
+	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+	assert.Equal(t, []string{"Cat1", "Cat2"}, metadata.Categories)
+	assert.Equal(t, "CC BY-SA 4.0", metadata.License)
+	assert.Equal(t, "https://example.org/example.jpg", metadata.Image)
+}
+
 func Test_Metadata_Titles(t *testing.T) {
 	var rawHTML string
 	var metadata Metadata
