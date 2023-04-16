@@ -771,13 +771,13 @@ func Test_TableProcessing(t *testing.T) {
 	}
 
 	// Simple table
-	tableSimpleCell := nodeFromStr(`<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>`)
+	tableSimpleCell := etree.FromString(`<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>`)
 	processedTable = handleTable(tableSimpleCell, potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td-cell1", "td-cell2", "tr", "td-cell3", "td-cell4"}, iterNodeValues(processedTable))
 
 	// If a cell contains 'exotic' tags, they are cleaned during the extraction
 	// Process and the content is merged with the parent e.g. <td>
-	tableCellWithChildren := nodeFromStr(`<table><tr><td><p>text</p><p>more text</p></td></tr></table>`)
+	tableCellWithChildren := etree.FromString(`<table><tr><td><p>text</p><p>more text</p></td></tr></table>`)
 	processedTable = handleTable(tableCellWithChildren, potentialTags, nil, defaultOpts)
 	assert.Equal(t, `<table><tr><td><p>text</p><p>more text</p></td></tr></table>`, dom.OuterHTML(processedTable))
 
@@ -802,18 +802,18 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td></tr></table>`)
 
 	// Table cell with text and child
-	tableCellWithTextAndChild := nodeFromStr(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
+	tableCellWithTextAndChild := etree.FromString(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
 	processedTable = handleTable(tableCellWithTextAndChild, potentialTags, nil, defaultOpts)
 	assert.Equal(t, `<table><tr><td>text<p>more text</p></td></tr></table>`, dom.OuterHTML(processedTable))
 
 	// Table cell with link
-	tableCellWithLink := nodeFromStr(`<table><tr><td><a href='test'>link</a></td></tr></table>`)
+	tableCellWithLink := etree.FromString(`<table><tr><td><a href='test'>link</a></td></tr></table>`)
 	processedTable = handleTable(tableCellWithLink, potentialTags, nil, defaultOpts)
 	nodeValues = iterNodeValues(dom.QuerySelector(processedTable, "td"))
 	assert.Equal(t, []string{"td", "p"}, nodeValues)
 
 	// Table with head
-	tableWithHead := nodeFromStr(`
+	tableWithHead := etree.FromString(`
 	<table>
 		<tr><th>Month</th><th>Days</th></tr>
 		<tr><td>January</td><td>31</td></tr>
@@ -831,7 +831,7 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Equal(t, "Days", dom.TextContent(firstRowCells[1]))
 
 	// Table with head span
-	tableWithHeadSpan := nodeFromStr(`
+	tableWithHeadSpan := etree.FromString(`
 	<table>
 		<tr>
 			<th>Name</th>
@@ -856,14 +856,14 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Equal(t, "th", dom.TagName(firstRowCells[2]))
 
 	// Table cell with formatting
-	tableCellWithFormatting := nodeFromStr(`<table><tr><td><mark>highlighted text</mark></td></tr></table>`)
+	tableCellWithFormatting := etree.FromString(`<table><tr><td><mark>highlighted text</mark></td></tr></table>`)
 	processedTable = handleTable(tableCellWithFormatting, potentialTags, nil, defaultOpts)
 	firstCell := dom.QuerySelector(processedTable, "td")
 	assert.NotNil(t, firstCell)
 	assert.Equal(t, dom.OuterHTML(firstCell), `<td><mark>highlighted text</mark></td>`)
 
 	// Table cell with span
-	tableCellWithSpan := nodeFromStr(`<table><tr><td><span style='sth'>span text</span></td></tr></table>`)
+	tableCellWithSpan := etree.FromString(`<table><tr><td><span style='sth'>span text</span></td></tr></table>`)
 	processedTable = handleTable(tableCellWithSpan, potentialTags, nil, defaultOpts)
 	firstCell = dom.QuerySelector(processedTable, "td")
 	assert.NotNil(t, firstCell)
@@ -922,7 +922,7 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
 
 	// Nested table 2
-	tableNested2 := nodeFromStr(`
+	tableNested2 := etree.FromString(`
 	<table><tr><td>
 		<table><tr><td>1</td></tr></table>
 	</td></tr></table>`)
@@ -930,7 +930,7 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Equal(t, []string{"table", "tr", "td", "td-1"}, iterNodeValues(processedTable))
 
 	// Nested table - complex
-	tableNestedComplex := nodeFromStr(`
+	tableNestedComplex := etree.FromString(`
 	<table>
 		<tr>
 			<td>
@@ -946,7 +946,7 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Equal(t, []string{"table", "tr", "td", "td-1", "td-text1", "tr", "td-text2"}, iterNodeValues(processedTable))
 
 	// Table with list
-	tableWithList := nodeFromStr(`
+	tableWithList := etree.FromString(`
 	<table>
 		<tr><td>
 			<p>a list</p>
@@ -960,7 +960,7 @@ func Test_TableProcessing(t *testing.T) {
 	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul"}, iterNodeValues(processedTable))
 
 	// Broken table 1 (broken as in uncommon structure)
-	tableBroken1 := nodeFromStr(`<table><td>cell1</td><tr><td>cell2</td></tr></table>`)
+	tableBroken1 := etree.FromString(`<table><td>cell1</td><tr><td>cell2</td></tr></table>`)
 	processedTable = handleTable(tableBroken1, potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td-cell1", "tr", "td-cell2"}, iterNodeValues(processedTable))
 

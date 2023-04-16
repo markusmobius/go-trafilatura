@@ -33,25 +33,25 @@ import (
 func Test_processNode(t *testing.T) {
 	var node *html.Node
 
-	node = nodeFromStr(`<div><p></p>tail</div>`)
+	node = etree.FromString(`<div><p></p>tail</div>`)
 	node = dom.QuerySelector(node, "p")
 	node = processNode(node, nil, defaultOpts)
 	assert.Equal(t, "tail", etree.Text(node))
 	assert.Equal(t, "", etree.Tail(node))
 
-	node = nodeFromStr(`<ul><li></li>text in tail</ul>`)
+	node = etree.FromString(`<ul><li></li>text in tail</ul>`)
 	node = dom.QuerySelector(node, "li")
 	node = processNode(node, nil, defaultOpts)
 	assert.Equal(t, "text in tail", etree.Text(node))
 	assert.Equal(t, "", etree.Tail(node))
 
-	node = nodeFromStr(`<p><br/>tail</p>`)
+	node = etree.FromString(`<p><br/>tail</p>`)
 	node = dom.QuerySelector(node, "br")
 	node = processNode(node, nil, defaultOpts)
 	assert.Equal(t, "", etree.Text(node))
 	assert.Equal(t, "tail", etree.Tail(node))
 
-	node = nodeFromStr(`<div><p>some text</p>tail</div>`)
+	node = etree.FromString(`<div><p>some text</p>tail</div>`)
 	node = dom.QuerySelector(node, "p")
 	node = processNode(node, nil, defaultOpts)
 	assert.Equal(t, "some text", etree.Text(node))
