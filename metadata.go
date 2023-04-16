@@ -85,7 +85,10 @@ var (
 	metaNameTag = sliceToMap(
 		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
 		"shareaholic:keywords", "tags")
-	metaNameUrl = sliceToMap("rbmainurl", "twitter:url")
+	metaNameUrl   = sliceToMap("rbmainurl", "twitter:url")
+	metaNameImage = sliceToMap(
+		"image", "og:image", "og:image:url", "og:image:secure_url",
+		"twitter:image", "twitter:image:src")
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
@@ -107,6 +110,7 @@ type Metadata struct {
 	Fingerprint string
 	License     string
 	Language    string
+	Image       string
 }
 
 func extractMetadata(doc *html.Node, opts Options) Metadata {
@@ -143,6 +147,11 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Hostname
 	if metadata.URL != "" {
 		metadata.Hostname = extractDomainURL(metadata.URL)
+	}
+
+	// Image
+	if metadata.Image == "" {
+		metadata.Image = extractDomImage(doc)
 	}
 
 	// Publish date
@@ -214,8 +223,9 @@ func examineMeta(doc *html.Node) Metadata {
 	metadata := extractOpenGraphMeta(doc)
 
 	// If all OpenGraph metadata have been assigned, we can return it
-	if metadata.Title != "" && metadata.Author != "" && metadata.URL != "" &&
-		metadata.Description != "" && metadata.Sitename != "" {
+	if metadata.Title != "" && metadata.Author != "" &&
+		metadata.URL != "" && metadata.Description != "" &&
+		metadata.Sitename != "" && metadata.Image != "" {
 		return metadata
 	}
 
@@ -245,6 +255,8 @@ func examineMeta(doc *html.Node) Metadata {
 				metadata.Author = normalizeAuthors(metadata.Author, content)
 			case property == "article:publisher":
 				metadata.Sitename = strOr(metadata.Sitename, content)
+			case inMap(property, metaNameImage):
+				metadata.Image = strOr(metadata.Image, content)
 			}
 			continue
 		}
@@ -333,6 +345,8 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 			metadata.Description = content
 		case "og:author", "og:article:author":
 			metadata.Author = content
+		case "og:image", "og:image:url", "og:image:secure_url":
+			metadata.Image = content
 		case "og:url":
 			if isAbs, _ := isAbsoluteURL(content); isAbs {
 				metadata.URL = content
@@ -484,16 +498,9 @@ func extractDomURL(doc *html.Node, defaultURL *nurl.URL) string {
 
 	// Validate URL
 	if url != "" {
-		// If it's already an absolute URL, return it
-		if isAbs, _ := isAbsoluteURL(url); isAbs {
-			return url
-		}
-
-		// If not, try to convert it into absolute URL using default URL
-		// instead of using domain name
-		newURL := createAbsoluteURL(url, defaultURL)
-		if isAbs, _ := isAbsoluteURL(newURL); isAbs {
-			return newURL
+		validURL, isAbs := validateURL(url, defaultURL)
+		if validURL != "" && isAbs {
+			return validURL
 		}
 	}
 
@@ -576,6 +583,19 @@ func extractDomTags(doc *html.Node) []string {
 	}
 
 	return uniquifyLists(tags...)
+}
+
+func extractDomImage(doc *html.Node) string {
+	// Look for Twitter image
+	for _, node := range dom.QuerySelectorAll(doc, `meta[property^="twitter:"]`) {
+		content := trim(dom.GetAttribute(node, "content"))
+		property := trim(dom.GetAttribute(node, "property"))
+		if (property == "twitter:image" || property == "twitter:image:src") && content != "" {
+			return content
+		}
+	}
+
+	return ""
 }
 
 func cleanCatTags(catTags []string) []string {

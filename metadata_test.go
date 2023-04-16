@@ -419,6 +419,24 @@ func Test_Metadata_License(t *testing.T) {
 	assert.Equal(t, "CC BY-NC", metadata.License)
 }
 
+func Test_Metadata_MetaImages(t *testing.T) {
+	var rawHTML string
+	var metadata Metadata
+
+	// Image extraction from meta SEO tags
+	rawHTML = `<html><head><meta property="image" content="https://example.org/example.jpg"></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "https://example.org/example.jpg", metadata.Image)
+
+	rawHTML = `<html><head><meta property="og:image" content="https://example.org/example-opengraph.jpg" /><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "https://example.org/example-opengraph.jpg", metadata.Image)
+
+	rawHTML = `<html><head><meta property="twitter:image" content="https://example.org/example-twitter.jpg"></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "https://example.org/example-twitter.jpg", metadata.Image)
+}
+
 func Test_Metadata_MetaTags(t *testing.T) {
 	rawHTML := `<html><head>
 			<meta property="og:title" content="Open Graph Title" />

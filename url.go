@@ -93,3 +93,19 @@ func extractDomainURL(url string) string {
 
 	return parsedURL.Hostname()
 }
+
+func validateURL(url string, baseURL *nurl.URL) (string, bool) {
+	// If it's already an absolute URL, return it
+	if isAbs, _ := isAbsoluteURL(url); isAbs {
+		return url, true
+	}
+
+	// If not, try to convert it into absolute URL using default URL
+	// instead of using domain name
+	newURL := createAbsoluteURL(url, baseURL)
+	if isAbs, _ := isAbsoluteURL(newURL); isAbs {
+		return newURL, true
+	}
+
+	return url, false
+}
