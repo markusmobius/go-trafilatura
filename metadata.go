@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	"fmt"
-	nurl "net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -141,7 +140,23 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 
 	// URL
 	if metadata.URL == "" {
-		metadata.URL = extractDomURL(doc, opts.OriginalURL)
+		metadata.URL = extractDomURL(doc)
+	}
+
+	// Validate URL
+	// If URL exist, it must be absolute. If not absolute, just remove it.
+	if metadata.URL != "" {
+		validURL, isAbs := validateURL(metadata.URL, opts.OriginalURL)
+		if validURL != "" && isAbs {
+			metadata.URL = validURL
+		} else {
+			metadata.URL = ""
+		}
+	}
+
+	// If URL not found but original URL specified, just use that.
+	if metadata.URL == "" && opts.OriginalURL != nil {
+		metadata.URL = opts.OriginalURL.String()
 	}
 
 	// Hostname
@@ -152,6 +167,16 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Image
 	if metadata.Image == "" {
 		metadata.Image = extractDomImage(doc)
+	}
+
+	// Validate image URL, it must be absolute. If not absolute, just remove it.
+	if metadata.Image != "" {
+		validURL, isAbs := validateURL(metadata.Image, opts.OriginalURL)
+		if validURL != "" && isAbs {
+			metadata.Image = validURL
+		} else {
+			metadata.Image = ""
+		}
 	}
 
 	// Publish date
@@ -450,7 +475,7 @@ func extractDomAuthor(doc *html.Node) string {
 }
 
 // extractDomURL extracts the document URL from the canonical <link>.
-func extractDomURL(doc *html.Node, defaultURL *nurl.URL) string {
+func extractDomURL(doc *html.Node) string {
 	var url string
 
 	// Try canonical link first
@@ -496,21 +521,8 @@ func extractDomURL(doc *html.Node, defaultURL *nurl.URL) string {
 		}
 	}
 
-	// Validate URL
-	if url != "" {
-		validURL, isAbs := validateURL(url, defaultURL)
-		if validURL != "" && isAbs {
-			return validURL
-		}
-	}
-
-	// At this point, URL is either empty or not absolute, so just return the default URL
-	if defaultURL != nil {
-		return defaultURL.String()
-	}
-
 	// If default URL is not specified, just give up
-	return ""
+	return url
 }
 
 // extractDomSitename extracts the name of a site from the main title (if it exists).

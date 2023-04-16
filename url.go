@@ -100,7 +100,7 @@ func validateURL(url string, baseURL *nurl.URL) (string, bool) {
 		return url, true
 	}
 
-	// If not, try to convert it into absolute URL using default URL
+	// If not, try to convert it into absolute URL using base URL
 	// instead of using domain name
 	newURL := createAbsoluteURL(url, baseURL)
 	if isAbs, _ := isAbsoluteURL(newURL); isAbs {

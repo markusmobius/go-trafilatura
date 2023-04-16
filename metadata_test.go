@@ -269,8 +269,11 @@ func Test_Metadata_Authors(t *testing.T) {
 }
 
 func Test_Metadata_URLs(t *testing.T) {
-	rawHTML := `<html><head><meta property="og:url" content="https://example.org"/></head><body></body></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
+	var rawHTML string
+	var metadata Metadata
+
+	rawHTML = `<html><head><meta property="og:url" content="https://example.org"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "https://example.org", metadata.URL)
 
 	rawHTML = `<html><head><link rel="canonical" href="https://example.org"/></head><body></body></html>`
