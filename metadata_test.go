@@ -647,8 +647,8 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, "Gigantic Chinese telescope opens to astronomers worldwide", metadata.Title)
 	assert.Equal(t, "Elizabeth Gibney", metadata.Author)
 	assert.Equal(t, "FAST has superior sensitivity to detect cosmic phenomena, including fast radio bursts and pulsars.", metadata.Description)
-	assert.Equal(t, "Nature Publishing Group", metadata.Sitename) // Nature
-	assert.Contains(t, metadata.Categories, "Exoplanets")         // "Astronomy", "Telescope", "China"
+	assert.Equal(t, "Nature", metadata.Sitename)
+	assert.Contains(t, metadata.Categories, "Exoplanets") // "Astronomy", "Telescope", "China"
 	assert.Equal(t, url, metadata.URL)
 
 	url = "https://www.scmp.com/comment/opinion/article/3046526/taiwanese-president-tsai-ing-wens-political-playbook-should-be"

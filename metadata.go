@@ -66,14 +66,14 @@ var (
 	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
 
 	metaNameAuthor = sliceToMap(
-		"article:author", "author", "byl", "citation_author",
-		"dc.creator", "dc.creator.aut", "dc:creator",
-		"dcterms.creator", "dcterms.creator.aut", "parsely-author",
-		"sailthru.author", "shareaholic:article_author_name") // questionable: twitter:creator
+		"article:author", "atc-metaauthor", "author", "authors", "byl", "citation_author",
+		"creator", "dc.creator", "dc.creator.aut", "dc:creator",
+		"dcterms.creator", "dcterms.creator.aut", "dcsext.author", "parsely-author",
+		"rbauthors", "sailthru.author", "shareaholic:article_author_name") // questionable: twitter:creator
 	metaNameTitle = sliceToMap(
 		"citation_title", "dc.title", "dcterms.title", "fb_title",
-		"parsely-title", "sailthru.title", "shareaholic:title",
-		"title", "twitter:title")
+		"headline", "parsely-title", "sailthru.title", "shareaholic:title",
+		"rbtitle", "title", "twitter:title")
 	metaNameDescription = sliceToMap(
 		"dc.description", "dc:description",
 		"dcterms.abstract", "dcterms.description",
@@ -81,10 +81,11 @@ var (
 	metaNamePublisher = sliceToMap(
 		"article:publisher", "citation_journal_title", "copyright",
 		"dc.publisher", "dc:publisher", "dcterms.publisher",
-		"publisher", "rpubname") // questionable: citation_publisher
+		"publisher", "sailthru.publisher", "rbpubname", "twitter:site") // questionable: citation_publisher
 	metaNameTag = sliceToMap(
 		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
 		"shareaholic:keywords", "tags")
+	metaNameUrl = sliceToMap("rbmainurl", "twitter:url")
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
