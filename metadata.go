@@ -597,8 +597,8 @@ func extractDomTags(doc *html.Node) []string {
 	return uniquifyLists(tags...)
 }
 
+// extractDomImage returns the hero image of the document using Twitter meta tags.
 func extractDomImage(doc *html.Node) string {
-	// Look for Twitter image
 	for _, node := range dom.QuerySelectorAll(doc, `meta[property^="twitter:"]`) {
 		content := trim(dom.GetAttribute(node, "content"))
 		property := trim(dom.GetAttribute(node, "property"))
