@@ -167,7 +167,8 @@ var OverallDiscardedContentXpaths = []string{
 	or contains(@class, "article-infos") or
 	contains(translate(@class, "I", "i"), "infoline")
     or contains(@data-component, "MostPopularStories")
-    or contains(@class, "options")
+    or contains(@class, "outbrain") or contains(@class, "taboola")
+    or contains(@class, "criteo") or contains(@class, "options")
     or contains(@class, "consent") or contains(@class, "modal-content")
 	or contains(@class, "paid-content") or contains(@class, "paidcontent")
 	or contains(@id, "premium-") or contains(@id, "paywall")
