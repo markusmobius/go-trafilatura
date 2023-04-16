@@ -37,6 +37,10 @@ func Test_Metadata_Titles(t *testing.T) {
 	var rawHTML string
 	var metadata Metadata
 
+	rawHTML = `<html><body><h3 class="title">T</h3><h3 id="title"></h3></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Title)
+
 	rawHTML = `<html><head><title>Test Title</title></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Test Title", metadata.Title)
@@ -294,6 +298,9 @@ func Test_Metadata_URLs(t *testing.T) {
 	rawHTML = `<html><head><link rel="alternate" hreflang="x-default" href="https://example.org"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "https://example.org", metadata.URL)
+
+	rawHTML = `<html><head><link rel="canonical" href="/article/medical-record"/><meta name="twitter:url" content="https://example.org"/></head><body></body></html>`
+	assert.Equal(t, "https://example.org/article/medical-record", extractDomURL(docFromStr(rawHTML)))
 }
 
 func Test_Metadata_Descriptions(t *testing.T) {
@@ -385,6 +392,10 @@ func Test_Metadata_Sitename(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "sitemaps.org", metadata.Sitename)
 	assert.Equal(t, "Home", metadata.Title)
+
+	rawHTML = `<html><head><meta name="article:publisher" content="@"/></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Sitename)
 }
 
 func Test_Metadata_License(t *testing.T) {

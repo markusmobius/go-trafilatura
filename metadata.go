@@ -479,20 +479,17 @@ func extractDomURL(doc *html.Node) string {
 	var url string
 
 	// Try canonical link first
-	linkNode := dom.QuerySelector(doc, `link[rel="canonical"]`)
+	linkNode := dom.QuerySelector(doc, `link[rel="canonical"][href]`)
 	if linkNode != nil {
-		href := trim(dom.GetAttribute(linkNode, "href"))
-		if href != "" && rxUrlCheck.MatchString(href) {
+		if href := trim(dom.GetAttribute(linkNode, "href")); href != "" {
 			url = href
 		}
 	} else {
 		// Now try default language link
-		linkNodes := dom.QuerySelectorAll(doc, `link[rel="alternate"]`)
+		linkNodes := dom.QuerySelectorAll(doc, `link[rel="alternate"][hreflang]`)
 		for _, node := range linkNodes {
-			hreflang := dom.GetAttribute(node, "hreflang")
-			if hreflang == "x-default" {
-				href := trim(dom.GetAttribute(node, "href"))
-				if href != "" && rxUrlCheck.MatchString(href) {
+			if dom.GetAttribute(node, "hreflang") == "x-default" {
+				if href := trim(dom.GetAttribute(node, "href")); href != "" {
 					url = href
 				}
 			}
