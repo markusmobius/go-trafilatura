@@ -245,6 +245,7 @@ func Test_Cache(t *testing.T) {
 }
 
 func Test_Formatting(t *testing.T) {
+	var opts Options
 	fnHtml := func(r *ExtractResult) string {
 		return etree.ToString(r.ContentNode)
 	}
@@ -305,26 +306,22 @@ func Test_Formatting(t *testing.T) {
 	assert.Equal(t, "<div><p>There is text here.</p></div>", fnHtml(result))
 
 	// List with links
-	linkOpts := zeroOpts
-	linkOpts.IncludeLinks = true
-
+	opts = Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig}
 	r = strings.NewReader(`<html><body><article><ul><li>Number 1</li><li>Number <a href="test.html">2</a></li><li>Number 3</li><p>Test</p></article></body></html>`)
-	result, _ = Extract(r, linkOpts)
-	assert.Contains(t, fnHtml(result), `<li>Number <a href="https://example.org/test.html">2</a></li>`)
+	result, _ = Extract(r, opts)
+	assert.Contains(t, fnHtml(result), `<li>Number <a href="test.html">2</a></li>`)
 
 	// (Markdown) formatting within <p>-tag
-	mdOpts := zeroOpts
-	mdOpts.IncludeLinks = true
-	mdOpts.NoFallback = true
+	rawHTML := `<html><body><p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a> and additional text to bypass detection.</p></body></html>`
 
-	r = strings.NewReader(`<html><body><p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a>.</p></body></html>`)
-	result, _ = Extract(r, mdOpts)
-	assert.Contains(t, fnHtml(result), `<b>bold</b>`)
-	assert.Contains(t, fnHtml(result), `<i>italics</i>`)
-	assert.Contains(t, fnHtml(result), `<tt>tt</tt>`)
-	assert.Contains(t, fnHtml(result), `<u>underlined</u>`)
-	assert.Contains(t, fnHtml(result), `<strike>deleted</strike>`)
-	assert.Contains(t, fnHtml(result), `<a href="test.html">link</a>`)
+	opts = Options{IncludeLinks: false, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(rawHTML), opts)
+	assert.Equal(t, "bold, italics, tt, deleted, underlined, link and additional text to bypass detection.", dom.TextContent(result.ContentNode))
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, link and additional text to bypass detection.</p>`)
+
+	opts = Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(rawHTML), opts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a> and additional text to bypass detection.</p>`)
 
 	// Line break following formatting
 	r = strings.NewReader("<html><body><article><p><strong>Staff Review of the Financial Situation</strong><br>Domestic financial conditions remained accommodative over the intermeeting period.</p></article></body></html>")

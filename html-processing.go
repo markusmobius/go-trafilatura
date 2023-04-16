@@ -219,16 +219,22 @@ func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	var limitLength int
 	var threshold float64
 
-	switch {
-	case dom.TagName(element) == "p":
-		limitLength, threshold = 25, 0.8
-		if opts.FavorPrecision {
+	if dom.TagName(element) == "p" {
+		if !opts.FavorPrecision {
+			if dom.NextElementSibling(element) == nil {
+				limitLength, threshold = 60, 0.8
+			} else {
+				limitLength, threshold = 30, 0.8
+			}
+		} else {
+			limitLength, threshold = 200, 0.8
+		}
+	} else {
+		if dom.NextElementSibling(element) == nil {
+			limitLength, threshold = 300, 0.8
+		} else {
 			limitLength, threshold = 100, 0.8
 		}
-	case dom.NextElementSibling(element) == nil:
-		limitLength, threshold = 300, 0.8
-	default:
-		limitLength, threshold = 100, 0.8
 	}
 
 	// Check if text of this node is within limit
@@ -244,7 +250,7 @@ func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 
 		// Check if links data surpass threshold
 		if float64(linkLength) > threshold*float64(textLength) ||
-			float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8 {
+			(nNonEmptyLinks > 1 && float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8) {
 			return nonEmptyLinks, true
 		}
 	}
