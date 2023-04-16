@@ -28,27 +28,21 @@ var MetaTitleXpaths = []string{
 }
 
 var MetaAuthorXpaths = []string{
-	// specific
-	`//*[(self::a or self::address or self::link or self::p or self::span or self::strong)][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me"]|//author`,
-	// almost specific
-	`//*[(self::a or self::div or self::span or self::p or self::strong)][contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name")]`,
-	// almost generic
-	`//*[(self::a or self::div or self::span or self::p or self::h4 or self::h3)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline" or contains(@id, "zuozhe") or contains(@class, "zuozhe") or contains(@id, "bianji") or contains(@class, "bianji") or contains(@id, "xiaobian") or contains(@class, "xiaobian")]`,
-	// generic
-	`//*[(self::a or self::div or self::span or self::p)][contains(@class, "authors") or contains(@class, "byline") or contains(@class, "ByLine") or contains(@class, "submitted-by") or contains(@class, "posted-by")]`,
-	// any element
-	`//*[contains(@class, "author") or contains(@class, "Author") or contains(@id, "Author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer") or contains(@class, "byline")]`,
-	// not common
-	`//*[(self::a or self::span)][@class="username" or @class="BBL" or contains(@class, "journalist-name")]`,
+	// specific and almost specific
+	`//*[(self::a or self::address or self::div or self::link or self::p or self::span or self::strong)][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me" or contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name")]|//author`,
+	// almost generic and generic, last ones not common
+	`//*[(self::a or self::div or self::h3 or self::h4 or self::p or self::span)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline" or contains(@id, "zuozhe") or contains(@class, "zuozhe") or contains(@id, "bianji") or contains(@class, "bianji") or contains(@id, "xiaobian") or contains(@class, "xiaobian") or contains(@class, "submitted-by") or contains(@class, "posted-by") or @class="username" or @class="BBL" or contains(@class, "journalist-name")]`,
+	// last resort: any element
+	`//*[contains(translate(@id, "A", "a"), "author") or contains(translate(@class, "A", "a"), "author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer") or contains(translate(@class, "B", "b"), "byline")]`,
 }
 
 var MetaAuthorDiscardXpaths = []string{
-	`.//*[(self::div or self::section or self::a or self::span)][@id='comments' or @class='comments' or @class='title' or @class='date' or
+	`.//*[(self::a or self::div or self::section or self::span)][@id='comments' or @class='comments' or @class='title' or @class='date' or
     contains(@id, 'commentlist') or contains(@class, 'commentlist') or contains(@class, 'sidebar') or contains(@class, 'is-hidden') or contains(@class, 'quote')
     or contains(@id, 'comment-list') or contains(@class, 'comments-list') or contains(@class, 'embedly-instagram') or contains(@id, 'ProductReviews') or
     starts-with(@id, 'comments') or contains(@data-component, "Figure") or contains(@class, "article-share") or contains(@class, "article-support") or contains(@class, "print") or contains(@class, "category") or contains(@class, "meta-date") or contains(@class, "meta-reviewer")
     or starts-with(@class, 'comments') or starts-with(@class, 'Comments')]`,
-	"//*[(self::time or self::figure)]",
+	"//time|//figure",
 }
 
 var MetaCategoriesXpaths = []string{
@@ -58,7 +52,7 @@ var MetaCategoriesXpaths = []string{
 	starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a[@href]`,
 	`//p[starts-with(@class, 'postmeta') or starts-with(@class, 'entry-categories') or @class='postinfo' or @id='filedunder']//a[@href]`,
 	`//footer[starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-footer')]//a[@href]`,
-	`//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category"]//a[@href]`,
+	`//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category" or contains(@class, "cat-links")]//a[@href]`,
 	`//header[@class="entry-header"]//a[@href]`,
 	`//div[@class="row" or @class="tags"]//a[@href]`,
 }

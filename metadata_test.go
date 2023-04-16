@@ -316,13 +316,24 @@ func Test_Metadata_Dates(t *testing.T) {
 }
 
 func Test_Metadata_Categories(t *testing.T) {
-	rawHTML := `<html><body>
+	var rawHTML string
+	var metadata Metadata
+	var expected []string
+
+	rawHTML = `<html><body>
 		<p class="entry-categories">
 			<a href="https://example.org/category/cat1/">Cat1</a>,
 			<a href="https://example.org/category/cat2/">Cat2</a>
 		</p></body></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
-	expected := []string{"Cat1", "Cat2"}
+	metadata = testGetMetadataFromHTML(rawHTML)
+	expected = []string{"Cat1", "Cat2"}
+	assert.Equal(t, expected, metadata.Categories)
+
+	rawHTML = `<html><body>
+		<div class="postmeta"><a href="https://example.org/category/cat1/">Cat1</a></div>
+	</body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	expected = []string{"Cat1"}
 	assert.Equal(t, expected, metadata.Categories)
 
 	rawHTML = `<html><head>
