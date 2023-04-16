@@ -434,35 +434,43 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 
 // handleLists process lists elements
 func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	var newChildElem *html.Node
 	processedElement := etree.Element(dom.TagName(element))
 
-	if text := etree.Text(element); text != "" {
-		etree.SetText(processedElement, text)
+	if text := strings.TrimSpace(etree.Text(element)); text != "" {
+		newChildElem = etree.SubElement(processedElement, "li")
+		etree.SetText(newChildElem, text)
 	}
 
 	for _, child := range etree.Iter(element, listXmlItemTags...) {
-		newChild := dom.CreateElement(dom.TagName(child))
+		newChildElem = dom.CreateElement(dom.TagName(child))
 
 		if len(dom.Children(child)) == 0 {
 			processedChild := processNode(child, cache, opts)
 			if processedChild != nil {
-				etree.SetText(newChild, etree.Text(processedChild))
-				etree.SetTail(newChild, etree.Tail(processedChild))
-				etree.Append(processedElement, newChild)
+				newText := etree.Text(processedChild)
+				if tail := strings.TrimSpace(etree.Tail(processedChild)); tail != "" {
+					newText += " " + tail
+				}
+
+				etree.SetText(newChildElem, newText)
+				etree.Append(processedElement, newChildElem)
 			}
 		} else {
-			for _, subElement := range etree.Iter(child) {
+			etree.SetText(newChildElem, etree.Text(child))
+
+			for _, subElement := range dom.GetElementsByTagName(child, "*") {
 				// Beware of nested list
 				var processedSubChild *html.Node
 				if inMap(dom.TagName(subElement), mapXmlListTags) {
 					processedSubChild = handleLists(subElement, cache, opts)
 					if processedSubChild != nil {
-						dom.AppendChild(newChild, processedSubChild)
+						dom.AppendChild(newChildElem, processedSubChild)
 					}
 				} else {
 					processedSubChild := handleTextNode(subElement, cache, false, opts)
 					if processedSubChild != nil {
-						subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
+						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
 						etree.SetText(subChildElement, etree.Text(processedSubChild))
 						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
 
@@ -478,20 +486,37 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 					}
 				}
 
-				if subElement.Type == html.ElementNode {
-					subElement.Data = "done"
-				}
+				subElement.Data = "done"
 			}
 
 			// etree.StripTags(newChild, "dd", "dt", "li")
+			if tail := strings.TrimSpace(etree.Tail(child)); tail != "" {
+				var newChildElemChildren []*html.Node
+				for _, nc := range dom.Children(newChildElem) {
+					if dom.TagName(nc) != "done" {
+						newChildElemChildren = append(newChildElemChildren, nc)
+					}
+				}
+
+				if len(newChildElemChildren) > 0 {
+					lastSubChild := newChildElemChildren[len(newChildElemChildren)-1]
+					if lastTail := strings.TrimSpace(etree.Tail(lastSubChild)); lastTail == "" {
+						etree.SetTail(lastSubChild, tail)
+					} else {
+						etree.SetTail(lastSubChild, lastTail+" "+tail)
+					}
+				}
+			}
 		}
 
-		if etree.Text(newChild) != "" || len(dom.Children(newChild)) > 0 {
-			etree.Append(processedElement, newChild)
+		if etree.Text(newChildElem) != "" || len(dom.Children(newChildElem)) > 0 {
+			etree.Append(processedElement, newChildElem)
 		}
 
 		child.Data = "done"
 	}
+
+	element.Data = "done"
 
 	// Test if it has children and text. Avoid double tags??
 	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement, "")) {

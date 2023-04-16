@@ -115,19 +115,6 @@ func Test_ExoticTags(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "1. 2. 3.")
 
-	// Malformed lists (common error)
-	lists := etree.FromString(`
-	<ul>Description of the list:
-		<li>List item 1</li>
-		<li>List item 2</li>
-		<li>List item 3</li>
-	</ul>`)
-
-	handledLists := handleLists(lists, nil, zeroOpts)
-	strResult := etree.ToString(handledLists)
-	assert.Equal(t, 3, strings.Count(strResult, "List item"))
-	assert.Contains(t, strResult, "Description")
-
 	// HTML5: <details>
 	opts = Options{NoFallback: true, Config: zeroConfig}
 	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
@@ -140,34 +127,6 @@ func Test_ExoticTags(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
-
-	// Nested list
-	htmlString = `<html><body><article>` +
-		`<ul>` + // first list
-		`<li>Coffee</li>` +
-		`<li>Tea` +
-		`<ul>` + // second list inside first
-		`<li>Black tea</li>` +
-		`<li>Green tea</li>` +
-		`</ul>` +
-		`</li>` +
-		`<li>Milk</li>` +
-		`</ul>` +
-		`</article></body></html>`
-	opts = Options{NoFallback: true, Config: zeroConfig}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
-		`<ul>`+
-		`<li>Coffee</li>`+
-		`<li>`+
-		`<li>Tea</li>`+
-		`<ul>`+
-		`<li>Black tea</li>`+
-		`<li>Green tea</li>`+
-		`</ul>`+
-		`</li>`+
-		`<li>Milk</li>`+
-		`</ul>`)
 
 	// Paywalls
 	opts = Options{NoFallback: true, Config: zeroConfig}
@@ -855,7 +814,6 @@ func Test_TableProcessing(t *testing.T) {
 	// Table cell with link
 	tableCellWithLink := nodeFromStr(`<table><tr><td><a href='test'>link</a></td></tr></table>`)
 	processedTable = handleTable(tableCellWithLink, potentialTags, nil, defaultOpts)
-
 	nodeValues = iterNodeValues(dom.QuerySelector(processedTable, "td"))
 	assert.Equal(t, []string{"td", "p"}, nodeValues)
 
@@ -1016,4 +974,154 @@ func Test_TableProcessing(t *testing.T) {
 	tableBroken2 = dom.QuerySelector(tableBroken2, "table")
 	processedTable = handleTable(tableBroken2, potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td-cell"}, iterNodeValues(processedTable))
+}
+
+func Test_ListProcessing(t *testing.T) {
+	var opts Options
+	var processedList *html.Node
+	var result *ExtractResult
+	var strResult string
+	iterNodeValues := func(root *html.Node) []string {
+		var nodeValues []string
+		for _, node := range etree.Iter(root) {
+			nodeTag := dom.TagName(node)
+			nodeText := trim(etree.Text(node))
+			if nodeText == "" {
+				nodeValues = append(nodeValues, nodeTag)
+			} else {
+				nodeValues = append(nodeValues, nodeTag+"-"+nodeText)
+			}
+		}
+		return nodeValues
+	}
+
+	// Malformed lists (common error)
+	listMalformed := etree.FromString(`
+	<ul>Description of the list:
+		<li>List item 1</li>
+		<li>List item 2</li>
+		<li>List item 3</li>
+	</ul>`)
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	processedList = handleLists(listMalformed, nil, opts)
+	strResult = etree.ToString(processedList)
+	assert.Equal(t, 3, strings.Count(strResult, "List item"))
+	assert.Contains(t, strResult, "Description")
+
+	// Nested list
+	listNested := docFromStr(`
+	<html><body><article>
+		<ul>
+			<li>Coffee</li>
+			<li>Tea
+				<ul>
+					<li>Black tea</li>
+					<li>Green tea</li>
+				</ul>
+			</li>
+			<li>Milk</li>
+		</ul>
+	</article></body></html>`)
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	result, _ = ExtractDocument(listNested, opts)
+	assert.Contains(t, noSpace(dom.OuterHTML(result.ContentNode)), noSpace(`
+	<ul>
+		<li>Coffee</li>
+		<li>Tea
+			<ul>
+				<li>Black tea</li>
+				<li>Green tea</li>
+			</ul>
+		</li>
+		<li>Milk</li>
+	</ul>`))
+
+	// Description list
+	listDescription := docFromStr(`
+	<html><body><article>
+		<dl>
+			<dt>Coffee</dt>
+			<dd>Black hot drink</dd>
+			<dt>Milk</dt>
+			<dd>White cold drink</dd>
+		</dl>
+	</article></body></html>`)
+	opts = Options{NoFallback: true, Config: zeroConfig}
+	result, _ = ExtractDocument(listDescription, opts)
+	assert.Contains(t, noSpace(dom.OuterHTML(result.ContentNode)), noSpace(`
+	<dl>
+		<dt>Coffee</dt>
+		<dd>Black hot drink</dd>
+		<dt>Milk</dt>
+		<dd>White cold drink</dd>
+	</dl>`))
+
+	// Item with child
+	listItemWithChild := etree.FromString(`<ul><li><p>text</p></li></ul>`)
+	processedList = handleLists(listItemWithChild, nil, defaultOpts)
+	assert.Equal(t, []string{"ul", "li", "p-text"}, iterNodeValues(processedList))
+
+	listItemWithTextAndChild := etree.FromString(`<ul><li>text1<p>text2</p></li></ul>`)
+	processedList = handleLists(listItemWithTextAndChild, nil, defaultOpts)
+	assert.Equal(t, []string{"ul", "li-text1", "p-text2"}, iterNodeValues(processedList))
+
+	listItemWithBr := etree.FromString(`<ul><li>text<br/>more text</li></ul>`)
+	processedList = handleLists(listItemWithBr, nil, defaultOpts)
+	assert.Equal(t, []string{"ul", "li-text", "br"}, iterNodeValues(processedList))
+
+	// List with text outside item
+	listWithTextOutside := etree.FromString(`<ul>header<li>text</li></ul>`)
+	processedList = handleLists(listWithTextOutside, nil, defaultOpts)
+	assert.Equal(t, []string{"ul", "li-header", "li-text"}, iterNodeValues(processedList))
+
+	// Simple list
+	listSimple := etree.FromString(`<ul>   <li>text</li></ul>`)
+	processedList = handleLists(listSimple, nil, defaultOpts)
+	assert.Len(t, dom.Children(processedList), 1)
+
+	// List item with tail
+	listItemWithTail := etree.FromString(`<ul><li>text</li>tail</ul>`)
+	processedList = handleLists(listItemWithTail, nil, defaultOpts)
+	children := dom.Children(processedList)
+	assert.Len(t, children, 1)
+	assert.Equal(t, "text tail", dom.TextContent(children[0]))
+
+	// List item with child and tail #1
+	listItemWithChildAndTail := etree.FromString(`<ul><li><p>text</p></li>tail</ul>`)
+	processedList = handleLists(listItemWithChildAndTail, nil, defaultOpts)
+	children = dom.Children(processedList)
+	assert.Len(t, children, 1)
+
+	firstItem := children[0]
+	assert.Empty(t, etree.Tail(firstItem))
+	assert.Equal(t, "tail", etree.Tail(dom.Children(firstItem)[0]))
+
+	// List item with child and tail #2
+	listItemWithChildAndTail = etree.FromString(`<ul><li><p>text</p>tail1</li>tail</ul>`)
+	processedList = handleLists(listItemWithChildAndTail, nil, defaultOpts)
+	children = dom.Children(processedList)
+	assert.Len(t, children, 1)
+
+	firstItem = children[0]
+	assert.Empty(t, etree.Tail(firstItem))
+	assert.Equal(t, "tail1 tail", etree.Tail(dom.Children(firstItem)[0]))
+
+	// List item with child and tail #3
+	listItemWithChildAndTail = etree.FromString("<ul><li><p>text</p>\n</li>tail</ul>")
+	processedList = handleLists(listItemWithChildAndTail, nil, defaultOpts)
+	children = dom.Children(processedList)
+	assert.Len(t, children, 1)
+
+	firstItem = children[0]
+	assert.Empty(t, etree.Tail(firstItem))
+	assert.Equal(t, "tail", etree.Tail(dom.Children(firstItem)[0])) // TODO: TIFU
+
+	// List item with tail and nested list
+	listItemWithTailAndNestedList := etree.FromString(`
+	<ul>
+		<li><ul><li>text</li></ul></li>
+		tail
+	</ul>`)
+	processedList = handleLists(listItemWithTailAndNestedList, nil, defaultOpts)
+	assert.Equal(t, "tail", etree.Tail(dom.QuerySelector(processedList, "li ul")))
 }

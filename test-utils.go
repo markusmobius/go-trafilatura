@@ -26,12 +26,15 @@ import (
 	nurl "net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/go-shiori/dom"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
+
+var rxSpaces = regexp.MustCompile(`\s+`)
 
 // openMockFile is used to open HTML document from specified mock file.
 // Make sure to close the reader later.
@@ -93,4 +96,8 @@ func nodeFromStr(s string) *html.Node {
 	node := docFromStr(s)
 	node = dom.QuerySelector(node, "body > *:first-child")
 	return node
+}
+
+func noSpace(s string) string {
+	return rxSpaces.ReplaceAllString(s, "")
 }
