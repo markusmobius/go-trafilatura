@@ -759,6 +759,9 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, url, metadata.URL)
 	assert.Equal(t, metadata.Author, "Luke Andrews; James Tapsfield")
 	assert.Contains(t, metadata.Tags, "news")
+
+	url = "https://www.mercurynews.com/2023/01/16/letters-1119/"
+	metadata = testGetMetadataFromURL(url)
 }
 
 func testGetMetadataFromHTML(rawHTML string, customOpts ...Options) Metadata {
