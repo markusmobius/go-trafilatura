@@ -802,9 +802,7 @@ func Test_TableProcessing(t *testing.T) {
 	</body></html>`)
 	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
 	result, _ := ExtractDocument(complexPage, opts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td>`)
-	// The result above is kind of a bit different compared to original, since in our port we have
-	// additional functions to remove empty elements from final result.
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td></tr></table>`)
 
 	// Table cell with text and child
 	tableCellWithTextAndChild := nodeFromStr(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
