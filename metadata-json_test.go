@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_MetadataJson_Authors(t *testing.T) {
+func Test_MetadataJson(t *testing.T) {
 	var metadata Metadata
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-1.html")
@@ -96,4 +96,9 @@ func Test_MetadataJson_Authors(t *testing.T) {
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-21.html")
 	assert.Equal(t, "Bill Birtles; John Smith", metadata.Author)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-22.html")
+	assert.Equal(t, "Find perfection in these places where land meets water.", metadata.Title)
+	assert.Equal(t, "National Geographic", metadata.Sitename)
+	assert.Equal(t, "Kimberley Lovato", metadata.Author)
 }

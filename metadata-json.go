@@ -274,14 +274,16 @@ func getSchemaNames(v any, schemaTypes ...string) []string {
 			name = trim(getValue[string](value, "alternateName"))
 		}
 
-		// If at this point name is found, we can return it
+		// If name is found, we can return it
 		if name != "" {
 			return []string{name}
 		}
 
-		// At this point name not found, so try it as array.
-		if vArray, isArray := value["name"].([]any); isArray {
-			return getSchemaNames(vArray, schemaTypes...)
+		// At this found, since name still not found, there is a possibility that the JSON+LD use
+		// name with uncommon format, so here we try to treat it as schema or array.
+		switch childValue := value["name"].(type) {
+		case map[string]any, []any:
+			return getSchemaNames(childValue, schemaTypes...)
 		}
 
 		// If nothing else, return nil
