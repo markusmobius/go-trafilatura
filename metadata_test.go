@@ -64,6 +64,10 @@ func Test_Metadata_Titles(t *testing.T) {
 	rawHTML = `<html><head><title> - Home</title></head><body/></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "- Home", metadata.Title)
+
+	rawHTML = `<html><head><title>My Title » My Website</title></head><body/></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "My Title", metadata.Title) // TODO: and metadata.sitename == "My Website"
 }
 
 func Test_Metadata_Authors(t *testing.T) {

@@ -42,7 +42,7 @@ import (
 
 var (
 	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
-	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[-|]\s+(.+)$`) // part without dots?
+	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[–•·—|⁄*⋆~‹«<›»>:-]\s+(.+)$`) // part without dots?
 	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
 	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
 	rxUrlCheck       = regexp.MustCompile(`(?i)https?://`)
@@ -81,7 +81,7 @@ var (
 	metaNamePublisher = sliceToMap(
 		"article:publisher", "citation_journal_title", "copyright",
 		"dc.publisher", "dc:publisher", "dcterms.publisher",
-		"publisher") // questionable: citation_publisher
+		"publisher", "rpubname") // questionable: citation_publisher
 	metaNameTag = sliceToMap(
 		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
 		"shareaholic:keywords", "tags")
