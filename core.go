@@ -923,6 +923,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 
 	// Clean doc to be used for Readability and Dom Distiller
 	cleanedDoc := dom.Clone(doc, true)
+	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
 
 	// If fallback candidates are empty, populate it first
 	if len(fallbackCandidates) == 0 {
