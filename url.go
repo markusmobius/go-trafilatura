@@ -85,13 +85,22 @@ func createAbsoluteURL(url string, base *nurl.URL) string {
 	return base.ResolveReference(tmp).String()
 }
 
-func extractDomainURL(url string) string {
+func getDomainURL(url string) string {
 	isAbsolute, parsedURL := isAbsoluteURL(url)
 	if !isAbsolute {
 		return ""
 	}
 
 	return parsedURL.Hostname()
+}
+
+func getBaseURL(url string) string {
+	isAbsolute, parsedURL := isAbsoluteURL(url)
+	if !isAbsolute {
+		return ""
+	}
+
+	return parsedURL.Scheme + "://" + parsedURL.Hostname()
 }
 
 func validateURL(url string, baseURL *nurl.URL) (string, bool) {

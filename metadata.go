@@ -45,7 +45,6 @@ var (
 	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
 	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
 	rxUrlCheck       = regexp.MustCompile(`(?i)https?://`)
-	rxDomainFinder   = regexp.MustCompile(`(?i)https?://[^/]+`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
 	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
 	rxCategoryHref   = regexp.MustCompile(`(?i)/categor(?:y|ies)/`)
@@ -162,7 +161,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 
 	// Hostname
 	if metadata.URL != "" {
-		metadata.Hostname = extractDomainURL(metadata.URL)
+		metadata.Hostname = getDomainURL(metadata.URL)
 	}
 
 	// Image
@@ -512,9 +511,8 @@ func extractDomURL(doc *html.Node) string {
 
 			if strings.HasPrefix(attrType, "og:") || strings.HasPrefix(attrType, "twitter:") {
 				nodeContent := trim(dom.GetAttribute(node, "content"))
-				domainMatches := rxDomainFinder.FindStringSubmatch(nodeContent)
-				if len(domainMatches) > 0 {
-					url = domainMatches[0] + url
+				if baseURL := getBaseURL(nodeContent); baseURL != "" {
+					url = baseURL + url
 					break
 				}
 			}
