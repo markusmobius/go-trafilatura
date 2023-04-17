@@ -751,7 +751,8 @@ func removeBlacklistedAuthors(current string, opts Options) string {
 	}
 
 	var allowedAuthors []string
-	for _, author := range strings.Split(current, "; ") {
+	for _, author := range strings.Split(current, ";") {
+		author = strings.TrimSpace(author)
 		if _, exist := blacklisted[strings.ToLower(author)]; !exist {
 			allowedAuthors = append(allowedAuthors, author)
 		}

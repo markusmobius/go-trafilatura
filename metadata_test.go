@@ -314,6 +314,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML, opts)
 	assert.Equal(t, "", metadata.Author)
+
+	opts = Options{BlacklistedAuthors: []string{"A", "b"}}
+	assert.Equal(t, "c; d", removeBlacklistedAuthors("a; B; c; d", opts))
+	assert.Equal(t, "c; d", removeBlacklistedAuthors("a;B;c;d", opts))
 }
 
 func Test_Metadata_URLs(t *testing.T) {
