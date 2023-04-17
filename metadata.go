@@ -83,10 +83,10 @@ var (
 	metaNameTag = sliceToMap(
 		"citation_keywords", "dcterms.subject", "keywords", "parsely-tags",
 		"shareaholic:keywords", "tags")
-	metaNameUrl   = sliceToMap("rbmainurl", "twitter:url")
 	metaNameImage = sliceToMap(
 		"image", "og:image", "og:image:url", "og:image:secure_url",
 		"twitter:image", "twitter:image:src")
+	// metaNameUrl   = sliceToMap("rbmainurl", "twitter:url")
 
 	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
