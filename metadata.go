@@ -110,6 +110,7 @@ type Metadata struct {
 	License     string
 	Language    string
 	Image       string
+	PageType    string
 }
 
 func extractMetadata(doc *html.Node, opts Options) Metadata {
@@ -250,7 +251,7 @@ func examineMeta(doc *html.Node) Metadata {
 	// If all OpenGraph metadata have been assigned, we can return it
 	if metadata.Title != "" && metadata.Author != "" &&
 		metadata.URL != "" && metadata.Description != "" &&
-		metadata.Sitename != "" && metadata.Image != "" {
+		metadata.Sitename != "" && metadata.Image != "" && metadata.PageType != "" {
 		return metadata
 	}
 
@@ -378,6 +379,8 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 			}
 		case "og:article:tag":
 			metadata.Tags = uniquifyLists(content)
+		case "og:type":
+			metadata.PageType = content
 		}
 	}
 

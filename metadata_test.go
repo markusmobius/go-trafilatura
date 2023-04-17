@@ -496,15 +496,17 @@ func Test_Metadata_MetaImages(t *testing.T) {
 }
 
 func Test_Metadata_MetaTags(t *testing.T) {
-	rawHTML := `<html><head>
+	rawHTML := `<html>
+		<head>
 			<meta property="og:title" content="Open Graph Title" />
 			<meta property="og:author" content="Jenny Smith" />
 			<meta property="og:description" content="This is an Open Graph description" />
 			<meta property="og:site_name" content="My first site" />
 			<meta property="og:url" content="https://example.org/test" />
-		</head><body>
-			<a rel="license" href="https://creativecommons.org/">Creative Commons</a>
-		</body></html>`
+			<meta property="og:type" content="Open Graph Type" />
+		</head>
+		<body><a rel="license" href="https://creativecommons.org/">Creative Commons</a></body>
+	</html>`
 	metadata := testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Open Graph Title", metadata.Title)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
@@ -512,6 +514,7 @@ func Test_Metadata_MetaTags(t *testing.T) {
 	assert.Equal(t, "My first site", metadata.Sitename)
 	assert.Equal(t, "https://example.org/test", metadata.URL)
 	assert.Equal(t, "Creative Commons", metadata.License)
+	assert.Equal(t, "Open Graph Type", metadata.PageType)
 
 	rawHTML = `<html><head>
 			<meta name="dc.title" content="Open Graph Title" />
