@@ -1028,6 +1028,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		// Get the json text inside the script
 		jsonLdText := dom.TextContent(script)
 		jsonLdText = strings.TrimSpace(jsonLdText)
+		jsonLdText = html.UnescapeString(jsonLdText)
 		if jsonLdText == "" {
 			continue
 		}
