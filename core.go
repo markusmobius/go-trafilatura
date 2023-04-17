@@ -104,7 +104,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Clean document
-	docCleaning(doc, opts.ExcludeTables, opts.IncludeImages)
+	docCleaning(doc, opts)
+	simplifyTags(doc, opts)
 
 	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
 	// into the one that suitable for XML. However, since we prefer the results
@@ -885,17 +886,17 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	// Prune
-	doc = pruneUnwantedSections(doc, opts)
+	searchDoc := pruneUnwantedSections(doc, opts)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {
-		etree.StripTags(doc, "a", "ref", "span")
+		etree.StripTags(searchDoc, "a", "ref", "span")
 	} else {
-		etree.StripTags(doc, "span")
+		etree.StripTags(searchDoc, "span")
 	}
 
 	var processedElems []*html.Node
-	for _, element := range etree.Iter(doc, searchList...) {
+	for _, element := range etree.Iter(searchDoc, searchList...) {
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
@@ -920,11 +921,14 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	// Prepare fallback candidates
 	fallbackCandidates := opts.FallbackCandidates
 
+	// Clean doc to be used for Readability and Dom Distiller
+	cleanedDoc := dom.Clone(doc, true)
+
 	// If fallback candidates are empty, populate it first
 	if len(fallbackCandidates) == 0 {
 		fallbackCandidates = []*html.Node{}
 
-		readabilityExtract, err := tryReadability(doc, opts)
+		readabilityExtract, err := tryReadability(cleanedDoc, opts)
 		if err == nil {
 			fallbackCandidates = append(fallbackCandidates, readabilityExtract)
 		} else {
@@ -949,7 +953,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		// Use dom-distiller if necessary
 		if candidate == nil {
 			var err error
-			candidate, err = tryDomDistiller(doc, opts)
+			candidate, err = tryDomDistiller(cleanedDoc, opts)
 			if err != nil {
 				logWarn(opts, "dom-distiller failed: %v", err)
 				continue

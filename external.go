@@ -65,7 +65,7 @@ func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
 // fallback algorithm (post-processing).
 func sanitizeTree(tree *html.Node, opts Options) {
 	// 1. Clean
-	docCleaning(tree, opts.ExcludeTables, opts.IncludeImages)
+	docCleaning(tree, opts)
 
 	subElements := dom.GetElementsByTagName(tree, "*")
 	for i := len(subElements) - 1; i >= 0; i-- {

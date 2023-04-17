@@ -33,19 +33,19 @@ import (
 )
 
 // docCleaning cleans the document by discarding unwanted elements
-func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
+func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy
 	cleaningList := duplicateMap(tagsToClean)
 	strippingList := duplicateMap(tagsToStrip)
 
-	if excludeTables {
+	if opts.ExcludeTables {
 		cleaningList["table"] = struct{}{}
 		cleaningList["td"] = struct{}{}
 		cleaningList["th"] = struct{}{}
 		cleaningList["tr"] = struct{}{}
 	}
 
-	if includeImages {
+	if opts.IncludeImages {
 		// Many websites have <img> inside <figure> or <picture> or <source> tag
 		delete(cleaningList, "figure")
 		delete(cleaningList, "picture")
@@ -66,6 +66,28 @@ func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
 	// Remove HTML comment
 	removeHtmlCommentNode(doc)
 	pruneHTML(doc)
+}
+
+// Simplify relevant HTML tags for faster processing.
+func simplifyTags(doc *html.Node, opts Options) {
+	if !opts.IncludeLinks {
+		links := dom.GetElementsByTagName(doc, "a")
+		for i := len(links) - 1; i >= 0; i-- {
+			link := links[i]
+			linkParent := link.Parent
+
+			// Check its parent
+			if linkParent != nil {
+				if ancestorIs(link, "div") || ancestorIs(link, "ul") ||
+					(!opts.ExcludeTables && ancestorIs(link, "table")) {
+					continue
+				}
+			}
+
+			// Strip the link
+			etree.Strip(link)
+		}
+	}
 }
 
 // removeHtmlCommentNode removes all `html.CommentNode` in document.
@@ -440,4 +462,15 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 	for i := len(nodesToDelete) - 1; i >= 0; i-- {
 		etree.Remove(nodesToDelete[i])
 	}
+}
+
+// ancestorIs checks if a given node has one of its ancestor tag name matching the provided one.
+func ancestorIs(node *html.Node, tag string) bool {
+	for node.Parent != nil {
+		if dom.TagName(node.Parent) == tag {
+			return true
+		}
+		node = node.Parent
+	}
+	return false
 }

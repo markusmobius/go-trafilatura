@@ -245,14 +245,16 @@ func Test_Cache(t *testing.T) {
 }
 
 func Test_Formatting(t *testing.T) {
+	var r io.Reader
 	var opts Options
+	var result *ExtractResult
 	fnHtml := func(r *ExtractResult) string {
 		return etree.ToString(r.ContentNode)
 	}
 
 	// Trailing line break
-	r := strings.NewReader("<html><body><p>This here is the text.<br/></p></body></html>")
-	result, _ := Extract(r, zeroOpts)
+	r = strings.NewReader("<html><body><p>This here is the text.<br/></p></body></html>")
+	result, _ = Extract(r, zeroOpts)
 	assert.NotContains(t, fnHtml(result), "<br/>")
 
 	// Simple
