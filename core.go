@@ -473,16 +473,7 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
 						etree.SetText(subChildElement, etree.Text(processedSubChild))
 						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
-
-						if subTag := dom.TagName(subElement); inMap(subTag, mapXmlRefTags) {
-							if target := dom.GetAttribute(subElement, "target"); target != "" {
-								dom.SetAttribute(subChildElement, "target", target)
-							}
-
-							if href := dom.GetAttribute(subElement, "href"); href != "" {
-								dom.SetAttribute(subChildElement, "href", href)
-							}
-						}
+						subChildElement.Attr = append([]html.Attribute{}, subElement.Attr...)
 					}
 				}
 
