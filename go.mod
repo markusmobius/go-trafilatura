@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	github.com/abadojack/whatlanggo v1.0.1
-	github.com/antchfx/htmlquery v1.3.0
 	github.com/beevik/etree v1.1.0
 	github.com/forPelevin/gomoji v1.1.8
 	github.com/go-shiori/dom v0.0.0-20210627111528-4e4722cd0d65
@@ -23,6 +22,7 @@ require (
 
 require (
 	github.com/andybalholm/cascadia v1.3.1 // indirect
+	github.com/antchfx/htmlquery v1.3.0 // indirect
 	github.com/antchfx/xpath v1.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/pie/v2 v2.5.2 // indirect

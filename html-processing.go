@@ -25,10 +25,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	htmlxpath "github.com/antchfx/htmlquery"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
 
@@ -131,7 +131,7 @@ func pruneHTML(doc *html.Node) {
 }
 
 // pruneUnwantedNodes prune the HTML tree by removing unwanted sections.
-func pruneUnwantedNodes(tree *html.Node, queries []string, withBackup ...bool) *html.Node {
+func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...bool) *html.Node {
 	var oldLen int
 	var backup *html.Node
 	backupEnabled := len(withBackup) > 0 && withBackup[0]
@@ -143,7 +143,7 @@ func pruneUnwantedNodes(tree *html.Node, queries []string, withBackup ...bool) *
 	}
 
 	for _, query := range queries {
-		subElements := htmlxpath.Find(tree, query)
+		subElements := selector.QueryAll(tree, query)
 		for i := len(subElements) - 1; i >= 0; i-- {
 			subElement := subElements[i]
 

@@ -29,10 +29,10 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	htmlxpath "github.com/antchfx/htmlquery"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
 
@@ -120,7 +120,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
 	} else if opts.FavorPrecision {
-		doc = pruneUnwantedNodes(doc, RemovedCommentXpaths)
+		doc = pruneUnwantedNodes(doc, selector.RemovedComments)
 	}
 
 	// Extract content
@@ -200,9 +200,9 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 	potentialTags := duplicateMap(tagCatalog)
 
 	// Process each selector rules
-	for _, query := range CommentXpaths {
+	for _, query := range selector.Comments {
 		// Capture first node that matched with the rule
-		subTree := htmlxpath.FindOne(doc, query)
+		subTree := selector.Query(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
@@ -210,7 +210,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 		}
 
 		// Prune
-		subTree = pruneUnwantedNodes(subTree, DiscardedCommentXpaths)
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedComments)
 		etree.StripTags(subTree, "a", "span")
 
 		// Extract comments
@@ -279,9 +279,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Iterate each selector rule
-	for _, query := range ContentXpaths {
+	for _, query := range selector.Content {
 		// Capture first node that matched with the rule
-		subTree := htmlxpath.FindOne(doc, query)
+		subTree := selector.Query(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
@@ -1132,19 +1132,19 @@ func baseline(doc *html.Node) (*html.Node, string) {
 
 func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 	// Prune the rest
-	subTree = pruneUnwantedNodes(subTree, OverallDiscardedContentXpaths, true)
-	subTree = pruneUnwantedNodes(subTree, DiscardedPaywallXpaths)
+	subTree = pruneUnwantedNodes(subTree, selector.OverallDiscardedContent, true)
+	subTree = pruneUnwantedNodes(subTree, selector.DiscardedPaywall)
 
 	// Prune images
 	if !opts.IncludeImages {
-		subTree = pruneUnwantedNodes(subTree, DiscardedImageXpaths)
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedImage)
 	}
 
 	// Balance precision / recall
 	if !opts.FavorRecall {
-		subTree = pruneUnwantedNodes(subTree, DiscardedTeaserXpaths)
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedTeaser)
 		if opts.FavorPrecision {
-			subTree = pruneUnwantedNodes(subTree, PrecisionDiscardedContentXpaths)
+			subTree = pruneUnwantedNodes(subTree, selector.PrecisionDiscardedContent)
 		}
 	}
 

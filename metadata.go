@@ -29,11 +29,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	htmlxpath "github.com/antchfx/htmlquery"
 	"github.com/forPelevin/gomoji"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -430,7 +430,7 @@ func extractDomTitle(doc *html.Node) string {
 	}
 
 	// Look for title using several CSS selectors
-	title := extractDomMetaSelectors(doc, 200, MetaTitleXpaths)
+	title := extractDomMetaSelectors(doc, 200, selector.MetaTitle)
 	if title != "" {
 		return title
 	}
@@ -466,9 +466,9 @@ func extractDomTitle(doc *html.Node) string {
 // extractDomAuthor returns the document author from DOM elements.
 func extractDomAuthor(doc *html.Node) string {
 	clone := dom.Clone(doc, true)
-	clone = pruneUnwantedNodes(clone, MetaAuthorDiscardXpaths)
+	clone = pruneUnwantedNodes(clone, selector.MetaAuthorDiscard)
 
-	author := extractDomMetaSelectors(clone, 120, MetaAuthorXpaths)
+	author := extractDomMetaSelectors(clone, 120, selector.MetaAuthor)
 	if author != "" {
 		return normalizeAuthors("", author)
 	}
@@ -540,8 +540,8 @@ func extractDomCategories(doc *html.Node) []string {
 	categories := []string{}
 
 	// Try using selectors
-	for _, query := range MetaCategoriesXpaths {
-		for _, node := range htmlxpath.Find(doc, query) {
+	for _, query := range selector.MetaCategories {
+		for _, node := range selector.QueryAll(doc, query) {
 			href := trim(dom.GetAttribute(node, "href"))
 			if href != "" && rxCategoryHref.MatchString(href) {
 				if text := trim(dom.TextContent(node)); text != "" {
@@ -577,8 +577,8 @@ func extractDomTags(doc *html.Node) []string {
 	tags := []string{}
 
 	// Try using selectors
-	for _, query := range MetaTagsXpaths {
-		for _, node := range htmlxpath.Find(doc, query) {
+	for _, query := range selector.MetaTags {
+		for _, node := range selector.QueryAll(doc, query) {
 			href := trim(dom.GetAttribute(node, "href"))
 			if href != "" && rxTagHref.MatchString(href) {
 				if text := trim(dom.TextContent(node)); text != "" {
@@ -620,9 +620,9 @@ func cleanCatTags(catTags []string) []string {
 	return cleanedEntries
 }
 
-func extractDomMetaSelectors(doc *html.Node, limit int, queries []string) string {
+func extractDomMetaSelectors(doc *html.Node, limit int, queries []selector.Rule) string {
 	for _, query := range queries {
-		for _, node := range htmlxpath.Find(doc, query) {
+		for _, node := range selector.QueryAll(doc, query) {
 			text := etree.IterText(node, " ")
 			text = trim(text)
 
