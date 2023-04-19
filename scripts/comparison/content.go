@@ -72,7 +72,7 @@ func compareContentExtraction() {
 
 		// Readability
 		start := time.Now()
-		docReadability, result, err := runReadability(url, doc)
+		_, result, err := runReadability(url, doc)
 		if err != nil {
 			logrus.Warnf("readability error in %s: %v", strURL, err)
 		}
@@ -84,7 +84,7 @@ func compareContentExtraction() {
 
 		// Dom Distiller
 		start = time.Now()
-		docDistiller, result, err := runDomDistiller(url, doc)
+		_, result, err = runDomDistiller(url, doc)
 		if err != nil {
 			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
 		}
@@ -120,7 +120,7 @@ func compareContentExtraction() {
 
 		// Trafilatura + fallback + precision
 		start = time.Now()
-		result, err = runTrafilaturaPrecision(url, doc, docReadability, docDistiller)
+		result, err = runTrafilaturaPrecision(url, doc)
 		if err != nil {
 			logrus.Warnf("trafilatura precision error in %s: %v", strURL, err)
 		}
@@ -132,7 +132,7 @@ func compareContentExtraction() {
 
 		// Trafilatura + fallback + recall
 		start = time.Now()
-		result, err = runTrafilaturaRecall(url, doc, docReadability, docDistiller)
+		result, err = runTrafilaturaRecall(url, doc)
 		if err != nil {
 			logrus.Warnf("trafilatura recall error in %s: %v", strURL, err)
 		}
