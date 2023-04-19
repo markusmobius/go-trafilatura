@@ -156,7 +156,7 @@ go build -tags re2_cgo .
 
 When using `re2_wasm` tag, it will make your app uses `re2` that packaged as WebAssembly module so it should be runnable even without cgo. However, if your input is too small, it might be even slower than using Go's standard regex engine.
 
-When using `re2_cgo` tag, it will make your app uses `re2` library that wrapped using cgo. It's a lot faster than Go's standard regex and `re2_wasm`, however to use it cgo must be available and `re2` should be installed in your system.
+When using `re2_cgo` tag, it will make your app uses `re2` library that wrapped using cgo. In most case it's a lot faster than Go's standard regex and `re2_wasm`, however to use it cgo must be available and `re2` should be installed in your system.
 
 Do note that this alternative regex engine is experimental, so use on your own risk.
 
@@ -172,10 +172,10 @@ For the test, we use 750 documents, 2236 text & 2250 boilerplate segments (2022-
 
 |            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
 | :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|       `go-domdistiller`        |   0.866   | 0.855  |  0.862   |  0.860  |   9.385   |
-|        `go-readability`        |   0.863   | 0.872  |  0.867   |  0.867  |   8.300   |
-|        `go-trafilatura`        |   0.908   | 0.884  |  0.897   |  0.896  |  10.943   |
-| `go-trafilatura` with fallback |   0.905   | 0.904  |  0.905   |  0.904  |  27.226   |
+|        `go-readability`        |   0.863   | 0.872  |  0.867   |  0.867  |   6.794   |
+|       `go-domdistiller`        |   0.865   | 0.855  |  0.861   |  0.860  |   7.938   |
+|        `go-trafilatura`        |   0.908   | 0.884  |  0.897   |  0.896  |   9.180   |
+| `go-trafilatura` with fallback |   0.911   | 0.899  |  0.906   |  0.905  |  23.827   |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For instance, the image extraction in `go-trafilatura` is still not as good as the other.
 
@@ -201,11 +201,11 @@ For the speed, here is the comparison between our port and the original Trafilat
 |             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
 | :---------------------------: | :------: | :------: | :------------------: | :---------------: |
 |         `trafilatura`         |  12.98   |  18.65   |        26.55         |       13.74       |
-|       `go-trafilatura`        |   9.00   |  22.67   |        22.21         |       17.99       |
-| `go-trafilatura` + `re2_wasm` |   5.67   |  12.81   |        12.37         |       8.35        |
-| `go-trafilatura` + `re2_cgo`  |   5.97   |  13.19   |        12.81         |       8.29        |
+|       `go-trafilatura`        |   9.18   |  23.83   |        24.12         |       19.46       |
+| `go-trafilatura` + `re2_wasm` |   5.54   |  12.41   |        12.21         |       8.23        |
+| `go-trafilatura` + `re2_cgo`  |   5.87   |  14.04   |        14.54         |       10.07       |
 
-As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. However, when `re2` is enabled, our port become a lot faster in every scenarios.
+As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor fro `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
 
 ## Acknowledgements
 
@@ -241,3 +241,5 @@ Like the original, `go-trafilatura` is distributed under the [GNU General Public
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
 [wac-x]: https://www.sigwac.org.uk/wiki/WAC-X
 [k-web]: https://www.dwds.de/d/k-web
+[re2]: https://github.com/google/re2
+[go-re2]: https://github.com/wasilibs/go-re2

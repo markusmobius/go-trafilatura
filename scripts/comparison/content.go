@@ -105,14 +105,16 @@ func runTrafilatura(params []ExtractorParameter, useFallback, favorPrecision, fa
 	}
 
 	for _, param := range params {
+		var textResult string
 		opts.OriginalURL = param.URL
 		result, err := trafilatura.ExtractDocument(param.Document, opts)
 		if err != nil {
 			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			continue
+		} else {
+			textResult = result.ContentText
 		}
 
-		evaluation = evaluateResult(evaluation, result.ContentText, param.Entry)
+		evaluation = evaluateResult(evaluation, textResult, param.Entry)
 	}
 
 	evaluation.Duration = time.Since(start)
@@ -132,7 +134,6 @@ func runReadability(params []ExtractorParameter) []error {
 		article, err := readability.FromDocument(param.Document, param.URL)
 		if err != nil {
 			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			continue
 		}
 
 		evaluation = evaluateResult(evaluation, article.TextContent, param.Entry)
@@ -152,15 +153,17 @@ func runDomDistiller(params []ExtractorParameter) []error {
 	var errors []error
 	var evaluation EvaluationResult
 	for _, param := range params {
+		var textResult string
 		res, err := distiller.Apply(param.Document, &distiller.Options{
 			OriginalURL:    param.URL,
 			SkipPagination: true})
 		if err != nil {
 			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			continue
+		} else {
+			textResult = res.Text
 		}
 
-		evaluation = evaluateResult(evaluation, res.Text, param.Entry)
+		evaluation = evaluateResult(evaluation, textResult, param.Entry)
 	}
 
 	evaluation.Duration = time.Since(start)
