@@ -28,8 +28,21 @@ import (
 	"golang.org/x/net/html"
 )
 
+var MetaCategories = []Rule{
+	metaCategoriesRule1,
+	metaCategoriesRule2,
+	metaCategoriesRule3,
+	metaCategoriesRule4,
+	metaCategoriesRule5,
+	metaCategoriesRule6,
+}
+
+// `//div[starts-with(@class, 'post-info') or starts-with(@class, 'postinfo') or
+// starts-with(@class, 'post-meta') or starts-with(@class, 'postmeta') or
+// starts-with(@class, 'meta') or starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-info') or
+// starts-with(@class, 'entry-utility') or starts-with(@id, 'postpath')]//a[@href]`,
 func metaCategoriesRule1(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -59,8 +72,9 @@ func metaCategoriesRule1(n *html.Node) bool {
 	return false
 }
 
+// `//p[starts-with(@class, 'postmeta') or starts-with(@class, 'entry-categories') or @class='postinfo' or @id='filedunder']//a[@href]`,
 func metaCategoriesRule2(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -85,8 +99,9 @@ func metaCategoriesRule2(n *html.Node) bool {
 	return false
 }
 
+// `//footer[starts-with(@class, 'entry-meta') or starts-with(@class, 'entry-footer')]//a[@href]`,
 func metaCategoriesRule3(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -108,8 +123,9 @@ func metaCategoriesRule3(n *html.Node) bool {
 	return false
 }
 
+// `//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category" or contains(@class, "cat-links")]//a[@href]`,
 func metaCategoriesRule4(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -125,7 +141,8 @@ func metaCategoriesRule4(n *html.Node) bool {
 		switch {
 		case class == "post-category",
 			class == "postcategory",
-			class == "entry-category":
+			class == "entry-category",
+			strings.Contains(class, "cat-links"):
 			return true
 		}
 	}
@@ -133,8 +150,9 @@ func metaCategoriesRule4(n *html.Node) bool {
 	return false
 }
 
+// `//header[@class="entry-header"]//a[@href]`,
 func metaCategoriesRule5(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -154,8 +172,9 @@ func metaCategoriesRule5(n *html.Node) bool {
 	return false
 }
 
+// `//div[@class="row" or @class="tags"]//a[@href]`,
 func metaCategoriesRule6(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 

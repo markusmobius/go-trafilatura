@@ -29,7 +29,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/abadojack/whatlanggo"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
@@ -59,9 +58,6 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 // ExtractDocument parses the specified document and find the main readable content.
 func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
-	// Clone document to make sure the original kept untouched
-	doc = dom.Clone(doc, true)
-
 	//  Set default config
 	if opts.Config == nil {
 		opts.Config = DefaultConfig()
@@ -71,12 +67,14 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	cache := lru.NewCache(opts.Config.CacheSize)
 
 	// HTML language check
-	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts) {
+	if opts.TargetLanguage != "" && !checkHtmlLanguage(doc, opts, false) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
-	// Backup the doc first
-	docBackup := dom.Clone(doc, true)
+	// Clone and backup document to make sure the original kept untouched
+	doc = dom.Clone(doc, true)
+	docBackup1 := dom.Clone(doc, true)
+	docBackup2 := dom.Clone(doc, true)
 
 	// Fetch metadata
 	metadata := extractMetadata(doc, opts)
@@ -106,7 +104,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Clean document
-	docCleaning(doc, opts.ExcludeTables, opts.IncludeImages)
+	docCleaning(doc, opts)
+	simplifyTags(doc, opts)
 
 	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
 	// into the one that suitable for XML. However, since we prefer the results
@@ -117,33 +116,25 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	var lenComments int
 	var commentsBody *html.Node
 
-	if !opts.ExcludeComments {
+	if !opts.ExcludeComments { // Comment is included
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
+	} else if opts.FavorPrecision {
+		doc = pruneUnwantedNodes(doc, selector.RemovedComments)
 	}
 
 	// Extract content
-	postBody, tmpBodyText, sureThing := extractContent(doc, cache, opts)
+	postBody, tmpBodyText := extractContent(doc, cache, opts)
 
 	// Use fallback if necessary
 	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
-		postBody, tmpBodyText = compareExtraction(docBackup, postBody, opts)
-		// Add baseline as additional fallback
-		if len(dom.Children(postBody)) == 0 {
-			postBody, tmpBodyText = baseline(docBackup)
-		}
-	} else {
-		// Rescue: try to use original/dirty tree
-		lenText := utf8.RuneCountInString(tmpBodyText)
-		if !sureThing && (opts.Config.MinExtractedSize == 0 || lenText < opts.Config.MinExtractedSize) {
-			baselineBody, baselineText := baseline(docBackup)
+		postBody, tmpBodyText = compareExtraction(docBackup1, postBody, opts)
+	}
 
-			// Make sure baseline is not worse than the original
-			lenBaselineText := utf8.RuneCountInString(baselineText)
-			if lenBaselineText > lenText {
-				postBody, tmpBodyText = baselineBody, baselineText
-			}
-		}
+	// Rescue: try to use original/dirty tree
+	lenText := utf8.RuneCountInString(tmpBodyText)
+	if lenText < opts.Config.MinExtractedSize {
+		postBody, tmpBodyText = baseline(docBackup2)
 	}
 
 	// Tree size sanity check
@@ -164,7 +155,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		logWarn(opts, "not enough comments: %s", opts.OriginalURL)
 	}
 
-	lenText := utf8.RuneCountInString(tmpBodyText)
+	lenText = utf8.RuneCountInString(tmpBodyText)
 	if lenText < opts.Config.MinOutputSize && lenComments < opts.Config.MinOutputCommentSize {
 		return nil, fmt.Errorf("text and comments are not long enough: %d %d", lenText, lenComments)
 	}
@@ -175,18 +166,21 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Sanity check on language
+	lang := languageClassifier(tmpBodyText, tmpComments)
 	if opts.TargetLanguage != "" {
-		lang := getLanguage(tmpBodyText, tmpComments)
 		if lang != opts.TargetLanguage {
 			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
 		}
 	}
 
+	// Put the captured language to metadata
+	if lang != "" {
+		metadata.Language = lang
+	}
+
 	// Post cleaning
 	postCleaning(postBody)
-	if commentsBody != nil {
-		postCleaning(commentsBody)
-	}
+	postCleaning(commentsBody)
 
 	return &ExtractResult{
 		ContentNode:  postBody,
@@ -206,15 +200,9 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 	potentialTags := duplicateMap(tagCatalog)
 
 	// Process each selector rules
-	for _, rule := range selector.CommentsRules {
+	for _, query := range selector.Comments {
 		// Capture first node that matched with the rule
-		var subTree *html.Node
-		for _, n := range dom.GetElementsByTagName(doc, "*") {
-			if rule(n) {
-				subTree = n
-				break
-			}
-		}
+		subTree := selector.Query(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
@@ -222,7 +210,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 		}
 
 		// Prune
-		pruneUnwantedNodes(subTree, selector.DiscardedCommentsRules)
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedComments)
 		etree.StripTags(subTree, "a", "span")
 
 		// Extract comments
@@ -268,8 +256,8 @@ func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cac
 
 // extractContent find the main content of a page using a set of selectors, then
 // extract relevant elements, strip them of unwanted subparts and convert them.
-func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string, bool) {
-	var sureThing bool
+func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string) {
+	backupDoc := dom.Clone(doc, true)
 	resultBody := dom.CreateElement("body")
 
 	// Prepare potential tags
@@ -277,6 +265,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 	if !opts.ExcludeTables {
 		potentialTags["table"] = struct{}{}
+		potentialTags["tr"] = struct{}{}
+		potentialTags["th"] = struct{}{}
+		potentialTags["td"] = struct{}{}
 	}
 
 	if opts.IncludeImages {
@@ -288,36 +279,27 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Iterate each selector rule
-	for _, rule := range selector.ContentRules {
+	for _, query := range selector.Content {
 		// Capture first node that matched with the rule
-		var subTree *html.Node
-		for _, n := range dom.GetElementsByTagName(doc, "*") {
-			if rule(n) {
-				subTree = n
-				break
-			}
-		}
+		subTree := selector.Query(doc, query)
 
 		// If no nodes matched, try next selector rule
 		if subTree == nil {
 			continue
 		}
 
-		// Prune
-		pruneUnwantedNodes(subTree, selector.DiscardedContentRules)
-
-		// Remove elements by link density
-		deleteByLinkDensity(subTree, "div", true)
-		deleteByLinkDensity(subTree, "ul", false)
-		deleteByLinkDensity(subTree, "ol", false)
-		deleteByLinkDensity(subTree, "dl", false)
-		deleteByLinkDensity(subTree, "p", false)
+		// Prune the subtree
+		subTree = pruneUnwantedSections(subTree, opts)
+		// TODO: second pass?
+		// deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
 
 		// Define iteration strategy
-		if _, exist := potentialTags["table"]; exist {
-			for _, table := range etree.Iter(subTree, "table") {
-				if linkDensityTestTables(table) {
-					etree.Remove(table)
+		_, tableIsPotentialTag := potentialTags["table"]
+		if tableIsPotentialTag || opts.FavorPrecision {
+			tables := etree.Iter(subTree, "table")
+			for i := len(tables) - 1; i >= 0; i-- {
+				if linkDensityTestTables(tables[i], opts) {
+					etree.Remove(tables[i])
 				}
 			}
 		}
@@ -329,18 +311,23 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Check if there are enough <p> with text
 		var paragraphText string
-		for _, p := range dom.GetElementsByTagName(subTree, "p") {
-			for _, node := range dom.ChildNodes(p) {
-				if node.Type == html.TextNode {
-					paragraphText += trim(node.Data)
-				}
-			}
+		for _, p := range dom.GetElementsByTagName(doc, "p") {
+			paragraphText += dom.TextContent(p)
 		}
 
-		if utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*2 {
+		factor := 3
+		if opts.FavorRecall {
+			factor = 5
+		} else if opts.FavorPrecision {
+			factor = 1
+		}
+
+		if paragraphText == "" ||
+			utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
+		// Polish list of potential tags
 		if _, exist := potentialTags["a"]; !exist {
 			etree.StripTags(subTree, "a")
 		}
@@ -349,9 +336,22 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			etree.StripTags(subTree, "span")
 		}
 
+		// Fetch sub elements
+		subElements := dom.GetElementsByTagName(subTree, "*")
+
+		// Check if all sub elements are line break
+		subTagTracker := map[string]struct{}{}
+		for _, e := range subElements {
+			subTagTracker[dom.TagName(e)] = struct{}{}
+		}
+
+		if _, hasLineBreak := subTagTracker["br"]; len(subTagTracker) == 1 && hasLineBreak {
+			subElements = []*html.Node{subTree}
+		}
+
 		// Populate result body
 		var processedElems []*html.Node
-		for _, elem := range dom.GetElementsByTagName(subTree, "*") {
+		for _, elem := range subElements {
 			processed := handleTextElem(elem, potentialTags, cache, opts)
 			if processed != nil {
 				processedElems = append(processedElems, processed)
@@ -362,8 +362,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		// Remove trailing titles
 		finalChildren := dom.Children(resultBody)
 		for i := len(finalChildren) - 1; i >= 0; i-- {
-			switch dom.TagName(finalChildren[i]) {
-			case "h1", "h2", "h3", "h4", "h5", "h6":
+			tagName := dom.TagName(finalChildren[i])
+			if inMap(tagName, mapXmlHeadTags) || inMap(tagName, mapXmlRefTags) {
 				etree.Remove(finalChildren[i])
 				continue
 			}
@@ -381,135 +381,134 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
-		recoverWildText(doc, resultBody, potentialTags, cache, opts)
+		if opts.FavorRecall {
+			potentialTags = duplicateMap(potentialTags)
+			potentialTags["div"] = struct{}{}
+		}
+
+		resultBody = dom.CreateElement("body")
+		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))
-	} else {
-		sureThing = true
 	}
 
 	// Filter output
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
 
-	return resultBody, tmpText, sureThing
-}
-
-// deleteByLinkDensity determines the link density of elements with respect to
-// their length, and remove the elements identified as boilerplate.
-func deleteByLinkDensity(subTree *html.Node, tagName string, backtracking bool) {
-	var nodesToDelete []*html.Node
-	textNodes := make(map[string][]*html.Node)
-
-	for _, elem := range etree.Iter(subTree, tagName) {
-		nonEmptyLinks, isHighDensity := linkDensityTest(elem)
-
-		if isHighDensity {
-			nodesToDelete = append(nodesToDelete, elem)
-			continue
-		}
-
-		if backtracking && len(nonEmptyLinks) > 0 {
-			text := trim(dom.TextContent(elem))
-			if _, exist := textNodes[text]; !exist {
-				textNodes[text] = []*html.Node{elem}
-			} else {
-				textNodes[text] = append(textNodes[text], elem)
-			}
-		}
-	}
-
-	if backtracking {
-		for text, nodes := range textNodes {
-			textLength := utf8.RuneCountInString(text)
-			if textLength > 0 && textLength < 1000 && len(nodes) >= 3 {
-				nodesToDelete = append(nodesToDelete, nodes...)
-			}
-		}
-	}
-
-	for _, elem := range nodesToDelete {
-		etree.Remove(elem)
-	}
+	return resultBody, tmpText
 }
 
 // handleTextElem process text element and determine how to deal with its content.
 func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
-	switch dom.TagName(element) {
-	case "ul", "ol", "dl":
+	tagName := dom.TagName(element)
+
+	if inMap(tagName, mapXmlListTags) {
 		return handleLists(element, cache, opts)
-	case "blockquote", "pre", "q", "code":
+	} else if inMap(tagName, mapXmlQuoteTags) || tagName == "code" {
 		return handleQuotes(element, cache, opts)
-	case "h1", "h2", "h3", "h4", "h5", "h6", "summary":
+	} else if inMap(tagName, mapXmlHeadTags) {
 		return handleTitles(element, cache, opts)
-	case "p":
+	} else if tagName == "p" {
 		return handleParagraphs(element, potentialTags, cache, opts)
-	case "br", "hr":
+	} else if inMap(tagName, mapXmlLbTags) {
 		if textCharsTest(etree.Tail(element)) {
-			element = processNode(element, cache, opts)
-			if element != nil {
+			if element = processNode(element, cache, opts); element != nil {
 				newElement := etree.Element("p")
 				etree.SetText(newElement, etree.Tail(element))
 				return newElement
 			}
 		}
-	case "em", "i", "b", "strong", "u", "kbd", "samp", "tt", "var", "sub", "sup", "a", "span":
-		return handleFormatting(element)
-	case "table":
+	} else if inMap(tagName, mapXmlHiTags) || inMap(tagName, mapXmlRefTags) || tagName == "span" {
+		return handleFormatting(element, cache, opts)
+	} else if tagName == "table" {
 		if _, exist := potentialTags["table"]; exist {
-			return handleTable(element, cache, opts)
+			return handleTable(element, potentialTags, cache, opts)
 		}
-	case "img":
+	} else if inMap(tagName, mapXmlGraphicTags) {
 		if _, exist := potentialTags["img"]; exist {
 			return handleImage(element)
 		}
-	default:
-		return handleOtherElement(element, potentialTags, cache, opts)
 	}
 
-	return nil
+	return handleOtherElement(element, potentialTags, cache, opts)
 }
 
 // handleLists process lists elements
 func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	var newChildElem *html.Node
 	processedElement := etree.Element(dom.TagName(element))
 
-	if text := etree.Text(element); text != "" {
-		etree.SetText(processedElement, text)
+	if text := strings.TrimSpace(etree.Text(element)); text != "" {
+		newChildElem = etree.SubElement(processedElement, "li")
+		etree.SetText(newChildElem, text)
 	}
 
-	for _, child := range etree.Iter(element, "dd", "dt", "li") {
-		newChild := dom.CreateElement(dom.TagName(child))
+	for _, child := range etree.Iter(element, listXmlItemTags...) {
+		newChildElem = dom.CreateElement(dom.TagName(child))
 
 		if len(dom.Children(child)) == 0 {
 			processedChild := processNode(child, cache, opts)
 			if processedChild != nil {
-				etree.SetText(newChild, etree.Text(processedChild))
-				etree.SetTail(newChild, etree.Tail(processedChild))
-				etree.Append(processedElement, newChild)
+				newText := etree.Text(processedChild)
+				if tail := strings.TrimSpace(etree.Tail(processedChild)); tail != "" {
+					newText += " " + tail
+				}
+
+				etree.SetText(newChildElem, newText)
+				etree.Append(processedElement, newChildElem)
 			}
 		} else {
-			for _, subElement := range etree.Iter(child) {
-				processedSubChild := handleTextNode(subElement, cache, false, opts)
-				if processedSubChild != nil {
-					subChildElement := etree.SubElement(newChild, dom.TagName(processedSubChild))
-					etree.SetText(subChildElement, etree.Text(processedSubChild))
-					etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+			etree.SetText(newChildElem, etree.Text(child))
+
+			for _, subElement := range dom.GetElementsByTagName(child, "*") {
+				// Beware of nested list
+				var processedSubChild *html.Node
+				if inMap(dom.TagName(subElement), mapXmlListTags) {
+					processedSubChild = handleLists(subElement, cache, opts)
+					if processedSubChild != nil {
+						dom.AppendChild(newChildElem, processedSubChild)
+					}
+				} else {
+					processedSubChild := handleTextNode(subElement, cache, false, opts)
+					if processedSubChild != nil {
+						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
+						etree.SetText(subChildElement, etree.Text(processedSubChild))
+						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+						subChildElement.Attr = append([]html.Attribute{}, subElement.Attr...)
+					}
 				}
 
-				if subElement.Type == html.ElementNode {
-					subElement.Data = "done"
-				}
+				subElement.Data = "done"
 			}
 
-			etree.StripTags(newChild, "dd", "dt", "li")
+			// etree.StripTags(newChild, "dd", "dt", "li")
+			if tail := strings.TrimSpace(etree.Tail(child)); tail != "" {
+				var newChildElemChildren []*html.Node
+				for _, nc := range dom.Children(newChildElem) {
+					if dom.TagName(nc) != "done" {
+						newChildElemChildren = append(newChildElemChildren, nc)
+					}
+				}
+
+				if len(newChildElemChildren) > 0 {
+					lastSubChild := newChildElemChildren[len(newChildElemChildren)-1]
+					if lastTail := strings.TrimSpace(etree.Tail(lastSubChild)); lastTail == "" {
+						etree.SetTail(lastSubChild, tail)
+					} else {
+						etree.SetTail(lastSubChild, lastTail+" "+tail)
+					}
+				}
+			}
 		}
 
-		if etree.Text(newChild) != "" || len(dom.Children(newChild)) > 0 {
-			etree.Append(processedElement, newChild)
+		if etree.Text(newChildElem) != "" || len(dom.Children(newChildElem)) > 0 {
+			etree.Append(processedElement, newChildElem)
 		}
 
 		child.Data = "done"
 	}
+
+	element.Data = "done"
 
 	// Test if it has children and text. Avoid double tags??
 	if len(dom.Children(processedElement)) > 0 && textCharsTest(etree.IterText(processedElement, "")) {
@@ -543,11 +542,6 @@ func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 
 // handleTitles process head elements (titles).
 func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
-	tail := etree.Tail(element)
-	if tail != "" && rxWords.MatchString(tail) {
-		logWarn(opts, "tail in title, stripping: %s", tail)
-	}
-
 	// In original trafilatura, summary is treated as heading.
 	// However, in XML, <h1> to <h6> is treated simply as <head>,
 	// which means heading level is not important in XML. Since
@@ -559,9 +553,32 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		element.Data = "b"
 	}
 
-	etree.SetTail(element, "")
-	title := processNode(element, cache, opts)
-	if title != nil && textCharsTest(etree.Text(element)) {
+	var title *html.Node
+	if children := dom.Children(element); len(children) == 0 {
+		// TODO: maybe needs attention?
+		// tail := etree.Tail(element)
+		// if tail != "" && rxWords.MatchString(tail) {
+		// 	logWarn(opts, "tail in title, stripping: %s", tail)
+		// }
+		// etree.SetTail(element, "")
+		title = processNode(element, cache, opts)
+	} else {
+		title = dom.Clone(element, false)
+		for _, child := range dom.ChildNodes(element) {
+			clonedChild := dom.Clone(child, true)
+			processedChild := handleTextNode(clonedChild, cache, false, opts)
+
+			if processedChild != nil {
+				dom.AppendChild(title, processedChild)
+			} else {
+				dom.AppendChild(title, clonedChild)
+			}
+
+			child.Data = "done"
+		}
+	}
+
+	if title != nil && textCharsTest(etree.IterText(title, "")) {
 		return title
 	}
 
@@ -579,20 +596,21 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	// Handle with children
+	var unwantedChildren []*html.Node
 	processedElements := make(map[*html.Node]struct{})
 	for _, child := range dom.GetElementsByTagName(element, "*") {
 		childTag := dom.TagName(child)
 
 		// Make sure child is potential element
-		if _, exist := potentialTags[childTag]; !exist {
-			logWarn(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
-			etree.Remove(child)
+		if _, exist := potentialTags[childTag]; !exist && childTag != "done" {
+			logDebug(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
+			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
 
 		// If necessary remove duplicate child
 		if opts.Deduplicate && cache != nil && duplicateTest(child, cache, opts) {
-			etree.Remove(child)
+			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
 
@@ -619,6 +637,11 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		processedElements[child] = struct{}{}
 	}
 
+	// Remove unwanted child
+	for i := len(unwantedChildren) - 1; i >= 0; i-- {
+		etree.Remove(unwantedChildren[i])
+	}
+
 	// Remove empty elements. Do it backward, to make sure all children
 	// is removed before its parent.
 	children := dom.GetElementsByTagName(element, "*")
@@ -631,7 +654,9 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	// Clean trailing line break
-	for _, br := range dom.QuerySelectorAll(element, "br,hr") {
+	lineBreaks := dom.QuerySelectorAll(element, "br,hr")
+	for i := len(lineBreaks) - 1; i >= 0; i-- {
+		br := lineBreaks[i]
 		if br.NextSibling == nil || etree.Tail(br) == "" {
 			etree.Remove(br)
 		}
@@ -653,46 +678,56 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		return processedElement
 	}
 
-	logWarn(opts, "discarding p-child: %s", trim(etree.ToString(processedElement)))
+	logDebug(opts, "discarding p-child: %s", trim(etree.ToString(processedElement)))
 	return nil
 }
 
 // handleFormatting process formatting elements (b, i, etc) found
 // outside of paragraphs.
-func handleFormatting(element *html.Node) *html.Node {
+func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	formatting := processNode(element, cache, opts)
+	if len(dom.Children(element)) == 0 && formatting == nil {
+		return nil
+	}
+
+	// Repair orphan elements
+	parent := element.Parent
+	if parent == nil {
+		parent = element.PrevSibling
+	}
+
 	var processedElement *html.Node
-	text, tail := etree.Text(element), etree.Tail(element)
-
-	if text != "" || tail != "" {
+	if parentTag := dom.TagName(parent); parent == nil ||
+		(!inMap(parentTag, mapXmlCellTags) &&
+			!inMap(parentTag, mapXmlHeadTags) &&
+			!inMap(parentTag, mapXmlHiTags) &&
+			!inMap(parentTag, mapXmlItemTags) &&
+			!inMap(parentTag, mapXmlQuoteTags) &&
+			parentTag != "p") {
 		processedElement = etree.Element("p")
-		processedChild := etree.SubElement(processedElement, dom.TagName(element))
-
-		if textCharsTest(text) {
-			etree.SetText(processedChild, trim(text))
-		}
-
-		if textCharsTest(tail) {
-			etree.SetTail(processedChild, trim(tail))
-		}
+		etree.Append(processedElement, formatting)
+	} else {
+		processedElement = formatting
 	}
 
 	return processedElement
 }
 
 // handleTable process single table element.
-func handleTable(tableElement *html.Node, cache *lru.Cache, opts Options) *html.Node {
+func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	newTable := etree.Element(("table"))
 	newRow := etree.Element("tr")
-	i := 0
+
+	// Prepare potential tags with div
+	potentialTagsWithDiv := duplicateMap(potentialTags)
+	potentialTagsWithDiv["div"] = struct{}{}
 
 	// TODO: we are supposed to strip structural elements here, but I'm not so sure.
 	// Check it again later, I guess.
 	etree.StripTags(tableElement, "thead", "tbody", "tfoot")
 
 	// Explore sub-elements
-	for _, subElement := range etree.Iter(tableElement) {
-		i++
-
+	for _, subElement := range dom.GetElementsByTagName(tableElement, "*") {
 		subElementTag := dom.TagName(subElement)
 		if subElementTag == "tr" {
 			if len(dom.Children(newRow)) > 0 {
@@ -700,17 +735,52 @@ func handleTable(tableElement *html.Node, cache *lru.Cache, opts Options) *html.
 				newRow = etree.Element("tr")
 			}
 		} else if subElementTag == "td" || subElementTag == "th" {
-			processedCell := processNode(subElement, cache, opts)
-			if processedCell == nil || !textCharsTest(etree.Text(processedCell)) {
-				continue
+			newChildElem := etree.Element(subElementTag)
+
+			// Process childless element
+			if len(dom.Children(subElement)) == 0 {
+				processedCell := processNode(subElement, cache, opts)
+				if processedCell != nil {
+					etree.SetText(newChildElem, etree.Text(processedCell))
+					etree.SetTail(newChildElem, etree.Tail(processedCell))
+				}
+			} else {
+				// Proceed with iteration, fix for nested elements
+				etree.SetText(newChildElem, etree.Text(subElement))
+				etree.SetTail(newChildElem, etree.Tail(subElement))
+				subElement.Data = "done"
+
+				for _, child := range dom.GetElementsByTagName(subElement, "*") {
+					childTag := dom.TagName(child)
+
+					var processedSubChild *html.Node
+					if inMap(childTag, mapXmlCellTags) || inMap(childTag, mapXmlHiTags) {
+						processedSubChild = handleTextNode(child, cache, true, opts)
+					} else {
+						processedSubChild = handleTextElem(child, potentialTagsWithDiv, cache, opts)
+					}
+
+					if processedSubChild != nil {
+						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
+						etree.SetText(subChildElement, etree.Text(processedSubChild))
+						etree.SetTail(subChildElement, etree.Tail(processedSubChild))
+					}
+
+					child.Data = "done"
+				}
 			}
 
-			newSub := etree.SubElement(newRow, subElementTag)
-			etree.SetText(newSub, etree.Text(processedCell))
-		} else if subElementTag == "table" && i > 1 {
+			// Add to tree
+			if etree.Text(newChildElem) != "" || len(dom.Children(newChildElem)) > 0 {
+				dom.AppendChild(newRow, newChildElem)
+			}
+		} else if subElementTag == "table" {
 			// beware of nested tables
 			break
 		}
+
+		// Clean up
+		subElement.Data = "done"
 	}
 
 	// End of processing
@@ -756,8 +826,8 @@ func handleImage(element *html.Node) *html.Node {
 		dom.SetAttribute(processedElement, "title", elementTitle)
 	}
 
-	// If image doesn't have any attributes, return nil
-	if len(processedElement.Attr) == 0 {
+	// If image doesn't have any attributes or doesn't have any src, return nil
+	if len(processedElement.Attr) == 0 || dom.GetAttribute(processedElement, "src") == "" {
 		return nil
 	}
 
@@ -779,6 +849,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		return nil
 	}
 
+	// TODO: make a copy and prune it in case it contains sub-elements handled on their own?
 	if tagName == "div" || tagName == "details" {
 		processedElement := handleTextNode(element, cache, false, opts)
 		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
@@ -791,27 +862,41 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 		}
 	}
 
-	logWarn(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
+	logDebug(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
 	return nil
 }
 
 func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	logInfo(opts, "recovering wild text elements")
 
+	var searchList []string
+	searchList = append(searchList, listXmlQuoteTags...)
+	searchList = append(searchList, "code", "p", "table")
+
+	if opts.FavorRecall {
+		potentialTags = duplicateMap(potentialTags)
+		potentialTags["div"] = struct{}{}
+		for _, t := range listXmlLbTags {
+			potentialTags[t] = struct{}{}
+		}
+
+		searchList = append(searchList, "div")
+		searchList = append(searchList, listXmlLbTags...)
+		searchList = append(searchList, listXmlListTags...)
+	}
+
 	// Prune
-	pruneUnwantedNodes(doc, selector.DiscardedContentRules)
+	searchDoc := pruneUnwantedSections(doc, opts)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {
-		etree.StripTags(doc, "a", "ref", "span")
+		etree.StripTags(searchDoc, "a", "ref", "span")
 	} else {
-		etree.StripTags(doc, "span")
+		etree.StripTags(searchDoc, "span")
 	}
 
 	var processedElems []*html.Node
-	tagsToProcess := []string{"blockquote", "code", "div", "p", "pre", "q", "table"}
-
-	for _, element := range etree.Iter(doc, tagsToProcess...) {
+	for _, element := range etree.Iter(searchDoc, searchList...) {
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
@@ -826,14 +911,25 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 // here we use go-readability and go-domdistiller. Since there are difference in
 // implementation between them, here we do it a bit differently compared to the original code.
 func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+	// Bypass for favor recall
+	originalText := trim(etree.IterText(originalExtract, " "))
+	lenOriginal := utf8.RuneCountInString(originalText)
+	if opts.FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
+		return originalExtract, originalText
+	}
+
 	// Prepare fallback candidates
 	fallbackCandidates := opts.FallbackCandidates
+
+	// Clean doc to be used for Readability and Dom Distiller
+	cleanedDoc := dom.Clone(doc, true)
+	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
 
 	// If fallback candidates are empty, populate it first
 	if len(fallbackCandidates) == 0 {
 		fallbackCandidates = []*html.Node{}
 
-		readabilityExtract, err := tryReadability(doc, opts)
+		readabilityExtract, err := tryReadability(cleanedDoc, opts)
 		if err == nil {
 			fallbackCandidates = append(fallbackCandidates, readabilityExtract)
 		} else {
@@ -841,7 +937,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		}
 
 		// Here we append nil to fallback candidates. This nil value is used to
-		// notify Trafilatura to run Go-DomDistiller for that candidate. We do iy
+		// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
 		// this way to make sure that dom-distiller will only be run if readability
 		// result is still not good enough to use.
 		fallbackCandidates = append(fallbackCandidates, nil)
@@ -854,14 +950,11 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	}
 
 	// Compare
-	originalText := trim(etree.IterText(originalExtract, " "))
-	lenOriginal := utf8.RuneCountInString(originalText)
-
 	for i, candidate := range fallbackCandidates {
 		// Use dom-distiller if necessary
 		if candidate == nil {
 			var err error
-			candidate, err = tryDomDistiller(doc, opts)
+			candidate, err = tryDomDistiller(cleanedDoc, opts)
 			if err != nil {
 				logWarn(opts, "dom-distiller failed: %v", err)
 				continue
@@ -869,17 +962,47 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		}
 
 		// Extract text from candidate
-		candidateText := trim(etree.IterText(candidate, " "))
+		candidateText := trim(dom.TextContent(candidate))
 		lenCandidate := utf8.RuneCountInString(candidateText)
 		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
 
-		// Check if this candidate can be used
-		candidateUsable := (lenOriginal == 0 && lenCandidate > 0) || (lenCandidate > 2*lenOriginal) ||
-			(lenOriginal == 0 && lenCandidate > opts.Config.MinExtractedSize)
+		// TODO: This part is pretty different compared to the original.
+		// Check if this candidate can be used, either because it pass length check
+		// or because we need to favor recall.
+		var candidateUsable bool
 
-		if candidateUsable {
+		switch {
+		case lenCandidate == 0 || lenCandidate == lenOriginal:
+			candidateUsable = false
+		case lenOriginal == 0 && lenCandidate > 0:
+			candidateUsable = true
+		case lenOriginal > 2*lenCandidate:
+			candidateUsable = false
+		case lenCandidate > 2*lenOriginal:
+			candidateUsable = true
+		default: // borderline case
+			tables := dom.GetElementsByTagName(doc, "table")
+			paragraphs := dom.GetElementsByTagName(doc, "p")
+			nTable, nParagraph := len(tables), len(paragraphs)
+
+			var pTextLength int
+			for _, p := range paragraphs {
+				pText := trim(etree.IterText(p, " "))
+				pTextLength += utf8.RuneCountInString(pText)
+			}
+
+			if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else if nTable > nParagraph && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else {
+				candidateUsable = false
+			}
+		}
+
+		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
+		if candidateUsable || mustFavorRecall {
 			originalExtract = candidate
-			originalText = candidateText
 			lenOriginal = lenCandidate
 			logInfo(opts, "candidate-%d usable: %s", i+1, originalUrl)
 		}
@@ -910,12 +1033,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		// Get the json text inside the script
 		jsonLdText := dom.TextContent(script)
 		jsonLdText = strings.TrimSpace(jsonLdText)
+		jsonLdText = html.UnescapeString(jsonLdText)
 		if jsonLdText == "" {
 			continue
 		}
 
 		// Decode JSON text, assuming it is an object
-		data := map[string]interface{}{}
+		data := map[string]any{}
 		err := json.Unmarshal([]byte(jsonLdText), &data)
 		if err != nil {
 			continue
@@ -923,9 +1047,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 
 		// Find article body recursively
 		var articleBody string
-		var findArticleBody func(obj map[string]interface{})
+		var findArticleBody func(obj map[string]any)
 
-		findArticleBody = func(obj map[string]interface{}) {
+		findArticleBody = func(obj map[string]any) {
 			for key, value := range obj {
 				switch v := value.(type) {
 				case string:
@@ -935,14 +1059,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 						return
 					}
 
-				case map[string]interface{}:
+				case map[string]any:
 					findArticleBody(v)
 
-				case []interface{}:
+				case []any:
 					for _, item := range v {
-						itemObject, isObject := item.(map[string]interface{})
-						if isObject {
-							findArticleBody(itemObject)
+						if obj, isObject := item.(map[string]any); isObject {
+							findArticleBody(obj)
 						}
 					}
 				}
@@ -957,12 +1080,17 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		}
 	}
 
+	// Basic tree cleaning
+	discardedElements := dom.QuerySelectorAll(doc, "aside,footer,script,style")
+	for i := len(discardedElements) - 1; i >= 0; i-- {
+		discardedElements[i].Parent.RemoveChild(discardedElements[i])
+	}
+
 	// Scrape from article tag
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
 		tmpText := trim(dom.TextContent(articleElement))
-		lenText := utf8.RuneCountInString(tmpText)
-		if lenText > 0 {
+		if utf8.RuneCountInString(tmpText) > 100 {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, tmpText)
 			return postBody, tmpText
@@ -981,21 +1109,65 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	}
 
 	tmpText := trim(etree.IterText(postBody, "\n"))
-	return postBody, tmpText
-}
-
-// getLanguage returns the language of the text.
-func getLanguage(contentText, commentsText string) string {
-	lenContent := utf8.RuneCountInString(contentText)
-	lenComments := utf8.RuneCountInString(commentsText)
-
-	var langTest string
-	if lenComments > lenContent {
-		langTest = commentsText
-	} else {
-		langTest = contentText
+	if utf8.RuneCountInString(tmpText) > 100 {
+		return postBody, tmpText
 	}
 
-	lang := whatlanggo.DetectLang(langTest)
-	return lang.Iso6391()
+	// Default strategy: clean the tree and take everything
+	if body := dom.QuerySelector(doc, "body"); body != nil {
+		text := trim(etree.IterText(body, "\n"))
+		if utf8.RuneCountInString(text) > 100 {
+			elem := etree.SubElement(postBody, "p")
+			etree.SetText(elem, text)
+			return postBody, text
+		}
+	}
+
+	// New fallback
+	text := trim(dom.TextContent(doc))
+	elem := etree.SubElement(postBody, "p")
+	etree.SetText(elem, text)
+	return postBody, text
+}
+
+func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
+	// Prune the rest
+	subTree = pruneUnwantedNodes(subTree, selector.OverallDiscardedContent, true)
+	subTree = pruneUnwantedNodes(subTree, selector.DiscardedPaywall)
+
+	// Prune images
+	if !opts.IncludeImages {
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedImage)
+	}
+
+	// Balance precision / recall
+	if !opts.FavorRecall {
+		subTree = pruneUnwantedNodes(subTree, selector.DiscardedTeaser)
+		if opts.FavorPrecision {
+			subTree = pruneUnwantedNodes(subTree, selector.PrecisionDiscardedContent)
+		}
+	}
+
+	// Remove elements by link density
+	deleteByLinkDensity(subTree, opts, true, "div")
+	deleteByLinkDensity(subTree, opts, true, listXmlListTags...)
+	deleteByLinkDensity(subTree, opts, false, "p")
+
+	// Also filter fw/head, table and quote elements?
+	if opts.FavorPrecision {
+		// Delete trailing titles
+		children := dom.Children(subTree)
+		for i := len(children) - 1; i >= 0; i-- {
+			if inMap(dom.TagName(children[i]), mapXmlHeadTags) {
+				children[i].Parent.RemoveChild(children[i])
+				continue
+			}
+			break
+		}
+
+		deleteByLinkDensity(subTree, opts, false, listXmlHeadTags...)
+		deleteByLinkDensity(subTree, opts, false, listXmlQuoteTags...)
+	}
+
+	return subTree
 }

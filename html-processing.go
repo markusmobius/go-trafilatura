@@ -22,7 +22,6 @@
 package trafilatura
 
 import (
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -33,19 +32,20 @@ import (
 	"golang.org/x/net/html"
 )
 
-var rxWords = regexp.MustCompile(`\w`)
-
 // docCleaning cleans the document by discarding unwanted elements
-func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
+func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy
 	cleaningList := duplicateMap(tagsToClean)
 	strippingList := duplicateMap(tagsToStrip)
 
-	if excludeTables {
+	if opts.ExcludeTables {
 		cleaningList["table"] = struct{}{}
+		cleaningList["td"] = struct{}{}
+		cleaningList["th"] = struct{}{}
+		cleaningList["tr"] = struct{}{}
 	}
 
-	if includeImages {
+	if opts.IncludeImages {
 		// Many websites have <img> inside <figure> or <picture> or <source> tag
 		delete(cleaningList, "figure")
 		delete(cleaningList, "picture")
@@ -66,6 +66,28 @@ func docCleaning(doc *html.Node, excludeTables, includeImages bool) {
 	// Remove HTML comment
 	removeHtmlCommentNode(doc)
 	pruneHTML(doc)
+}
+
+// Simplify relevant HTML tags for faster processing.
+func simplifyTags(doc *html.Node, opts Options) {
+	if !opts.IncludeLinks {
+		links := dom.GetElementsByTagName(doc, "a")
+		for i := len(links) - 1; i >= 0; i-- {
+			link := links[i]
+			linkParent := link.Parent
+
+			// Check its parent
+			if linkParent != nil {
+				if ancestorIs(link, "div") || ancestorIs(link, "ul") ||
+					(!opts.ExcludeTables && ancestorIs(link, "table")) {
+					continue
+				}
+			}
+
+			// Strip the link
+			etree.Strip(link)
+		}
+	}
 }
 
 // removeHtmlCommentNode removes all `html.CommentNode` in document.
@@ -94,25 +116,36 @@ func removeHtmlCommentNode(doc *html.Node) {
 
 // pruneHTML deletes selected empty elements
 func pruneHTML(doc *html.Node) {
-	for _, subElement := range dom.GetElementsByTagName(doc, "*") {
+	allElements := dom.GetElementsByTagName(doc, "*")
+	for i := len(allElements) - 1; i >= 0; i-- {
+		subElement := allElements[i]
 		tagName := dom.TagName(subElement)
 		if _, exist := emptyTagsToRemove[tagName]; !exist {
 			continue
 		}
 
 		if len(dom.ChildNodes(subElement)) == 0 {
-			etree.Remove(subElement)
+			subElement.Parent.RemoveChild(subElement)
 		}
 	}
 }
 
 // pruneUnwantedNodes prune the HTML tree by removing unwanted sections.
-func pruneUnwantedNodes(tree *html.Node, rules []selector.Rule) {
-	for _, subElement := range dom.GetElementsByTagName(tree, "*") {
-		for _, rule := range rules {
-			if !rule(subElement) {
-				continue
-			}
+func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...bool) *html.Node {
+	var oldLen int
+	var backup *html.Node
+	backupEnabled := len(withBackup) > 0 && withBackup[0]
+
+	tree = dom.Clone(tree, true)
+	if backupEnabled {
+		backup = dom.Clone(tree, true)
+		oldLen = utf8.RuneCountInString(dom.TextContent(tree))
+	}
+
+	for _, query := range queries {
+		subElements := selector.QueryAll(tree, query)
+		for i := len(subElements) - 1; i >= 0; i-- {
+			subElement := subElements[i]
 
 			// Preserve tail text from deletion
 			tail := etree.Tail(subElement)
@@ -134,9 +167,17 @@ func pruneUnwantedNodes(tree *html.Node, rules []selector.Rule) {
 			}
 
 			etree.Remove(subElement)
-			break
 		}
 	}
+
+	if backupEnabled {
+		newLen := utf8.RuneCountInString(dom.TextContent(tree))
+		if newLen <= oldLen/7 {
+			return backup
+		}
+	}
+
+	return tree
 }
 
 // handleTextNode converts, formats and probes potential text elements.
@@ -172,15 +213,15 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 	etree.SetText(node, text)
 	etree.SetTail(node, tail)
 
-	if rxWords.MatchString(text) {
-		if textFilter(node) {
-			return nil
-		}
+	if text == "" { // || !rxWords.MatchString(text) {
+		return nil
+	}
 
-		if opts.Deduplicate && cache != nil && duplicateTest(node, cache, opts) {
-			return nil
-		}
-	} else {
+	if textFilter(node) {
+		return nil
+	}
+
+	if opts.Deduplicate && cache != nil && duplicateTest(node, cache, opts) {
 		return nil
 	}
 
@@ -189,7 +230,7 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 
 // linkDensityTest check whether sections will be removed because it's rich in
 // links (probably boilerplate)
-func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
+func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	// Fetch links in node
 	links := dom.GetElementsByTagName(element, "a")
 	if len(links) == 0 {
@@ -200,13 +241,22 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 	var limitLength int
 	var threshold float64
 
-	switch {
-	case dom.TagName(element) == "p":
-		limitLength, threshold = 25, 0.8
-	case dom.NextElementSibling(element) == nil:
-		limitLength, threshold = 200, 0.66
-	default:
-		limitLength, threshold = 100, 0.66
+	if dom.TagName(element) == "p" {
+		if !opts.FavorPrecision {
+			if dom.NextElementSibling(element) == nil {
+				limitLength, threshold = 60, 0.8
+			} else {
+				limitLength, threshold = 30, 0.8
+			}
+		} else {
+			limitLength, threshold = 200, 0.8
+		}
+	} else {
+		if dom.NextElementSibling(element) == nil {
+			limitLength, threshold = 300, 0.8
+		} else {
+			limitLength, threshold = 100, 0.8
+		}
 	}
 
 	// Check if text of this node is within limit
@@ -214,15 +264,15 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 	textLength := utf8.RuneCountInString(text)
 	if textLength < limitLength {
 		// Collect link info
-		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links, opts)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return nonEmptyLinks, true
 		}
 
 		// Check if links data surpass threshold
-		if float64(linkLength) >= threshold*float64(textLength) ||
-			float64(nShortLinks)/float64(nNonEmptyLinks) >= threshold {
+		if float64(linkLength) > threshold*float64(textLength) ||
+			(nNonEmptyLinks > 1 && float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8) {
 			return nonEmptyLinks, true
 		}
 	}
@@ -232,7 +282,7 @@ func linkDensityTest(element *html.Node) ([]*html.Node, bool) {
 
 // linkDensityTestTables check whether a table will be removed because
 // it's rich in links (probably boilerplate)
-func linkDensityTestTables(table *html.Node) bool {
+func linkDensityTestTables(table *html.Node, opts Options) bool {
 	// Fetch links in table
 	links := dom.GetElementsByTagName(table, "a")
 	if len(links) == 0 {
@@ -244,7 +294,7 @@ func linkDensityTestTables(table *html.Node) bool {
 	textLength := utf8.RuneCountInString(text)
 	if textLength > 250 {
 		// Collect link info
-		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
+		linkLength, _, nonEmptyLinks := collectLinkInfo(links, opts)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return true
@@ -255,16 +305,23 @@ func linkDensityTestTables(table *html.Node) bool {
 			return true
 		}
 
-		if float64(nShortLinks) > float64(len(links))*0.66 {
-			return true
-		}
+		// TODO: it seems to does more harm than good
+		// if float64(nShortLinks) > float64(len(links))*0.66 {
+		// 	return true
+		// }
 	}
 
 	return false
 }
 
 // collectLinkInfo collects heuristics on link text.
-func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
+	// Longer strings impact recall in favor of precision
+	threshold := 10
+	if opts.FavorPrecision {
+		threshold = 50
+	}
+
 	for _, link := range links {
 		text := trim(dom.TextContent(link))
 		textLength := utf8.RuneCountInString(text)
@@ -273,7 +330,7 @@ func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyL
 		}
 
 		linkLength += textLength
-		if textLength < 10 {
+		if textLength < threshold {
 			nShortLinks++
 		}
 
@@ -301,9 +358,10 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	etree.SetTail(element, tail)
 
 	// Adapt content string
-	if (tagName != "br" && tagName != "hr") && text == "" && tail != "" {
+	if !inMap(tagName, mapXmlLbTags) && text == "" && tail != "" {
 		etree.SetText(element, tail)
-		text = tail
+		etree.SetTail(element, "")
+		text, tail = tail, ""
 	}
 
 	// Content checks
@@ -323,6 +381,10 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 // postCleaning is used to clean the extracted content.
 // This is additional function that doesn't exist in original.
 func postCleaning(doc *html.Node) {
+	if doc == nil {
+		return
+	}
+
 	// Remove empty nodes. Do it backward, to make sure all children
 	// is removed before its parent.
 	children := dom.GetElementsByTagName(doc, "*")
@@ -361,4 +423,54 @@ func postCleaning(doc *html.Node) {
 
 		element.Attr = newAttr
 	}
+}
+
+// deleteByLinkDensity determines the link density of elements with respect to
+// their length, and remove the elements identified as boilerplate.
+func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, tagNames ...string) {
+	var nodesToDelete []*html.Node
+	textNodes := make(map[string][]*html.Node)
+
+	for _, elem := range etree.Iter(subTree, tagNames...) {
+		nonEmptyLinks, isHighDensity := linkDensityTest(elem, opts)
+
+		if isHighDensity {
+			nodesToDelete = append(nodesToDelete, elem)
+			continue
+		}
+
+		if backtracking && len(nonEmptyLinks) > 0 {
+			text := trim(dom.TextContent(elem))
+			textNodes[text] = append(textNodes[text], elem)
+		}
+	}
+
+	if backtracking {
+		threshold := 100
+		if opts.FavorPrecision {
+			threshold = 200
+		}
+
+		for text, nodes := range textNodes {
+			textLength := utf8.RuneCountInString(text)
+			if textLength > 0 && textLength < threshold && len(nodes) >= 3 {
+				nodesToDelete = append(nodesToDelete, nodes...)
+			}
+		}
+	}
+
+	for i := len(nodesToDelete) - 1; i >= 0; i-- {
+		etree.Remove(nodesToDelete[i])
+	}
+}
+
+// ancestorIs checks if a given node has one of its ancestor tag name matching the provided one.
+func ancestorIs(node *html.Node, tag string) bool {
+	for node.Parent != nil {
+		if dom.TagName(node.Parent) == tag {
+			return true
+		}
+		node = node.Parent
+	}
+	return false
 }

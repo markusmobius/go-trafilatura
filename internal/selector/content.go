@@ -28,9 +28,36 @@ import (
 	"golang.org/x/net/html"
 )
 
+var Content = []Rule{
+	contentRule1,
+	contentRule2,
+	contentRule3,
+	contentRule4,
+	contentRule5,
+}
+
+// `.//*[(self::article or self::div or self::main or self::section)][
+// @class="post" or @class="entry" or
+// contains(@class, "post-text") or contains(@class, "post_text") or
+// contains(@class, "post-body") or contains(@class, "post-entry") or contains(@class, "postentry") or
+// contains(@class, "post-content") or contains(@class, "post_content") or
+// contains(@class, "postcontent") or contains(@class, "postContent") or
+// contains(@class, "article-text") or contains(@class, "articletext") or contains(@class, "articleText")
+// or contains(@id, "entry-content") or
+// contains(@class, "entry-content") or contains(@id, "article-content") or
+// contains(@class, "article-content") or contains(@id, "article__content") or
+// contains(@class, "article__content") or contains(@id, "article-body") or
+// contains(@class, "article-body") or contains(@id, "article__body") or
+// contains(@class, "article__body") or @itemprop="articleBody" or
+// contains(translate(@id, "B", "b"), "articlebody") or contains(translate(@class, "B", "b"), "articleBody")
+// or @id="articleContent" or contains(@class, "ArticleContent") or
+// contains(@class, "page-content") or contains(@class, "text-content") or
+// contains(@id, "body-text") or contains(@class, "body-text") or
+// contains(@class, "article__container") or contains(@id, "art-content") or contains(@class, "art-content")][1]`,
 func contentRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
+	itemProp := dom.GetAttribute(n, "itemprop")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -40,67 +67,20 @@ func contentRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "content-main"),
-		strings.Contains(class, "content-main"),
-		strings.Contains(class, "content_main"),
-		strings.Contains(id, "content-body"),
-		strings.Contains(class, "content-body"),
-		strings.Contains(class, "story-body"),
-		id == "article",
+	case
 		class == "post",
-		class == "entry":
-	default:
-		return false
-	}
-
-	return true
-}
-
-func contentRule2(n *html.Node) bool {
-	class := dom.ClassName(n)
-	tagName := dom.TagName(n)
-
-	switch tagName {
-	case "article", "div", "main", "section":
-	default:
-		return false
-	}
-
-	switch {
-	case strings.Contains(class, "post-text"),
+		class == "entry",
+		strings.Contains(class, "post-text"),
 		strings.Contains(class, "post_text"),
 		strings.Contains(class, "post-body"),
 		strings.Contains(class, "post-entry"),
 		strings.Contains(class, "postentry"),
 		strings.Contains(class, "post-content"),
 		strings.Contains(class, "post_content"),
-		strings.Contains(class, "postcontent"),
-		strings.Contains(class, "postContent"),
+		strings.Contains(strings.ToLower(class), "postcontent"),
 		strings.Contains(class, "article-text"),
-		strings.Contains(class, "articletext"),
-		strings.Contains(class, "articleText"),
-		strings.Contains(class, "field-body"):
-	default:
-		return false
-	}
-
-	return true
-}
-
-func contentRule3(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
-	tagName := dom.TagName(n)
-	itemProp := dom.GetAttribute(n, "itemprop")
-
-	switch tagName {
-	case "article", "div", "main", "section":
-	default:
-		return false
-	}
-
-	switch {
-	case strings.Contains(id, "entry-content"),
+		strings.Contains(strings.ToLower(class), "articletext"),
+		strings.Contains(id, "entry-content"),
 		strings.Contains(class, "entry-content"),
 		strings.Contains(id, "article-content"),
 		strings.Contains(class, "article-content"),
@@ -111,13 +91,17 @@ func contentRule3(n *html.Node) bool {
 		strings.Contains(id, "article__body"),
 		strings.Contains(class, "article__body"),
 		itemProp == "articleBody",
+		strings.Contains(strings.ToLower(id), "articlebody"),
+		strings.Contains(strings.ToLower(class), "articlebody"),
 		id == "articleContent",
 		strings.Contains(class, "ArticleContent"),
 		strings.Contains(class, "page-content"),
 		strings.Contains(class, "text-content"),
-		strings.Contains(class, "content__body"),
 		strings.Contains(id, "body-text"),
-		strings.Contains(class, "body-text"):
+		strings.Contains(class, "body-text"),
+		strings.Contains(class, "article__container"),
+		strings.Contains(id, "art-content"),
+		strings.Contains(class, "art-content"):
 	default:
 		return false
 	}
@@ -125,12 +109,24 @@ func contentRule3(n *html.Node) bool {
 	return true
 }
 
-func contentRule4(n *html.Node) bool {
-	tagName := dom.TagName(n)
-	return tagName == "article"
+// `(.//article)[1]`,
+func contentRule2(n *html.Node) bool {
+	return dom.TagName(n) == "article"
 }
 
-func contentRule5(n *html.Node) bool {
+// `(.//*[(self::article or self::div or self::main or self::section)][
+// contains(@class, 'post-bodycopy') or
+// contains(@class, 'storycontent') or contains(@class, 'story-content') or
+// @class='postarea' or @class='art-postcontent' or
+// contains(@class, 'theme-content') or contains(@class, 'blog-content') or
+// contains(@class, 'section-content') or contains(@class, 'single-content') or
+// contains(@class, 'single-post') or
+// contains(@class, 'main-column') or contains(@class, 'wpb_text_column') or
+// starts-with(@id, 'primary') or starts-with(@class, 'article ') or @class="text" or
+// @id="article" or @class="cell" or @id="story" or @class="story" or
+// contains(@class, "story-body") or contains(@class, "field-body") or
+// contains(translate(@class, "FULTEX","fultex"), "fulltext")])[1]`,
+func contentRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	tagName := dom.TagName(n)
@@ -157,9 +153,12 @@ func contentRule5(n *html.Node) bool {
 		strings.HasPrefix(id, "primary"),
 		strings.HasPrefix(class, "article"),
 		class == "text",
+		id == "article",
 		class == "cell",
 		id == "story",
 		class == "story",
+		strings.Contains(class, "story-body"),
+		strings.Contains(class, "field-body"),
 		strings.Contains(strings.ToLower(class), "fulltext"):
 	default:
 		return false
@@ -168,7 +167,13 @@ func contentRule5(n *html.Node) bool {
 	return true
 }
 
-func contentRule6(n *html.Node) bool {
+// `(.//*[(self::article or self::div or self::main or self::section)][
+// contains(@id, "content-main") or contains(@class, "content-main") or contains(@class, "content_main") or
+// contains(@id, "content-body") or contains(@class, "content-body") or contains(@id, "contentBody")
+// or contains(@class, "content__body") or contains(translate(@id, "CM","cm"), "main-content") or contains(translate(@class, "CM","cm"), "main-content")
+// or contains(translate(@class, "CP","cp"), "page-content") or
+// @id="content" or @class="content"])[1]`,
+func contentRule4(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	tagName := dom.TagName(n)
@@ -180,9 +185,18 @@ func contentRule6(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "main-content"),
-		strings.Contains(class, "main-content"),
-		strings.Contains(strings.ToLower(class), "page-content"):
+	case strings.Contains(id, "content-main"),
+		strings.Contains(class, "content-main"),
+		strings.Contains(class, "content_main"),
+		strings.Contains(id, "content-body"),
+		strings.Contains(class, "content-body"),
+		strings.Contains(id, "contentBody"),
+		strings.Contains(class, "content__body"),
+		strings.Contains(strings.ToLower(id), "main-content"),
+		strings.Contains(strings.ToLower(class), "main-content"),
+		strings.Contains(strings.ToLower(class), "page-content"),
+		id == "content",
+		class == "content":
 	default:
 		return false
 	}
@@ -190,7 +204,8 @@ func contentRule6(n *html.Node) bool {
 	return true
 }
 
-func contentRule7(n *html.Node) bool {
+// `(.//*[(self::article or self::div or self::section)][starts-with(@class, "main") or starts-with(@id, "main") or starts-with(@role, "main")])[1]|(.//main)[1]`,
+func contentRule5(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	tagName := dom.TagName(n)
@@ -205,8 +220,8 @@ func contentRule7(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(id, "main"),
-		strings.HasPrefix(class, "main"),
+	case strings.HasPrefix(class, "main"),
+		strings.HasPrefix(id, "main"),
 		strings.HasPrefix(role, "main"):
 	default:
 		return false

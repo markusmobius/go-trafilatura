@@ -28,13 +28,24 @@ import (
 	"golang.org/x/net/html"
 )
 
+var Comments = []Rule{
+	commentsRule1,
+	commentsRule2,
+	commentsRule3,
+	commentsRule4,
+}
+
+// `.//*[(self::div or self::ol or self::ul or self::dl or self::section)][contains(@id, 'commentlist')
+// or contains(@class, 'commentlist') or contains(@class, 'comment-page') or
+// contains(@id, 'comment-list') or contains(@class, 'comments-list') or
+// contains(@class, 'comments-content') or contains(@class, 'post-comments')]`,
 func commentsRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	tagName := dom.TagName(n)
 
 	switch tagName {
-	case "div", "section", "ol", "ul", "dl":
+	case "div", "ol", "ul", "dl", "section":
 	default:
 		return false
 	}
@@ -43,10 +54,11 @@ func commentsRule1(n *html.Node) bool {
 	case strings.Contains(id, "commentlist"),
 		strings.Contains(class, "commentlist"),
 		strings.Contains(class, "comment-page"),
-		strings.Contains(class, "comment-list"),
 		strings.Contains(id, "comment-list"),
+		strings.Contains(class, "comment-list"), // additional
 		strings.Contains(class, "comments-list"),
-		strings.Contains(class, "comments-content"):
+		strings.Contains(class, "comments-content"),
+		strings.Contains(class, "post-comments"):
 	default:
 		return false
 	}
@@ -54,6 +66,10 @@ func commentsRule1(n *html.Node) bool {
 	return true
 }
 
+// `.//*[(self::div or self::section or self::ol or self::ul or self::dl)][starts-with(@id, 'comments')
+// or starts-with(@class, 'comments') or starts-with(@class, 'Comments') or
+// starts-with(@id, 'comment-') or starts-with(@class, 'comment-') or
+// contains(@class, 'article-comments')]`,
 func commentsRule2(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
@@ -67,8 +83,7 @@ func commentsRule2(n *html.Node) bool {
 
 	switch {
 	case strings.HasPrefix(id, "comments"),
-		strings.HasPrefix(class, "comments"),
-		strings.HasPrefix(class, "Comments"),
+		strings.HasPrefix(strings.ToLower(class), "comments"),
 		strings.HasPrefix(id, "comment-"),
 		strings.HasPrefix(class, "comment-"),
 		strings.Contains(class, "article-comments"):
@@ -79,6 +94,8 @@ func commentsRule2(n *html.Node) bool {
 	return true
 }
 
+// `.//*[(self::div or self::section or self::ol or self::ul or self::dl)][starts-with(@id, 'comol') or
+// starts-with(@id, 'disqus_thread') or starts-with(@id, 'dsq-comments')]`,
 func commentsRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	tagName := dom.TagName(n)
@@ -100,6 +117,7 @@ func commentsRule3(n *html.Node) bool {
 	return true
 }
 
+// `.//*[(self::div or self::section)][starts-with(@id, 'social') or contains(@class, 'comment')]`,
 func commentsRule4(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)

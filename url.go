@@ -85,11 +85,36 @@ func createAbsoluteURL(url string, base *nurl.URL) string {
 	return base.ResolveReference(tmp).String()
 }
 
-func extractDomainURL(url string) string {
+func getDomainURL(url string) string {
 	isAbsolute, parsedURL := isAbsoluteURL(url)
 	if !isAbsolute {
 		return ""
 	}
 
 	return parsedURL.Hostname()
+}
+
+func getBaseURL(url string) string {
+	isAbsolute, parsedURL := isAbsoluteURL(url)
+	if !isAbsolute {
+		return ""
+	}
+
+	return parsedURL.Scheme + "://" + parsedURL.Hostname()
+}
+
+func validateURL(url string, baseURL *nurl.URL) (string, bool) {
+	// If it's already an absolute URL, return it
+	if isAbs, _ := isAbsoluteURL(url); isAbs {
+		return url, true
+	}
+
+	// If not, try to convert it into absolute URL using base URL
+	// instead of using domain name
+	newURL := createAbsoluteURL(url, baseURL)
+	if isAbs, _ := isAbsoluteURL(newURL); isAbs {
+		return newURL, true
+	}
+
+	return url, false
 }

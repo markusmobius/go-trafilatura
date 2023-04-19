@@ -52,10 +52,10 @@ func DefaultConfig() *Config {
 		MinDuplicateCheckSize: 100,
 		MaxDuplicateCount:     2,
 
-		MinExtractedSize:        200,
-		MinExtractedCommentSize: 10,
-		MinOutputSize:           10,
-		MinOutputCommentSize:    10,
+		MinExtractedSize:        250,
+		MinExtractedCommentSize: 1,
+		MinOutputSize:           1,
+		MinOutputCommentSize:    1,
 	}
 }
 
@@ -80,6 +80,12 @@ type Options struct {
 	// will be ignored but readability and dom-distiller won't be run.
 	FallbackCandidates []*html.Node
 
+	// FavorPrecision specify whether to prefer less text but correct extraction.
+	FavorPrecision bool
+
+	// FavorRecall specify whether to prefer more text even when unsure.
+	FavorRecall bool
+
 	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool
 
@@ -92,6 +98,9 @@ type Options struct {
 	// IncludeLinks specify whether the extraction result will include links along with their
 	// targets (experimental).
 	IncludeLinks bool
+
+	// BlacklistedAuthors is list of author names to be excluded from extraction result.
+	BlacklistedAuthors []string
 
 	// Deduplicate specify whether to remove duplicate segments and sections.
 	Deduplicate bool

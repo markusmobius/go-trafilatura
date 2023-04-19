@@ -28,8 +28,16 @@ import (
 	"golang.org/x/net/html"
 )
 
+var MetaTags = []Rule{
+	metaTagsRule1,
+	metaTagsRule2,
+	metaTagsRule3,
+	metaTagsRule4,
+}
+
+// `//div[@class="tags"]//a[@href]`,
 func metaTagsRule1(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -47,8 +55,9 @@ func metaTagsRule1(n *html.Node) bool {
 	return false
 }
 
+// `//p[starts-with(@class, 'entry-tags')]//a[@href]`,
 func metaTagsRule2(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -67,8 +76,11 @@ func metaTagsRule2(n *html.Node) bool {
 	return false
 }
 
+// `//div[@class="row" or @class="jp-relatedposts" or
+// @class="entry-utility" or starts-with(@class, 'tag') or
+// starts-with(@class, 'postmeta') or starts-with(@class, 'meta')]//a[@href]`,
 func metaTagsRule3(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -94,8 +106,9 @@ func metaTagsRule3(n *html.Node) bool {
 	return false
 }
 
+// `//*[@class="entry-meta" or contains(@class, "topics") or contains(@class, "tags-links")]//a[@href]`,
 func metaTagsRule4(n *html.Node) bool {
-	if dom.TagName(n) != "a" {
+	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false
 	}
 
@@ -104,7 +117,8 @@ func metaTagsRule4(n *html.Node) bool {
 
 		switch {
 		case class == "entry-meta",
-			strings.Contains(class, "topics"):
+			strings.Contains(class, "topics"),
+			strings.Contains(class, "tags-links"):
 			return true
 		}
 	}

@@ -22,24 +22,28 @@
 package trafilatura
 
 import (
-	"regexp"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/abadojack/whatlanggo"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
+	"github.com/markusmobius/go-trafilatura/internal/regexp"
 	"golang.org/x/net/html"
 )
 
 var (
 	rxHtmlLang   = regexp.MustCompile(`(?i)[a-z]{2}`)
-	rxTextFilter = regexp.MustCompile(`(?i)\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|Linkedin|Mail|PDF|Pinterest|Pocket|Print|Reddit|Twitter|Whatsapp|Xing)$`)
+	rxTextFilter = regexp.MustCompile(`(?i)` +
+		`\W*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|` +
+		`Linkedin|Mail|PDF|Pinterest|Pocket|Print|QQ|Reddit|Twitter|` +
+		`WeChat|WeiBo|Whatsapp|Xing|Mehr zum Thema:?|More on this.{,8}$)$`)
 )
 
 // checkHtmlLanguage checks HTML meta-elements for language information and
 // split the result in case there are several language.
-func checkHtmlLanguage(doc *html.Node, opts Options) bool {
+func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 	htmlNode := doc
 	if dom.TagName(htmlNode) != "html" {
 		htmlNodes := dom.GetElementsByTagName(doc, "html")
@@ -48,24 +52,13 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 		}
 	}
 
-	if htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
-		langAttr := dom.GetAttribute(htmlNode, "lang")
-		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
-			if lang == opts.TargetLanguage {
-				return true
-			}
-		}
-
-		logWarn(opts, "html language detection failed")
-		return false
-	}
-
-	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"]`)
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Language
+	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"][content]`)
 	if len(metaNodes) > 0 {
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")
 			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
-				if lang == opts.TargetLanguage {
+				if strings.ToLower(lang) == opts.TargetLanguage {
 					return true
 				}
 			}
@@ -75,8 +68,53 @@ func checkHtmlLanguage(doc *html.Node, opts Options) bool {
 		return false
 	}
 
+	// Locale
+	metaNodes = dom.QuerySelectorAll(doc, `meta[property="og:locale"][content]`)
+	if len(metaNodes) > 0 {
+		for _, metaNode := range metaNodes {
+			metaContent := dom.GetAttribute(metaNode, "content")
+			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
+				if strings.ToLower(lang) == opts.TargetLanguage {
+					return true
+				}
+			}
+		}
+
+		logWarn(opts, "html language detection in meta failed")
+		return false
+	}
+
+	// HTML lang attribute: sometimes a wrong indication
+	if strict && htmlNode != nil && dom.HasAttribute(htmlNode, "lang") {
+		langAttr := dom.GetAttribute(htmlNode, "lang")
+		for _, lang := range rxHtmlLang.FindAllString(langAttr, -1) {
+			if strings.ToLower(lang) == opts.TargetLanguage {
+				return true
+			}
+		}
+
+		logWarn(opts, "html language detection failed")
+		return false
+	}
+
 	logWarn(opts, "no html language elements found")
 	return true
+}
+
+// languageClassifier returns the language of the text.
+func languageClassifier(contentText, commentsText string) string {
+	lenContent := utf8.RuneCountInString(contentText)
+	lenComments := utf8.RuneCountInString(commentsText)
+
+	var langTest string
+	if lenComments > lenContent {
+		langTest = commentsText
+	} else {
+		langTest = contentText
+	}
+
+	lang := whatlanggo.DetectLang(langTest)
+	return lang.Iso6391()
 }
 
 // textFilter filters out unwanted text
@@ -105,10 +143,7 @@ func textFilter(n *html.Node) bool {
 // textCharsTest determine if a string is only composed of spaces and/or control characters.
 func textCharsTest(s string) bool {
 	s = strings.TrimSpace(s)
-	if s == "" {
-		return false
-	}
-	return true
+	return s != ""
 }
 
 // duplicateTest checks for duplicate text within cache

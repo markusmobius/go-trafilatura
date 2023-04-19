@@ -19,13 +19,9 @@
 package trafilatura
 
 import (
-	"regexp"
+	"mime"
+	"path/filepath"
 	"strings"
-)
-
-var (
-	rxImageExtension = regexp.MustCompile(`(?i)([^\s]+(\.(jpe?g|png|gif|bmp)))`)
-	rxCharset        = regexp.MustCompile(`(?i)charset\s*=\s*([^;\s"]+)`)
 )
 
 // trim removes unnecessary spaces within a text string.
@@ -67,5 +63,36 @@ func getRune(s string, idx int) rune {
 }
 
 func isImageFile(imageSrc string) bool {
-	return imageSrc != "" && rxImageExtension.MatchString(imageSrc)
+	if imageSrc == "" {
+		return false
+	}
+
+	ext := filepath.Ext(imageSrc)
+	mimeType := mime.TypeByExtension(ext)
+	return strings.HasPrefix(mimeType, "image")
+}
+
+func uniquifyLists(currents ...string) []string {
+	var finalTags []string
+	tracker := map[string]struct{}{}
+
+	for _, current := range currents {
+		separator := ","
+		if strings.Count(current, ";") > strings.Count(current, ",") {
+			separator = ";"
+		}
+
+		for _, entry := range strings.Split(current, separator) {
+			entry = trim(entry)
+			entry = strings.ReplaceAll(entry, `"`, "")
+			entry = strings.ReplaceAll(entry, `'`, "")
+
+			if _, tracked := tracker[entry]; entry != "" && !tracked {
+				finalTags = append(finalTags, entry)
+				tracker[entry] = struct{}{}
+			}
+		}
+	}
+
+	return finalTags
 }

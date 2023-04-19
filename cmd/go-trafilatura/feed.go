@@ -41,9 +41,16 @@ import (
 	"golang.org/x/sync/semaphore"
 )
 
-const (
-	mimeRSS  = "application/rss+xml"
-	mimeAtom = "application/atom+xml"
+var feedTypes = sliceToMap(
+	"application/atom+xml",
+	"application/rdf+xml",
+	"application/rss+xml",
+	"application/x.atom+xml",
+	"application/x-atom+xml",
+	"text/atom+xml",
+	"text/rdf+xml",
+	"text/rss+xml",
+	"text/xml",
 )
 
 func feedCmd() *cobra.Command {
@@ -361,7 +368,7 @@ func (fch *feedCmdHandler) findFeedUrlInHtml(r io.Reader, baseURL *nurl.URL) (st
 		}
 
 		nodeType := dom.GetAttribute(node, "type")
-		if strings.Contains(nodeType, mimeRSS) || strings.Contains(nodeType, mimeAtom) {
+		if fch.contentIsFeed(nodeType) {
 			return createAbsoluteURL(href, baseURL), nil
 		}
 	}
@@ -370,14 +377,6 @@ func (fch *feedCmdHandler) findFeedUrlInHtml(r io.Reader, baseURL *nurl.URL) (st
 }
 
 func (fch *feedCmdHandler) contentIsFeed(contentType string) bool {
-	switch {
-	case strings.Contains(contentType, "text/xml"),
-		strings.Contains(contentType, "application/xml"),
-		strings.Contains(contentType, mimeRSS),
-		strings.Contains(contentType, mimeAtom):
-		return true
-
-	default:
-		return false
-	}
+	_, exist := feedTypes[contentType]
+	return exist
 }

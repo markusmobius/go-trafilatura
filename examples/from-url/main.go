@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	nurl "net/url"
-	"regexp"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -14,12 +13,11 @@ import (
 
 var (
 	httpClient = &http.Client{Timeout: 30 * time.Second}
-	rxCharset  = regexp.MustCompile(`(?i)charset\s*=\s*([^;\s"]+)`)
 )
 
 func main() {
 	// Prepare URL
-	url := "https://www.finanzen.net/nachricht/trading/anzeige-value-stars-mit-ausgewaehlten-aktien-den-dax-schlagen-5873873"
+	url := "https://www.federalreserve.gov/monetarypolicy/fomcminutes20160727.htm"
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
 		logrus.Fatalf("failed to parse url: %v", err)

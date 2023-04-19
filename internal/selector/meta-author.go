@@ -28,13 +28,23 @@ import (
 	"golang.org/x/net/html"
 )
 
+var MetaAuthor = []Rule{
+	metaAuthorRule1,
+	metaAuthorRule2,
+	metaAuthorRule3,
+}
+
+// specific and almost specific
+// `//*[(self::a or self::address or self::div or self::link or self::p or self::span or self::strong)][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me" or contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name")]|//author`,
 func metaAuthorRule1(n *html.Node) bool {
+	id := dom.ID(n)
 	class := dom.ClassName(n)
 	rel := dom.GetAttribute(n, "rel")
+	itemProp := dom.GetAttribute(n, "itemprop")
 	tagName := dom.TagName(n)
 
 	switch tagName {
-	case "a", "address", "link", "p", "span":
+	case "a", "address", "div", "link", "p", "span", "strong":
 	case "author":
 		return true
 	default:
@@ -42,9 +52,15 @@ func metaAuthorRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case rel == "me",
-		rel == "author",
-		class == "author":
+	case rel == "author",
+		id == "author",
+		class == "author",
+		itemProp == "author name",
+		rel == "me",
+		strings.Contains(class, "author-name"),
+		strings.Contains(class, "AuthorName"),
+		strings.Contains(class, "authorName"),
+		strings.Contains(class, "author name"):
 	default:
 		return false
 	}
@@ -52,22 +68,36 @@ func metaAuthorRule1(n *html.Node) bool {
 	return true
 }
 
+// almost generic and generic, last ones not common
+// `//*[(self::a or self::div or self::h3 or self::h4 or self::p or self::span)][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline" or contains(@id, "zuozhe") or contains(@class, "zuozhe") or contains(@id, "bianji") or contains(@class, "bianji") or contains(@id, "xiaobian") or contains(@class, "xiaobian") or contains(@class, "submitted-by") or contains(@class, "posted-by") or @class="username" or @class="BBL" or contains(@class, "journalist-name")]`,
 func metaAuthorRule2(n *html.Node) bool {
+	id := dom.ID(n)
 	class := dom.ClassName(n)
 	itemProp := dom.GetAttribute(n, "itemprop")
 	tagName := dom.TagName(n)
 
 	switch tagName {
-	case "a", "span":
+	case "a", "div", "h3", "h4", "p", "span":
 	default:
 		return false
 	}
 
 	switch {
 	case strings.Contains(class, "author"),
-		strings.Contains(class, "authors"),
+		strings.Contains(id, "author"),
+		strings.Contains(itemProp, "author"),
+		class == "byline",
+		strings.Contains(id, "zuozhe"),
+		strings.Contains(class, "zuozhe"),
+		strings.Contains(id, "bianji"),
+		strings.Contains(class, "bianji"),
+		strings.Contains(id, "xiaobian"),
+		strings.Contains(class, "xiaobian"),
+		strings.Contains(class, "submitted-by"),
 		strings.Contains(class, "posted-by"),
-		strings.Contains(itemProp, "author"):
+		class == "username",
+		class == "BBL",
+		strings.Contains(class, "journalist-name"):
 	default:
 		return false
 	}
@@ -75,33 +105,29 @@ func metaAuthorRule2(n *html.Node) bool {
 	return true
 }
 
+// last resort: any element
+// `//*[contains(translate(@id, "A", "a"), "author") or contains(translate(@class, "A", "a"), "author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer") or contains(translate(@class, "B", "b"), "byline")]`,
 func metaAuthorRule3(n *html.Node) bool {
+	id := dom.ID(n)
 	class := dom.ClassName(n)
-	tagName := dom.TagName(n)
+	dataComponent := dom.GetAttribute(n, "data-component")
+	itemProp := dom.GetAttribute(n, "itemprop")
 
-	switch tagName {
-	case "a", "div", "p", "span":
-	default:
-		return false
-	}
+	lId := strings.ToLower(id)
+	lClass := strings.ToLower(class)
+	lDataComponent := strings.ToLower(dataComponent)
 
 	switch {
-	case strings.Contains(class, "byline"):
+	case strings.Contains(lId, "author"),
+		strings.Contains(lClass, "author"),
+		strings.Contains(class, "screenname"),
+		strings.Contains(lDataComponent, "byline"),
+		strings.Contains(itemProp, "author"),
+		strings.Contains(class, "writer"),
+		strings.Contains(lClass, "byline"):
 	default:
 		return false
 	}
 
 	return true
-}
-
-func metaAuthorRule4(n *html.Node) bool {
-	class := dom.ClassName(n)
-
-	switch {
-	case strings.Contains(class, "author"),
-		strings.Contains(class, "screenname"):
-		return true
-	default:
-		return false
-	}
 }
