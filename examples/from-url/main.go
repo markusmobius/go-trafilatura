@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	nurl "net/url"
-	"regexp"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -14,7 +13,6 @@ import (
 
 var (
 	httpClient = &http.Client{Timeout: 30 * time.Second}
-	rxCharset  = regexp.MustCompile(`(?i)charset\s*=\s*([^;\s"]+)`)
 )
 
 func main() {

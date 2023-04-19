@@ -19,12 +19,9 @@
 package trafilatura
 
 import (
-	"regexp"
+	"mime"
+	"path/filepath"
 	"strings"
-)
-
-var (
-	rxImageExtension = regexp.MustCompile(`(?i)[^\s]+\.(avif|bmp|gif|hei[cf]|jpe?g|png|webp)(\b|$)`)
 )
 
 // trim removes unnecessary spaces within a text string.
@@ -66,7 +63,13 @@ func getRune(s string, idx int) rune {
 }
 
 func isImageFile(imageSrc string) bool {
-	return imageSrc != "" && rxImageExtension.MatchString(imageSrc)
+	if imageSrc == "" {
+		return false
+	}
+
+	ext := filepath.Ext(imageSrc)
+	mimeType := mime.TypeByExtension(ext)
+	return strings.HasPrefix(mimeType, "image")
 }
 
 func uniquifyLists(currents ...string) []string {
