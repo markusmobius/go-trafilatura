@@ -1,44 +1,33 @@
 # Go-Trafilatura
 
-Go-Trafilatura is a Go package and command-line tool which seamlessly downloads, parses, and scrapes web
-page data: it can extract metadata, main body text and comments while preserving parts of the text
-formatting and page structure.
+Go-Trafilatura is a Go package and command-line tool which seamlessly downloads, parses, and scrapes web page data: it can extract metadata, main body text and comments while preserving parts of the text formatting and page structure.
 
-As implied by its name, this package is based on [Trafilatura][0] which is a Python package that created
-by [Adrien Barbaresi][1]. We decided to port this package because according to ScrapingHub [benchmark][2],
-at the time this port is created Trafilatura is the most efficient open-source article extractor. This is
-especially impressive considering how robust its code, only around 4,000 lines of Python code that
-separated in 26 files. As comparison, [Dom Distiller][3] has 148 files with around 17,000 lines of code.
+As implied by its name, this package is based on [Trafilatura][0] which is a Python package that created by [Adrien Barbaresi][1]. We decided to port this package because according to ScrapingHub [benchmark][2], at the time this port is created Trafilatura is the most efficient open-source article extractor. This is especially impressive considering how robust its code, only around 4,000 lines of Python code that separated in 26 files. As comparison, [Dom Distiller][3] has 148 files with around 17,000 lines of code.
 
-The structure of this package is arranged following the structure of original Python code. This way, any
-improvements from the original can be implemented easily here. Another advantage, hopefully all web page
-that can be parsed by the original Trafilatura can be parsed by this package as well with identical result.
+The structure of this package is arranged following the structure of original Python code. This way, any improvements from the original can be implemented easily here. Another advantage, hopefully all web page that can be parsed by the original Trafilatura can be parsed by this package as well with identical result.
 
 ## Table of Contents
 
+- [Table of Contents](#table-of-contents)
 - [Status](#status)
 - [Usage as Go package](#usage-as-go-package)
 - [Usage as CLI Application](#usage-as-cli-application)
-- [Comparison with Other Go Package](#comparison-with-other-go-packages)
+- [Performance](#performance)
+- [Comparison with Other Go Packages](#comparison-with-other-go-packages)
 - [Comparison with Original Trafilatura](#comparison-with-original-trafilatura)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura v0.8.2 (commit
-[8f512db][4]). I've also picked some latest commits that fix important issues.
+This package is stable enough for use and up to date with the original Trafilatura v1.5.0 (commit [2639b24][4]).
 
 There are some difference between this port and the original Trafilatura:
 
-- In the original, metadata from JSON+LD is extracted using regular expressions while in this port it's
-  done using a JSON parser. This way, our metadata extraction should be more correct, however the code
-  is a bit more complex.
-- In the original, they use `python-readability` and `justext` as fallback extractors. In this port we
-  use `go-readability` and `go-domdistiller` instead. Thanks to this, while rare, there will be some
-  difference in extraction result between our port and the original.
-- The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks
-  to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
+- In the original, metadata from JSON+LD is extracted using regular expressions while in this port it's done using a JSON parser. Thanks to this, our metadata extraction is more accurate than the original, but it will skip metadata that might exist in JSON with invalid format.
+- In the original, they use `python-readability` and `justext` as fallback extractors. In this port we use `go-readability` and `go-domdistiller` instead. Thanks to this, there will be some difference in extraction result between our port and the original.
+- In our port we can also specify custom fallback value, so we don't limited to only default extractors.
+- The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
 
 ## Usage as Go package
 
@@ -54,8 +43,7 @@ Next, include it in your application :
 import "github.com/markusmobius/go-trafilatura"
 ```
 
-Now you can use Trafilatura to extract content of a web page. For basic usage you can check the
-[example](examples/from-url.go).
+Now you can use Trafilatura to extract content of a web page. For basic usage you can check the [example](examples/from-url.go).
 
 ## Usage as CLI Application
 
@@ -153,62 +141,71 @@ Here are some example of common usage
   go-trafilatura feed -o extract http://www.domain.com
   ```
 
+## Performance
+
+This package and its dependencies heavily use regular expression for various purposes. Unfortunately, as commonly known, Go's regular expression is pretty slow, even compared to Python. This is because:
+
+- The regex engine in other language usually implemented in C, while in Go it's implemented from scratch in Go language. As expected, C implementation is still faster than Go's.
+- Since Go is usually used for web service, its regex is designed to finish in time linear to the length of the input, which useful for protecting server from ReDoS attack. However, this comes with performance cost.
+
+If you want to parse a huge amount of data, it would be preferrable to have a better performance. So, this package provides C++ [`re2`][re2] as an alternative regex engine using binding from [go-re2]. To activate it, you can build your app using tag `re2_wasm` or `re2_cgo`, for example:
+
+```
+go build -tags re2_cgo .
+```
+
+When using `re2_wasm` tag, it will make your app uses `re2` that packaged as WebAssembly module so it should be runnable even without cgo. However, if your input is too small, it might be even slower than using Go's standard regex engine.
+
+When using `re2_cgo` tag, it will make your app uses `re2` library that wrapped using cgo. It's a lot faster than Go's standard regex and `re2_wasm`, however to use it cgo must be available and `re2` should be installed in your system.
+
+Do note that this alternative regex engine is experimental, so use on your own risk.
+
 ## Comparison with Other Go Packages
 
-Here we compare the extraction result between `go-trafilatura`, `go-readability` and `go-domdistiller`.
-To reproduce this test, clone this repository then run:
+Here we compare the extraction result between `go-trafilatura`, `go-readability` and `go-domdistiller`. To reproduce this test, clone this repository then run:
 
 ```
-go run scripts/comparison/*.go
+go run scripts/comparison/*.go content
 ```
 
-For the test, we use 500 documents, 1,487 text and 1,496 boilerplate segments (data from 2020-11-06).
-Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+For the test, we use 750 documents, 2236 text & 2250 boilerplate segments (2022-05-18). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
 |            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
 | :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|       `go-domdistiller`        |   0.900   | 0.831  |  0.870   |  0.864  |   6.795   |
-|        `go-readability`        |   0.895   | 0.866  |  0.882   |  0.880  |   6.604   |
-|        `go-trafilatura`        |   0.921   | 0.867  |  0.896   |  0.893  |   3.656   |
-| `go-trafilatura` with fallback |   0.926   | 0.888  |  0.909   |  0.907  |  10.663   |
+|       `go-domdistiller`        |   0.866   | 0.855  |  0.862   |  0.860  |   9.385   |
+|        `go-readability`        |   0.863   | 0.872  |  0.867   |  0.867  |   8.300   |
+|        `go-trafilatura`        |   0.908   | 0.884  |  0.897   |  0.896  |  10.943   |
+| `go-trafilatura` with fallback |   0.905   | 0.904  |  0.905   |  0.904  |  27.226   |
 
-As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For
-instance, the image extraction in `go-trafilatura` is not as good as the other.
+As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For instance, the image extraction in `go-trafilatura` is still not as good as the other.
 
 ## Comparison with Original Trafilatura
 
-For our purpose, we need a high quality extractor that is as fast as possible, especially since we process
-millions of page each day. Because of this, we decided to port Trafilatura from Python to Go since we
-believe the accuracy of Trafilatura combined with Go's speed will fulfill our requirement.
+Here is the result when compared with the original Trafilatura v1.5.0:
 
-With that said, we want to make sure that our port has similar performance as the original. Fortunately
-Trafilatura already has a script named `comparison.py` which used to compare it with several other Python
-libraries, so we can easily use it to compare the performance between the original and our port:
+|                 Package                 | Precision | Recall | Accuracy | F-Score |
+| :-------------------------------------: | :-------: | :----: | :------: | :-----: |
+|              `trafilatura`              |   0.913   | 0.891  |  0.903   |  0.902  |
+|        `trafilatura` + fallback         |   0.914   | 0.907  |  0.911   |  0.910  |
+|  `trafilatura` + fallback + precision   |   0.925   | 0.880  |  0.905   |  0.902  |
+|    `trafilatura` + fallback + recall    |   0.898   | 0.911  |  0.904   |  0.905  |
+|            `go-trafilatura`             |   0.908   | 0.884  |  0.897   |  0.896  |
+|       `go-trafilatura` + fallback       |   0.911   | 0.899  |  0.906   |  0.905  |
+| `go-trafilatura` + fallback + precision |   0.922   | 0.869  |  0.898   |  0.895  |
+|  `go-trafilatura` + fallback + recall   |   0.896   | 0.905  |  0.900   |  0.901  |
 
-|             Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
-| :-----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|        `go-trafilatura`         |   0.921   | 0.867  |  0.896   |  0.893  |   3.656   |
-|   `go-trafilatura` + fallback   |   0.925   | 0.888  |  0.908   |  0.906  |   3.750   |
-|      `trafilatura` v0.8.2       |   0.925   | 0.867  |  0.899   |  0.895  |  10.123   |
-| `trafilatura` v0.8.2 + fallback |   0.934   | 0.889  |  0.914   |  0.911  |  20.757   |
+From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
-According to the table above, our port has the same performance as the original Trafilatura. It makes
-sense since most of code is ported line by line from Python to Go (excluding some difference that mentioned
-above).
+For the speed, here is the comparison between our port and the original Trafilatura (all units in seconds):
 
-There is a small difference in precision between our port and the original. However, I believe this is
-happened not because of incorrectly ported code but because we are using different fallback extractors
-compared to the original.
+|             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
+| :---------------------------: | :------: | :------: | :------------------: | :---------------: |
+|         `trafilatura`         |  12.98   |  18.65   |        26.55         |       13.74       |
+|       `go-trafilatura`        |   9.00   |  22.67   |        22.21         |       17.99       |
+| `go-trafilatura` + `re2_wasm` |   5.67   |  12.81   |        12.37         |       8.35        |
+| `go-trafilatura` + `re2_cgo`  |   5.97   |  13.19   |        12.81         |       8.29        |
 
-Regarding speed, our port is 2.77 times faster when fallback is disabled and 1.95 times faster when fallback
-is enabled. So, in this aspect Go fulfill our expectation as well. However, if you check the comparison code,
-you'll notice that each comparison process done sequentially. With that said, if you want to achieve higher
-performance, you could try to use `go-trafilatura` package inside goroutines to make it run concurrently.
-
-However, I decided to not compare the speed between concurrently running our port and concurrently running
-the original Trafilatura. This is because Python doesn't support CPU threading, so even if we run the original
-Trafilatura in multiple thread, it will become a lot more slower than running it sequentially in single
-thread.
+As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. However, when `re2` is enabled, our port become a lot faster in every scenarios.
 
 ## Acknowledgements
 
