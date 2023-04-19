@@ -108,7 +108,7 @@ func compareContentExtraction() {
 
 		// Trafilatura + fallback
 		start = time.Now()
-		result, err = runTrafilaturaFallback(url, doc, docReadability, docDistiller)
+		result, err = runTrafilaturaFallback(url, doc)
 		if err != nil {
 			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
 		}
