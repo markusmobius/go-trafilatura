@@ -1,6 +1,6 @@
 package main
 
-type comparisonEntry struct {
+type ComparisonEntry struct {
 	File        string   `json:"file"`
 	Title       string   `json:"title"`
 	Date        string   `json:"date"`
@@ -16,7 +16,7 @@ type comparisonEntry struct {
 	Tags        []string `json:"tags"`
 }
 
-var comparisonData = map[string]comparisonEntry{
+var comparisonData = map[string]ComparisonEntry{
 	"https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/": {
 		File:    "die-partei.net.luebeck.html",
 		With:    []string{"Die GEMA dreht völlig am Zeiger!", "http://www.openpetition.de"},

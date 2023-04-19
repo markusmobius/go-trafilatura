@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	nurl "net/url"
 	"strings"
 	"time"
@@ -16,18 +14,39 @@ import (
 	"golang.org/x/net/html"
 )
 
+type ExtractorParameter struct {
+	URL      *nurl.URL
+	Document *html.Node
+	Entry    ComparisonEntry
+}
+
+type EvaluationResult struct {
+	TruePositives  int
+	FalseNegatives int
+	FalsePositives int
+	TrueNegatives  int
+	Duration       time.Duration
+}
+
 func compareContentExtraction() {
-	var (
-		nDocument              int
-		evNothing              evaluationResult
-		evEverything           evaluationResult
-		evTrafilatura          evaluationResult
-		evTrafilaturaFallback  evaluationResult
-		evTrafilaturaPrecision evaluationResult
-		evTrafilaturaRecall    evaluationResult
-		evReadability          evaluationResult
-		evDomDistiller         evaluationResult
-	)
+	params := prepareExtractorParameter()
+
+	var errors []error
+	errors = append(errors, runReadability(params)...)                      // Readability
+	errors = append(errors, runDomDistiller(params)...)                     // DOM Distiller
+	errors = append(errors, runTrafilatura(params, false, false, false)...) // Standard Trafilatura
+	errors = append(errors, runTrafilatura(params, true, false, false)...)  // Trafilatura + Fallback
+	errors = append(errors, runTrafilatura(params, true, true, false)...)   // Trafilatura + Precision
+	errors = append(errors, runTrafilatura(params, true, false, true)...)   // Trafilatura + Recall
+
+	// Print errors
+	for _, err := range errors {
+		logrus.Warn(err)
+	}
+}
+
+func prepareExtractorParameter() []ExtractorParameter {
+	var params []ExtractorParameter
 
 	for strURL, entry := range comparisonData {
 		// Make sure URL is valid
@@ -44,135 +63,115 @@ func compareContentExtraction() {
 			continue
 		}
 
-		// Read all content of the file so it can be used multiple times
-		fContent, err := ioutil.ReadAll(f)
-		f.Close()
-		if err != nil {
-			logrus.Errorf("failed to read %s: %v", entry.File, err)
-			continue
-		}
-
-		if len(fContent) == 0 {
-			continue
-		}
-
 		// Create document
-		doc, err := dom.Parse(bytes.NewReader(fContent))
+		doc, err := dom.Parse(f)
 		if err != nil {
 			logrus.Errorf("failed to parse %s: %v", entry.File, err)
 			continue
 		}
 
-		// Null hypotheses
-		ev := evaluateResult("", entry)
-		evNothing = mergeEvaluationResult(evNothing, ev)
-
-		ev = evaluateResult(string(fContent), entry)
-		evEverything = mergeEvaluationResult(evEverything, ev)
-
-		// Readability
-		start := time.Now()
-		_, result, err := runReadability(url, doc)
-		if err != nil {
-			logrus.Warnf("readability error in %s: %v", strURL, err)
-		}
-
-		duration := time.Since(start)
-		ev = evaluateResult(result, entry)
-		evReadability = mergeEvaluationResult(evReadability, ev)
-		evReadability.Duration += duration
-
-		// Dom Distiller
-		start = time.Now()
-		_, result, err = runDomDistiller(url, doc)
-		if err != nil {
-			logrus.Warnf("dom-distiller error in %s: %v", strURL, err)
-		}
-
-		duration = time.Since(start)
-		ev = evaluateResult(result, entry)
-		evDomDistiller = mergeEvaluationResult(evDomDistiller, ev)
-		evDomDistiller.Duration += duration
-
-		// Trafilatura
-		start = time.Now()
-		result, err = runTrafilatura(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura error in %s: %v", strURL, err)
-		}
-
-		duration = time.Since(start)
-		ev = evaluateResult(result, entry)
-		evTrafilatura = mergeEvaluationResult(evTrafilatura, ev)
-		evTrafilatura.Duration += duration
-
-		// Trafilatura + fallback
-		start = time.Now()
-		result, err = runTrafilaturaFallback(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura+x error in %s: %v", strURL, err)
-		}
-
-		duration = time.Since(start)
-		ev = evaluateResult(result, entry)
-		evTrafilaturaFallback = mergeEvaluationResult(evTrafilaturaFallback, ev)
-		evTrafilaturaFallback.Duration += duration
-
-		// Trafilatura + fallback + precision
-		start = time.Now()
-		result, err = runTrafilaturaPrecision(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura precision error in %s: %v", strURL, err)
-		}
-
-		duration = time.Since(start)
-		ev = evaluateResult(result, entry)
-		evTrafilaturaPrecision = mergeEvaluationResult(evTrafilaturaPrecision, ev)
-		evTrafilaturaPrecision.Duration += duration
-
-		// Trafilatura + fallback + recall
-		start = time.Now()
-		result, err = runTrafilaturaRecall(url, doc)
-		if err != nil {
-			logrus.Warnf("trafilatura recall error in %s: %v", strURL, err)
-		}
-
-		duration = time.Since(start)
-		ev = evaluateResult(result, entry)
-		evTrafilaturaRecall = mergeEvaluationResult(evTrafilaturaRecall, ev)
-		evTrafilaturaRecall.Duration += duration
-
-		// Counter
-		nDocument++
+		// Save parameters
+		params = append(params, ExtractorParameter{
+			URL:      url,
+			Document: doc,
+			Entry:    entry,
+		})
 	}
 
-	fmt.Printf("N Documents: %d\n\n", nDocument)
-	fmt.Printf("Nothing: %s\n\n", evNothing.info())
-
-	fmt.Printf("Everything: %s\n", evEverything.info())
-	fmt.Printf("\t%s\n\n", evEverything.scoreInfo())
-
-	fmt.Printf("Readability: %s\n", evReadability.info())
-	fmt.Printf("\t%s\n\n", evReadability.scoreInfo())
-
-	fmt.Printf("DOM Distiller: %s\n", evDomDistiller.info())
-	fmt.Printf("\t%s\n\n", evDomDistiller.scoreInfo())
-
-	fmt.Printf("Trafilatura: %s\n", evTrafilatura.info())
-	fmt.Printf("\t%s\n\n", evTrafilatura.scoreInfo())
-
-	fmt.Printf("Trafilatura+Fallback: %s\n", evTrafilaturaFallback.info())
-	fmt.Printf("\t%s\n\n", evTrafilaturaFallback.scoreInfo())
-
-	fmt.Printf("Trafilatura Precision: %s\n", evTrafilaturaPrecision.info())
-	fmt.Printf("\t%s\n\n", evTrafilaturaPrecision.scoreInfo())
-
-	fmt.Printf("Trafilatura Recall: %s\n", evTrafilaturaRecall.info())
-	fmt.Printf("\t%s\n\n", evTrafilaturaRecall.scoreInfo())
+	return params
 }
 
-func evaluateResult(result string, entry comparisonEntry) evaluationResult {
-	var ev evaluationResult
+func runTrafilatura(params []ExtractorParameter, useFallback, favorPrecision, favorRecall bool) []error {
+	title := "trafilatura"
+	if useFallback {
+		title += "+fallback"
+	}
+
+	if favorPrecision {
+		title += "+precision"
+	} else if favorRecall {
+		title += "+recall"
+	}
+
+	start := time.Now()
+	var errors []error
+	var evaluation EvaluationResult
+	var opts = trafilatura.Options{
+		ExcludeComments: true,
+		ExcludeTables:   false,
+		NoFallback:      !useFallback,
+		FavorPrecision:  favorPrecision,
+		FavorRecall:     favorRecall,
+	}
+
+	for _, param := range params {
+		opts.OriginalURL = param.URL
+		result, err := trafilatura.ExtractDocument(param.Document, opts)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			continue
+		}
+
+		evaluation = evaluateResult(evaluation, result.ContentText, param.Entry)
+	}
+
+	evaluation.Duration = time.Since(start)
+	printEvaluationResult(title, evaluation)
+	fmt.Println()
+
+	return errors
+}
+
+func runReadability(params []ExtractorParameter) []error {
+	title := "readability"
+	start := time.Now()
+
+	var errors []error
+	var evaluation EvaluationResult
+	for _, param := range params {
+		article, err := readability.FromDocument(param.Document, param.URL)
+		if err != nil {
+			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			continue
+		}
+
+		evaluation = evaluateResult(evaluation, article.TextContent, param.Entry)
+	}
+
+	evaluation.Duration = time.Since(start)
+	printEvaluationResult(title, evaluation)
+	fmt.Println()
+
+	return errors
+}
+
+func runDomDistiller(params []ExtractorParameter) []error {
+	title := "dom distiller"
+	start := time.Now()
+
+	var errors []error
+	var evaluation EvaluationResult
+	for _, param := range params {
+		res, err := distiller.Apply(param.Document, &distiller.Options{
+			OriginalURL:    param.URL,
+			SkipPagination: true})
+		if err != nil {
+			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			continue
+		}
+
+		evaluation = evaluateResult(evaluation, res.Text, param.Entry)
+	}
+
+	evaluation.Duration = time.Since(start)
+	printEvaluationResult(title, evaluation)
+	fmt.Println()
+
+	return errors
+}
+
+func evaluateResult(current EvaluationResult, result string, entry ComparisonEntry) EvaluationResult {
+	var ev EvaluationResult
 
 	// Report problematic entry
 	if nWith := len(entry.With); nWith == 0 || nWith > 6 {
@@ -207,138 +206,31 @@ func evaluateResult(result string, entry comparisonEntry) evaluationResult {
 		}
 	}
 
-	return ev
-}
-
-func runTrafilatura(url *nurl.URL, doc *html.Node) (string, error) {
-	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
-		OriginalURL:     url,
-		NoFallback:      true,
-		ExcludeComments: true,
-		ExcludeTables:   false,
-	})
-
-	if err != nil {
-		return "", err
+	// Merge with the current
+	return EvaluationResult{
+		TruePositives:  current.TruePositives + ev.TruePositives,
+		FalseNegatives: current.FalseNegatives + ev.FalseNegatives,
+		FalsePositives: current.FalsePositives + ev.FalsePositives,
+		TrueNegatives:  current.TrueNegatives + ev.TrueNegatives,
 	}
-
-	return result.ContentText, nil
 }
 
-func runTrafilaturaFallback(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
-	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
-		OriginalURL:        url,
-		NoFallback:         false,
-		ExcludeComments:    true,
-		ExcludeTables:      false,
-		FallbackCandidates: fallbackCandidates,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return result.ContentText, nil
-}
-
-func runTrafilaturaPrecision(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
-	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
-		OriginalURL:        url,
-		NoFallback:         false,
-		FavorPrecision:     true,
-		ExcludeComments:    true,
-		ExcludeTables:      false,
-		FallbackCandidates: fallbackCandidates,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return result.ContentText, nil
-}
-
-func runTrafilaturaRecall(url *nurl.URL, doc *html.Node, fallbackCandidates ...*html.Node) (string, error) {
-	result, err := trafilatura.ExtractDocument(doc, trafilatura.Options{
-		OriginalURL:        url,
-		NoFallback:         false,
-		FavorRecall:        true,
-		ExcludeComments:    true,
-		ExcludeTables:      false,
-		FallbackCandidates: fallbackCandidates,
-	})
-
-	if err != nil {
-		return "", err
-	}
-
-	return result.ContentText, nil
-}
-
-func runReadability(url *nurl.URL, doc *html.Node) (*html.Node, string, error) {
-	article, err := readability.FromDocument(doc, url)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return article.Node, article.TextContent, nil
-}
-
-func runDomDistiller(url *nurl.URL, doc *html.Node) (*html.Node, string, error) {
-	res, err := distiller.Apply(doc, &distiller.Options{
-		OriginalURL:    url,
-		SkipPagination: true})
-	if err != nil {
-		return nil, "", err
-	}
-
-	return res.Node, res.Text, nil
-}
-
-type evaluationResult struct {
-	TruePositives  int
-	FalseNegatives int
-	FalsePositives int
-	TrueNegatives  int
-	Duration       time.Duration
-}
-
-func mergeEvaluationResult(old, new evaluationResult) evaluationResult {
-	old.TruePositives += new.TruePositives
-	old.FalseNegatives += new.FalseNegatives
-	old.FalsePositives += new.FalsePositives
-	old.TrueNegatives += new.TrueNegatives
-
-	return old
-}
-
-func (ev evaluationResult) info() string {
-	str := fmt.Sprintf("TP=%d FN=%d FP=%d TN=%d",
-		ev.TruePositives, ev.FalseNegatives,
-		ev.FalsePositives, ev.TrueNegatives)
-
-	if ev.Duration != 0 {
-		str += fmt.Sprintf(" duration=%.3f s", ev.Duration.Seconds())
-	}
-
-	return str
-}
-
-func (ev evaluationResult) scoreInfo() string {
-	precision, recall, accuracy, fScore := ev.score()
-	return fmt.Sprintf("precision=%.3f recall=%.3f acc=%.3f f-score=%.3f",
-		precision, recall, accuracy, fScore)
-}
-
-func (ev evaluationResult) score() (precision, recall, accuracy, fScore float64) {
+func printEvaluationResult(title string, ev EvaluationResult) {
+	// Calculate performance
 	tp := float64(ev.TruePositives)
 	fn := float64(ev.FalseNegatives)
 	fp := float64(ev.FalsePositives)
 	tn := float64(ev.TrueNegatives)
+	precision := tp / (tp + fp)
+	recall := tp / (tp + fn)
+	accuracy := (tp + tn) / (tp + tn + fp + fn)
+	fScore := (2 * tp) / (2*tp + fp + fn)
 
-	precision = tp / (tp + fp)
-	recall = tp / (tp + fn)
-	accuracy = (tp + tn) / (tp + tn + fp + fn)
-	fScore = (2 * tp) / (2*tp + fp + fn)
-	return
+	// Print data
+	fmt.Println(strings.ToUpper(title))
+	fmt.Printf("Duration  = %.3f second(s)\n", ev.Duration.Seconds())
+	fmt.Printf("Precision = %.3f\n", precision)
+	fmt.Printf("Recall    = %.3f\n", recall)
+	fmt.Printf("Accuracy  = %.3f\n", accuracy)
+	fmt.Printf("F Score   = %.3f\n", fScore)
 }
