@@ -4573,7 +4573,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without:     []string{"powered by Microsoft News", "Sign in", "Commenting is not currently available, but don’t worry"},
 	},
 	"https://klubjagiellonski.pl/2021/04/22/nowa-zelandia-platny-urlop-dla-rodzicow-poronionego-dziecka-jak-to-wyglada-w-polsce/": {
-		File:    "Nowa Zelandia_ płatny urlop dla rodziców poronionego dziecka. Jak to wygląda w Polsce_ — Klub Jagielloński.html",
+		File:    "Nowa Zelandia_ płatny urlop dla rodziców poronionego dziecka. Jak to wygląda w Polsce_ - Klub Jagielloński.html",
 		With:    []string{"Trzy dni", "w życie w kwietniu.", "Ustawa Holidays"},
 		Without: []string{"korzystamy z cookies.", "Czytasz właśnie nowy", "Twój email"},
 	},
@@ -4598,7 +4598,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"do dyskusji", "Używamy informacji zapisanych", "UDOSTĘPNIJ"},
 	},
 	"https://www.polityka.pl/tygodnikpolityka/swiat/2116825,1,krolowa-elzbieta-wyplywa-w-swiat-sygnal-dla-chin-i-rosji.read": {
-		File:    "„Królowa Elżbieta” wypływa w świat. Sygnał dla Chin i Rosji - Polityka.pl.html",
+		File:    "Królowa Elżbieta wypływa w świat. Sygnał dla Chin i Rosji - Polityka.pl.html",
 		With:    []string{"Pierwszy rejs HMS", "Bandera podąża za handlem", "zaważyła na jego trasie."},
 		Without: []string{"Czytaj też", "Były dowódca wojsk USA", "starszy analityk"},
 	},
@@ -4613,7 +4613,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"ShutterStock", "Ten tekst przeczytasz", "Źródło:"},
 	},
 	"https://wiadomosci.dziennik.pl/polityka/artykuly/8156148,dezubekizacja-trybunal-konstytucyjny-wyrok-termin.html": {
-		File:    "Dezubekizacja – reaktywacja. Czyli daty mają znaczenie - Dziennik.pl.html",
+		File:    "Dezubekizacja - reaktywacja. Czyli daty mają znaczenie - Dziennik.pl.html",
 		With:    []string{"Historia dezubekizacji przed", "12 maja. Tego", "Skarżący powołali się"},
 		Without: []string{"Trybunał Konstytucyjny", "CZYTAJ WIĘCEJ W", "Materiał chroniony prawem"},
 	},
@@ -4633,12 +4633,12 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"Agencja Gazeta", "cocopanda.pl", "Komentarze"},
 	},
 	"https://www.radiomaryja.pl/informacje/sprzeciw-wobec-atakow-na-fundacje-lux-veritatis/": {
-		File:    "Sprzeciw wobec ataków na Fundację Lux Veritatis – RadioMaryja.pl.html",
+		File:    "Sprzeciw wobec ataków na Fundację Lux Veritatis - RadioMaryja.pl.html",
 		With:    []string{"Watchdog wytoczył", "Nie możemy pozwolić na", "nękania Fundacji Lux Veritatis"},
 		Without: []string{"więcej]", "drukuj", "RIRM"},
 	},
 	"https://www.wsieciprawdy.pl/sieci-ipn-czyli-element-infrastruktury-krytycznej-pnews-4715.html": {
-		File:    "„Sieci”_ IPN, czyli element infrastruktury krytycznej Tygodnik Sieci.html",
+		File:    "Sieci_ IPN, czyli element infrastruktury krytycznej Tygodnik Sieci.html",
 		With:    []string{"Zadania Instytutu Pamięci", "co zechcą - czytamy.", "łamach nowego wydania"},
 		Without: []string{"opublikowano:", "Zobacz także", "Zapraszamy też do subskrypcji"},
 	},
@@ -4648,7 +4648,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"opublikowano", "aja/PAP", "Czekamy na Wasze"},
 	},
 	"https://www.osw.waw.pl/pl/publikacje/analizy/2021-04-20/rosyjskie-zamachy-w-czechach-kontekst-krajowy-implikacje-perspektywy": {
-		File:    "Rosyjskie zamachy w Czechach – kontekst krajowy, implikacje, perspektywy.html",
+		File:    "Rosyjskie zamachy w Czechach - kontekst krajowy, implikacje, perspektywy.html",
 		With:    []string{"17 kwietnia na konferencji", "Informacja o noszącym", "Media czeskie i brytyjskie"},
 		Without: []string{"DO WYSŁUCHANIA W SERWISIE", "Mateusz Seroka", "Publikacje"},
 	},
