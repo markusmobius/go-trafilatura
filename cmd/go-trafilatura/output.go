@@ -23,13 +23,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/spf13/cobra"
-	"golang.org/x/net/html"
 )
 
 func outputExt(cmd *cobra.Command) string {
@@ -79,69 +76,7 @@ func writeJSON(w io.Writer, result *trafilatura.ExtractResult) error {
 }
 
 func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
-	// Create base document
-	doc, _ := html.Parse(bytes.NewBuffer(nil))
-	head := dom.QuerySelector(doc, "head")
-	body := dom.QuerySelector(doc, "body")
-
-	// Put metadata
-	meta := etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "title")
-	dom.SetAttribute(meta, "content", result.Metadata.Title)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "author")
-	dom.SetAttribute(meta, "content", result.Metadata.Author)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "url")
-	dom.SetAttribute(meta, "content", result.Metadata.URL)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "hostname")
-	dom.SetAttribute(meta, "content", result.Metadata.Hostname)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "description")
-	dom.SetAttribute(meta, "content", result.Metadata.Description)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "sitename")
-	dom.SetAttribute(meta, "content", result.Metadata.Sitename)
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "date")
-	dom.SetAttribute(meta, "content", result.Metadata.Date.Format("2006-01-02"))
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "categories")
-	dom.SetAttribute(meta, "content", strings.Join(result.Metadata.Categories, ", "))
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "tags")
-	dom.SetAttribute(meta, "content", strings.Join(result.Metadata.Tags, "; "))
-
-	meta = etree.SubElement(head, "meta")
-	dom.SetAttribute(meta, "name", "license")
-	dom.SetAttribute(meta, "content", result.Metadata.License)
-
-	// Put content
-	content := result.ContentNode
-	if content != nil {
-		content.Data = "div"
-		dom.SetAttribute(content, "id", "content-body")
-		dom.AppendChild(body, content)
-	}
-
-	// Put comments
-	comments := result.CommentsNode
-	if comments != nil {
-		comments.Data = "div"
-		dom.SetAttribute(comments, "id", "comments-body")
-		dom.AppendChild(body, comments)
-	}
-
-	// Print as HTML
+	doc := trafilatura.CreateReadableDocument(result)
 	_, err := fmt.Fprint(w, dom.OuterHTML(doc))
 	return err
 }

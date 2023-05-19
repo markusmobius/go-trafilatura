@@ -42,5 +42,6 @@ func main() {
 	}
 
 	// Print result
-	fmt.Println(dom.OuterHTML(result.ContentNode))
+	doc := trafilatura.CreateReadableDocument(result)
+	fmt.Println(dom.OuterHTML(doc))
 }

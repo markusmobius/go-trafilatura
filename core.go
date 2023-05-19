@@ -38,11 +38,23 @@ import (
 
 // ExtractResult is the result of content extraction.
 type ExtractResult struct {
-	ContentNode  *html.Node
+	// ContentNode is the extracted content as a `html.Node`.
+	ContentNode *html.Node
+
+	// CommentsNode is the extracted comments as a `html.Node`.
+	// Will be nil if `ExcludeComments` in `Options` is set to true.
 	CommentsNode *html.Node
-	ContentText  string
+
+	// ContentText is the extracted content as a plain text.
+	ContentText string
+
+	// CommentsText is the extracted comments as a plain text.
+	// Will be empty if `ExcludeComments` in `Options` is set to true.
 	CommentsText string
-	Metadata     Metadata
+
+	// Metadata is the extracted metadata which taken from several sources i.e.
+	// <meta> tags, JSON+LD and OpenGraph scheme.
+	Metadata Metadata
 }
 
 // Extract parses a reader and find the main readable content.
