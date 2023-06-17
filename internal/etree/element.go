@@ -29,6 +29,11 @@ import (
 // Iter loops over this element and all subelements in document order,
 // and returns all elements with a matching tag.
 func Iter(element *html.Node, tags ...string) []*html.Node {
+	// Make sure element is exist
+	if element == nil {
+		return nil
+	}
+
 	// Convert tags to map
 	mapTags := make(map[string]struct{})
 	for _, tag := range tags {
@@ -154,6 +159,11 @@ func SetTail(element *html.Node, tail string) {
 
 // TailNodes returns the list of tail nodes for the element.
 func TailNodes(element *html.Node) []*html.Node {
+	// Make sure element is exist
+	if element == nil {
+		return nil
+	}
+
 	var nodes []*html.Node
 	for next := element.NextSibling; next != nil; next = next.NextSibling {
 		if next.Type == html.ElementNode {
@@ -168,17 +178,23 @@ func TailNodes(element *html.Node) []*html.Node {
 
 // Append appends single subelement into the node.
 func Append(node, subelement *html.Node) {
-	// Fetch the tail nodes of the subelement
-	tailNodes := TailNodes(subelement)
+	if node == nil || subelement == nil {
+		return
+	}
 
+	tails := TailNodes(subelement)
 	dom.AppendChild(node, subelement)
-	for _, tail := range tailNodes {
+	for _, tail := range tails {
 		dom.AppendChild(node, tail)
 	}
 }
 
 // Extend appends subelements into the node.
 func Extend(node *html.Node, subelements ...*html.Node) {
+	if node == nil || len(subelements) == 0 {
+		return
+	}
+
 	for _, subelement := range subelements {
 		Append(node, subelement)
 	}
