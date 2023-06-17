@@ -240,7 +240,7 @@ Like the original, `go-trafilatura` is distributed under the [GNU General Public
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[4]: https://github.com/adbar/trafilatura/commit/25698ebc93e1625f81f2d1f2300caf27425df33e
+[4]: https://github.com/adbar/trafilatura/commit/2639b24
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
