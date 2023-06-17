@@ -148,7 +148,12 @@ This package and its dependencies heavily use regular expression for various pur
 - The regex engine in other language usually implemented in C, while in Go it's implemented from scratch in Go language. As expected, C implementation is still faster than Go's.
 - Since Go is usually used for web service, its regex is designed to finish in time linear to the length of the input, which useful for protecting server from ReDoS attack. However, this comes with performance cost.
 
-If you want to parse a huge amount of data, it would be preferrable to have a better performance. So, this package provides C++ [`re2`][re2] as an alternative regex engine using binding from [go-re2]. To activate it, you can build your app using tag `re2_wasm` or `re2_cgo`, for example:
+If you want to parse a huge amount of data, it would be preferrable to have a better performance. So, this package provides C++ [`re2`][re2] as an alternative regex engine using binding from [go-re2]. To activate it, make sure you have `re2` libraries installed on your system:
+
+- Arch: `sudo pacman -S re2`
+- Ubuntu: `sudo apt install libre2-dev`
+
+After `re2` available in your system, you can build your app using tag `re2_wasm` or `re2_cgo`, for example:
 
 ```
 go build -tags re2_cgo .
