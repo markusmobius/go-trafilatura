@@ -25,7 +25,7 @@ This package is stable enough for use and up to date with the original Trafilatu
 There are some difference between this port and the original Trafilatura:
 
 - In the original, metadata from JSON+LD is extracted using regular expressions while in this port it's done using a JSON parser. Thanks to this, our metadata extraction is more accurate than the original, but it will skip metadata that might exist in JSON with invalid format.
-- In the original, they use `python-readability` and `justext` as fallback extractors. In this port we use `go-readability` and `go-domdistiller` instead. Thanks to this, there will be some difference in extraction result between our port and the original.
+- In the original, `python-readability` and `justext` are used as fallback extractors. In this port we use `go-readability` and `go-domdistiller` instead. Therefore, there will be some difference in extraction result between our port and the original.
 - In our port we can also specify custom fallback value, so we don't limited to only default extractors.
 - The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
 

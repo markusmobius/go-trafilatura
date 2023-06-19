@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	nurl "net/url"
+	"time"
 
 	"github.com/markusmobius/go-htmldate"
 	"golang.org/x/net/html"
@@ -59,6 +60,18 @@ func DefaultConfig() *Config {
 	}
 }
 
+// FallbackCandidates allows to specify a list of fallback candidates
+// in particular: readability and domdistiller
+type FallbackConfig struct {
+	//readability
+	HasReadability      bool
+	ReadabilityFallback *html.Node
+	HasDistiller        bool
+	DistillerFallback   *html.Node
+	//other fallbacks are possible as well: if set the above four settings are ignored
+	OtherFallbacks []*html.Node
+}
+
 // Options is configuration for the extractor.
 type Options struct {
 	// Config is the advanced configuration to fine tune the
@@ -72,13 +85,10 @@ type Options struct {
 	// uses the specified language.
 	TargetLanguage string
 
-	// NoFallback specify whether to skip fallback extractor using readability and dom-distiller.
-	NoFallback bool
-
-	// FallbackCandidates is list of documents which will be used for fallback when extraction result
-	// by original algorithm is too little and not good enough. If this list is specified, `NoFallback`
-	// will be ignored but readability and dom-distiller won't be run.
-	FallbackCandidates []*html.Node
+	// If FallbackCandidates is nil then no fallback will be performed`
+	// Otherwise: readability and domdistiller fallbacks will be used if precalculated
+	// OtherFallbacks!=nil will ensure that this list is used (rather than readability/distiller)
+	FallbackCandidates *FallbackConfig
 
 	// FavorPrecision specify whether to prefer less text but correct extraction.
 	FavorPrecision bool
@@ -115,6 +125,9 @@ type Options struct {
 
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
+
+	//HtmlDateOverride uses pre-extracted date and does not run the `htmldate` package
+	HtmlDateOverride time.Time
 
 	// HtmlDateOptions is configuration for the external `htmldate` package that used to look
 	// for publish date of a web page.

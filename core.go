@@ -139,7 +139,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	postBody, tmpBodyText := extractContent(doc, cache, opts)
 
 	// Use fallback if necessary
-	if !opts.NoFallback || len(opts.FallbackCandidates) > 0 {
+	if opts.FallbackCandidates != nil {
 		postBody, tmpBodyText = compareExtraction(docBackup1, postBody, opts)
 	}
 
@@ -930,29 +930,40 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		return originalExtract, originalText
 	}
 
-	// Prepare fallback candidates
-	fallbackCandidates := opts.FallbackCandidates
-
 	// Clean doc to be used for Readability and Dom Distiller
 	cleanedDoc := dom.Clone(doc, true)
 	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
 
-	// If fallback candidates are empty, populate it first
-	if len(fallbackCandidates) == 0 {
-		fallbackCandidates = []*html.Node{}
-
-		readabilityExtract, err := tryReadability(cleanedDoc, opts)
-		if err == nil {
-			fallbackCandidates = append(fallbackCandidates, readabilityExtract)
+	fallbackCandidates := []*html.Node{}
+	//if there are other fallback candidates we use those
+	if opts.FallbackCandidates.OtherFallbacks != nil && len(opts.FallbackCandidates.OtherFallbacks) > 0 {
+		fallbackCandidates = opts.FallbackCandidates.OtherFallbacks
+	} else {
+		if opts.FallbackCandidates.HasReadability {
+			if opts.FallbackCandidates.ReadabilityFallback != nil {
+				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.ReadabilityFallback)
+			}
 		} else {
-			logWarn(opts, "readability failed: %v", err)
+			//we run readability
+			readabilityExtract, err := tryReadability(cleanedDoc, opts)
+			if err == nil {
+				fallbackCandidates = append(fallbackCandidates, readabilityExtract)
+			} else {
+				logWarn(opts, "readability failed: %v", err)
+			}
 		}
-
-		// Here we append nil to fallback candidates. This nil value is used to
-		// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
-		// this way to make sure that dom-distiller will only be run if readability
-		// result is still not good enough to use.
-		fallbackCandidates = append(fallbackCandidates, nil)
+		//now we append domdistiller if it was alreadyrun
+		if opts.FallbackCandidates.HasDistiller {
+			if opts.FallbackCandidates.DistillerFallback != nil {
+				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.DistillerFallback)
+			}
+		} else {
+			// Here we append nil to fallback candidates. This nil value is used to
+			// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
+			// this way to make sure that dom-distiller will only be run if readability
+			// result is still not good enough to use.
+			fallbackCandidates = append(fallbackCandidates, nil)
+		}
 	}
 
 	// Convert url to string for logging

@@ -52,9 +52,11 @@ func main() {
 		// Use trafilatura
 		start = time.Now()
 		trafilaturaOpts := trafilatura.Options{
-			FallbackCandidates: []*html.Node{
-				readabilityResult.Node,
-				distillerResult.Node,
+			FallbackCandidates: &trafilatura.FallbackConfig{
+				HasReadability:      true,
+				ReadabilityFallback: readabilityResult.Node,
+				HasDistiller:        true,
+				DistillerFallback:   distillerResult.Node,
 			},
 		}
 

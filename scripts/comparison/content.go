@@ -99,9 +99,11 @@ func runTrafilatura(params []ExtractorParameter, useFallback, favorPrecision, fa
 	var opts = trafilatura.Options{
 		ExcludeComments: true,
 		ExcludeTables:   false,
-		NoFallback:      !useFallback,
 		FavorPrecision:  favorPrecision,
 		FavorRecall:     favorRecall,
+	}
+	if useFallback {
+		opts.FallbackCandidates = &trafilatura.FallbackConfig{}
 	}
 
 	for _, param := range params {

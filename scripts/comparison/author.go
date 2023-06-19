@@ -38,7 +38,6 @@ func compareAuthorExtraction() {
 		// Run trafilatura
 		result, _ := trafilatura.Extract(f, trafilatura.Options{
 			OriginalURL: url,
-			NoFallback:  true,
 		})
 
 		// Compare result

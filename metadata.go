@@ -180,21 +180,25 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	}
 
 	// Publish date
-	var htmlDateOpts htmldate.Options
 	if opts.HtmlDateOptions != nil {
-		htmlDateOpts = *opts.HtmlDateOptions
+		metadata.Date = opts.HtmlDateOverride
 	} else {
-		if opts.NoFallback { // No fallback means we want it fast
-			htmlDateOpts = fastHtmlDateOpts
+		var htmlDateOpts htmldate.Options
+		if opts.HtmlDateOptions != nil {
+			htmlDateOpts = *opts.HtmlDateOptions
 		} else {
-			htmlDateOpts = extensiveHtmlDateOpts
+			if opts.FallbackCandidates == nil { // No fallback means we want it fast
+				htmlDateOpts = fastHtmlDateOpts
+			} else {
+				htmlDateOpts = extensiveHtmlDateOpts
+			}
 		}
-	}
 
-	htmlDateOpts.URL = metadata.URL
-	publishDate, err := htmldate.FromDocument(doc, htmlDateOpts)
-	if err == nil && !publishDate.IsZero() {
-		metadata.Date = publishDate.DateTime
+		htmlDateOpts.URL = metadata.URL
+		publishDate, err := htmldate.FromDocument(doc, htmlDateOpts)
+		if err == nil && !publishDate.IsZero() {
+			metadata.Date = publishDate.DateTime
+		}
 	}
 
 	// Sitename
