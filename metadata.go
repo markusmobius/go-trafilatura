@@ -180,8 +180,10 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	}
 
 	// Publish date
-	if opts.HtmlDateOptions != nil {
-		metadata.Date = opts.HtmlDateOverride
+	if opts.HtmlDateOverride != nil {
+		if opts.HtmlDateOverride.HasTime {
+			metadata.Date = opts.HtmlDateOverride.DateTime
+		}
 	} else {
 		var htmlDateOpts htmldate.Options
 		if opts.HtmlDateOptions != nil {

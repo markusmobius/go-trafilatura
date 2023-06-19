@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	nurl "net/url"
-	"time"
 
 	"github.com/markusmobius/go-htmldate"
 	"golang.org/x/net/html"
@@ -126,8 +125,8 @@ type Options struct {
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 
-	//HtmlDateOverride uses pre-extracted date and does not run the `htmldate` package
-	HtmlDateOverride time.Time
+	//HtmlDateOverride uses pre-extracted date from `htmldate` package
+	HtmlDateOverride *htmldate.Result
 
 	// HtmlDateOptions is configuration for the external `htmldate` package that used to look
 	// for publish date of a web page.
