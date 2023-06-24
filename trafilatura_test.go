@@ -47,9 +47,9 @@ var (
 	}
 
 	zeroOpts = Options{
-		NoFallback:  false,
-		OriginalURL: exampleURL,
-		Config:      zeroConfig,
+		FallbackCandidates: &FallbackConfig{},
+		OriginalURL:        exampleURL,
+		Config:             zeroConfig,
 	}
 
 	zeroConfig = &Config{
@@ -110,31 +110,30 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Equal(t, "<p>1st part. 2nd part.</p>", etree.ToString(converted))
 
 	// Naked div with <br>
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><main><div>1.<br/>2.<br/>3.<br/></div></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "1. 2. 3.")
 
 	// HTML5: <details>
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
 
-	opts.NoFallback = false
 	htmlString = `<html><body><article><details><summary>Epcot Center</summary><p>Epcot is a theme park at Walt Disney World Resort featuring exciting attractions, international pavilions, award-winning fireworks and seasonal special events.</p></details></article></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
 
 	// Paywalls
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
 
-	opts = Options{NoFallback: false, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
@@ -308,7 +307,7 @@ func Test_Formatting(t *testing.T) {
 	assert.Equal(t, "<div><p>There is text here.</p></div>", fnHtml(result))
 
 	// List with links
-	opts = Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	r = strings.NewReader(`<html><body><article><ul><li>Number 1</li><li>Number <a href="test.html">2</a></li><li>Number 3</li><p>Test</p></article></body></html>`)
 	result, _ = Extract(r, opts)
 	assert.Contains(t, fnHtml(result), `<li>Number <a href="test.html">2</a></li>`)
@@ -316,12 +315,12 @@ func Test_Formatting(t *testing.T) {
 	// (Markdown) formatting within <p>-tag
 	rawHTML := `<html><body><p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a> and additional text to bypass detection.</p></body></html>`
 
-	opts = Options{IncludeLinks: false, NoFallback: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: false, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(rawHTML), opts)
 	assert.Equal(t, "bold, italics, tt, deleted, underlined, link and additional text to bypass detection.", dom.TextContent(result.ContentNode))
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, link and additional text to bypass detection.</p>`)
 
-	opts = Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(rawHTML), opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<p><b>bold</b>, <i>italics</i>, <tt>tt</tt>, <strike>deleted</strike>, <u>underlined</u>, <a href="test.html">link</a> and additional text to bypass detection.</p>`)
 
@@ -346,7 +345,7 @@ func Test_Formatting(t *testing.T) {
 
 	// Double <p> elems
 	r = strings.NewReader("<html><body><p>AAA, <p>BBB</p>, CCC.</p></body></html>")
-	result, _ = Extract(r, Options{IncludeLinks: true, NoFallback: true, Config: zeroConfig})
+	result, _ = Extract(r, Options{IncludeLinks: true, Config: zeroConfig})
 	assert.Contains(t, result.ContentText, "AAA")
 	assert.Contains(t, result.ContentText, "BBB")
 	assert.Contains(t, result.ContentText, "CCC")
@@ -438,16 +437,16 @@ func Test_Filters(t *testing.T) {
 	p3 := "<p>Thus have I had thee as a dream doth flatter, In sleep a king, but waking no such matter.</p>"
 	str = `<html lang="en-US"><body>` + strings.Repeat(p3, 50) + `</body></html>`
 
-	opts = Options{TargetLanguage: "en", NoFallback: true}
+	opts = Options{TargetLanguage: "en"}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.NotNil(t, result)
 
-	opts = Options{TargetLanguage: "de", NoFallback: true}
+	opts = Options{TargetLanguage: "de"}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
 	str = `<html lang="de-DE"><body>` + strings.Repeat(p3, 50) + `</body></html>`
-	opts = Options{TargetLanguage: "de", NoFallback: true}
+	opts = Options{TargetLanguage: "de"}
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.Nil(t, result)
 
@@ -554,11 +553,11 @@ func Test_External(t *testing.T) {
 	f, _ = os.Open(filepath.Join("test-files", "simple", "scam.html"))
 	doc, _ = html.Parse(f)
 
-	opts = Options{ExcludeTables: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{ExcludeTables: true, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
 	assert.Empty(t, result.ContentText)
 
-	opts = Options{ExcludeTables: true, NoFallback: false, Config: zeroConfig}
+	opts = Options{ExcludeTables: true, FallbackCandidates: &FallbackConfig{}, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
 	assert.NotEmpty(t, result.ContentText)
 	assert.NotContains(t, result.ContentText, "Uncensored Hosting")
@@ -596,7 +595,6 @@ func Test_Images(t *testing.T) {
 	contentHtml := dom.OuterHTML(result.ContentNode)
 	assert.NotContains(t, contentHtml, `<img src="test.jpg" title="Example image"/>`)
 
-	opts.NoFallback = true
 	opts.IncludeImages = true
 	result, _ = Extract(bytes.NewReader(bt), opts)
 	contentHtml = dom.OuterHTML(result.ContentNode)
@@ -623,7 +621,6 @@ func Test_Images(t *testing.T) {
 func Test_Links(t *testing.T) {
 	// Prepare options
 	linkOpts := Options{
-		NoFallback:   true,
 		IncludeLinks: true,
 		Config:       zeroConfig,
 	}
@@ -725,15 +722,15 @@ func Test_PrecisionRecall(t *testing.T) {
 		</div>
 	</body></html>`
 
-	opts = Options{FavorRecall: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{FavorRecall: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.Contains(t, result.ContentText, "teaser text")
 
-	opts = Options{FavorRecall: false, NoFallback: true, Config: zeroConfig}
+	opts = Options{FavorRecall: false, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
 
-	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{FavorPrecision: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
 
@@ -744,11 +741,11 @@ func Test_PrecisionRecall(t *testing.T) {
 		<a href="test2.html">2.</a>
 	</p></div></article></body></html>`
 
-	opts = Options{FavorRecall: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{FavorRecall: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
 
-	opts = Options{FavorPrecision: true, NoFallback: true, Config: zeroConfig}
+	opts = Options{FavorPrecision: true, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
 }
@@ -799,7 +796,7 @@ func Test_TableProcessing(t *testing.T) {
 			</table>
 		</article>
 	</body></html>`)
-	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ := ExtractDocument(complexPage, opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td></tr></table>`)
 
@@ -888,7 +885,7 @@ func Test_TableProcessing(t *testing.T) {
 			</table>
 		</article>
 	</body></html>`)
-	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ = ExtractDocument(tableNestedElements, opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
 		`<tr>`+
@@ -907,7 +904,7 @@ func Test_TableProcessing(t *testing.T) {
 		`<html><body><article><table><tr><td><a href="test.html">` +
 		strings.Repeat("ABCD", 100) +
 		`</a></td></tr></table></article></body></html>`)
-	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ = ExtractDocument(tableWithLinks, opts)
 	assert.NotContains(t, result.ContentText, "ABCD")
 
@@ -916,7 +913,7 @@ func Test_TableProcessing(t *testing.T) {
 	<html><body><article>
 		<table><th>1</th><table><tr><td>2</td></tr></table></table>
 	</article></body></html>`)
-	opts = Options{NoFallback: true, IncludeLinks: true, Config: zeroConfig}
+	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ = ExtractDocument(tableNested1, opts)
 	// TODO: all elements are there, but output not nested
 	// TODO: th conversion
@@ -999,7 +996,7 @@ func Test_ListProcessing(t *testing.T) {
 		<li>List item 2</li>
 		<li>List item 3</li>
 	</ul>`)
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	processedList = handleLists(listMalformed, nil, opts)
 	strResult = etree.ToString(processedList)
 	assert.Equal(t, 3, strings.Count(strResult, "List item"))
@@ -1019,7 +1016,7 @@ func Test_ListProcessing(t *testing.T) {
 			<li>Milk</li>
 		</ul>
 	</article></body></html>`)
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	result, _ = ExtractDocument(listNested, opts)
 	assert.Contains(t, noSpace(dom.OuterHTML(result.ContentNode)), noSpace(`
 	<ul>
@@ -1043,7 +1040,7 @@ func Test_ListProcessing(t *testing.T) {
 			<dd>White cold drink</dd>
 		</dl>
 	</article></body></html>`)
-	opts = Options{NoFallback: true, Config: zeroConfig}
+	opts = Options{Config: zeroConfig}
 	result, _ = ExtractDocument(listDescription, opts)
 	assert.Contains(t, noSpace(dom.OuterHTML(result.ContentNode)), noSpace(`
 	<dl>

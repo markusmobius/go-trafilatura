@@ -367,11 +367,11 @@ func Test_Metadata_Dates(t *testing.T) {
 	opts := defaultOpts
 	rawHTML = `<html><body><p>Veröffentlicht am 1.9.17</p></body></html>`
 
-	opts.NoFallback = true // fast mode
+	opts.FallbackCandidates = nil // fast mode
 	metadata = testGetMetadataFromHTML(rawHTML, opts)
 	assert.True(t, metadata.Date.IsZero())
 
-	opts.NoFallback = false // extensive mode
+	opts.FallbackCandidates = &FallbackConfig{} // extensive mode
 	metadata = testGetMetadataFromHTML(rawHTML, opts)
 	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
 

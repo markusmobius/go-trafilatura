@@ -2,7 +2,7 @@
 
 package regexp
 
-import re2 "github.com/wasilibs/go-re2"
+import re2 "github.com/markusmobius/go-re2"
 
 type Regexp struct {
 	rx *re2.Regexp
