@@ -158,12 +158,35 @@ After `re2` available in your system, you can build your app using tag `re2_wasm
 ```
 go build -tags re2_cgo .
 ```
+More detailed instructions in how to prepare your system for compiling with cgo are provided below.
 
 When using `re2_wasm` tag, it will make your app uses `re2` that packaged as WebAssembly module so it should be runnable even without cgo. However, if your input is too small, it might be even slower than using Go's standard regex engine.
 
 When using `re2_cgo` tag, it will make your app uses `re2` library that wrapped using cgo. In most case it's a lot faster than Go's standard regex and `re2_wasm`, however to use it cgo must be available and `re2` should be installed in your system.
 
 Do note that this alternative regex engine is experimental, so use on your own risk.
+
+### Compiling with cgo under Linux
+
+On Ubuntu install the gcc tool chain and the re2 library as follows:
+
+```bash
+sudo apt install build-essential
+sudo apt-get install -y libre2-dev
+```
+
+### Compiling with cgo under Windows
+On Windows start by installing [MSYS2][msys2]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
+
+```bash
+pacman -S mingw-w64-x86_64-gcc
+pacman -S mingw-w64-x86_64-re2
+```
+If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
+
+```cmd
+SET PATH=C:\msys64\mingw64\bin;%PATH%
+```
 
 ## Comparison with Other Go Packages
 
