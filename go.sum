@@ -201,12 +201,16 @@ github.com/markusmobius/go-dateparser v1.1.0 h1:Ro9yBS5trm04C6gKbNTPYS+mN6Gqo58k
 github.com/markusmobius/go-dateparser v1.1.0/go.mod h1:+qKl7ZLSFghHrrnDMS+Y7O8wSK3/qwXZ8mbKrVL1t7s=
 github.com/markusmobius/go-dateparser v1.1.1 h1:SUe1wSbamhfnBkHrD/YUVjeprwTuMw2AoRViv7oRo4E=
 github.com/markusmobius/go-dateparser v1.1.1/go.mod h1:4Mz2WaE7vDwf76d+GN6YiYVy1CEbr/d5IovJ/ycDt7o=
+github.com/markusmobius/go-dateparser v1.2.1 h1:mYRRdu3TzpAeE6fSl2Gn3arfxEtoTRvFOKlumlVsUtg=
+github.com/markusmobius/go-dateparser v1.2.1/go.mod h1:5xYsZ1h7iB3sE1BSu8bkjYpbFST7EU1/AFxcyO3mgYg=
 github.com/markusmobius/go-domdistiller v0.0.0-20230515154422-71af71939ff3 h1:D83RvMz1lQ0ilKlJt6DWc65+Q77CXGRFmfihR0bfQvc=
 github.com/markusmobius/go-domdistiller v0.0.0-20230515154422-71af71939ff3/go.mod h1:n1AYw0wiJDT3YXnIsElJPiDR63YGXT2yv3uq0CboGmU=
 github.com/markusmobius/go-htmldate v1.0.0 h1:LbnQtaHbNXqGtIVT5mJ+kBVEvARSAiF+I5RpeDFvS0I=
 github.com/markusmobius/go-htmldate v1.0.0/go.mod h1:izwr4/RphQP0fyO9HFu+qBxWhzrKCbfrZejPN8MDMik=
 github.com/markusmobius/go-htmldate v1.1.0 h1:/KC87UOLp/47Ue0KX4Lhp5J7BC50mUI/PvkQTNC8pa4=
 github.com/markusmobius/go-htmldate v1.1.0/go.mod h1:rZOCGMAWK1qbVMg51w0LsNapptjMfnqnmWYLkdhJ9Ns=
+github.com/markusmobius/go-htmldate v1.2.2 h1:tp1IxhefCYpEoL9CM1LiU6l+2YayTpuTjkkdnik6hXE=
+github.com/markusmobius/go-htmldate v1.2.2/go.mod h1:26VRz16sCosuiv42MNRW9iPBGnGLo+q/Z6TWitt8uzs=
 github.com/markusmobius/go-re2 v1.7.1 h1:peWOhnV5AUZZ0zEaaJEfKe1ywfPlunCRiyZTqfM8TpE=
 github.com/markusmobius/go-re2 v1.7.1/go.mod h1:Xu71iAfY3yAg0bHZ/wqMLfls9M4sUac+azmTyFkyoTs=
 github.com/markusmobius/go-re2 v1.7.3 h1:mknhMIggXz5VmZgcqqcnEZZgeBagzF1y+qc0k2t9F6Y=
@@ -282,6 +286,8 @@ github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
 github.com/tetratelabs/wazero v1.2.1 h1:J4X2hrGzJvt+wqltuvcSjHQ7ujQxA9gb6PeMs4qlUWs=
 github.com/tetratelabs/wazero v1.2.1/go.mod h1:wYx2gNRg8/WihJfSDxA1TIL8H+GkfLYm+bIfbblu9VQ=
+github.com/wasilibs/go-re2 v1.3.0 h1:LFhBNzoStM3wMie6rN2slD1cuYH2CGiHpvNL3UtcsMw=
+github.com/wasilibs/go-re2 v1.3.0/go.mod h1:AafrCXVvGRJJOImMajgJ2M7rVmWyisVK7sFshbxnVrg=
 github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4 h1:0sw0nJM544SpsihWx1bkXdYLQDlzRflMgFJQ4Yih9ts=
 github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4/go.mod h1:+ccdNT0xMY1dtc5XBxumbYfOUhmduiGudqaDgD2rVRE=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
