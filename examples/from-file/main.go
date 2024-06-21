@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	nurl "net/url"
 	"os"
@@ -9,7 +10,6 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -20,7 +20,7 @@ func main() {
 	// Open file
 	f, err := os.Open("input3.html")
 	if err != nil {
-		logrus.Fatalf("failed to open: %v", err)
+		log.Fatalf("failed to open: %v", err)
 	}
 	defer f.Close()
 
@@ -36,7 +36,7 @@ func main() {
 
 	result, err := trafilatura.Extract(f, opts)
 	if err != nil {
-		logrus.Fatalf("failed to extract: %v", err)
+		log.Fatalf("failed to extract: %v", err)
 	}
 
 	// Print result

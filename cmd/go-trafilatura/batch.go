@@ -30,7 +30,6 @@ import (
 	"time"
 
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 )
@@ -66,11 +65,11 @@ func batchCmdHandler(cmd *cobra.Command, args []string) {
 	// Parse input file
 	urls, names, err := parseBatchFile(cmd, args[0])
 	if err != nil {
-		logrus.Fatalf("failed to parse input: %v", err)
+		log.Fatal().Msgf("failed to parse input: %v", err)
 	}
 
 	if len(urls) == 0 {
-		logrus.Fatalf("no valid url found")
+		log.Fatal().Msgf("no valid url found")
 	}
 
 	// Make sure output dir exist
@@ -99,7 +98,7 @@ func batchCmdHandler(cmd *cobra.Command, args []string) {
 	}).downloadURLs(context.Background(), urls)
 
 	if err != nil {
-		logrus.Fatalf("process failed: %v", err)
+		log.Fatal().Msgf("process failed: %v", err)
 	}
 }
 

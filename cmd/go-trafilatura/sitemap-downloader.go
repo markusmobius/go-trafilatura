@@ -28,7 +28,6 @@ import (
 	"time"
 
 	betree "github.com/beevik/etree"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -69,7 +68,7 @@ func (sd *sitemapDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL)
 			sd.semaphore.Release(1)
 
 			if err != nil {
-				logrus.Warnf("failed to parse sitemap: %v", err)
+				log.Warn().Msgf("failed to parse sitemap: %v", err)
 				return nil
 			}
 
@@ -112,7 +111,7 @@ func (sd *sitemapDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL)
 func (sd *sitemapDownloader) downloadURL(url *nurl.URL) ([]*nurl.URL, []*nurl.URL, error) {
 	// Download URL
 	strURL := url.String()
-	logrus.Println("downloading sitemap", strURL)
+	log.Info().Msgf("downloading sitemap %q", strURL)
 
 	resp, err := download(sd.httpClient, sd.userAgent, strURL)
 	if err != nil {

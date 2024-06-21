@@ -10,7 +10,6 @@ import (
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -41,7 +40,7 @@ func compareContentExtraction() {
 
 	// Print errors
 	for _, err := range errors {
-		logrus.Warn(err)
+		log.Warn().Err(err)
 	}
 }
 
@@ -52,21 +51,21 @@ func prepareExtractorParameter() []ExtractorParameter {
 		// Make sure URL is valid
 		url, err := nurl.ParseRequestURI(strURL)
 		if err != nil {
-			logrus.Errorf("failed to parse %s: %v", strURL, err)
+			log.Error().Msgf("failed to parse %s: %v", strURL, err)
 			continue
 		}
 
 		// Open file
 		f, err := openDataFile(entry.File)
 		if err != nil {
-			logrus.Error(err)
+			log.Error().Err(err)
 			continue
 		}
 
 		// Create document
 		doc, err := dom.Parse(f)
 		if err != nil {
-			logrus.Errorf("failed to parse %s: %v", entry.File, err)
+			log.Error().Msgf("failed to parse %s: %v", entry.File, err)
 			continue
 		}
 
@@ -180,11 +179,11 @@ func evaluateResult(current EvaluationResult, result string, entry ComparisonEnt
 
 	// Report problematic entry
 	if nWith := len(entry.With); nWith == 0 || nWith > 6 {
-		logrus.Warnf("entry %s has %d with", entry.File, nWith)
+		log.Warn().Msgf("entry %s has %d with", entry.File, nWith)
 	}
 
 	if nWithout := len(entry.Without); nWithout == 0 || nWithout > 6 {
-		logrus.Warnf("entry %s has %d without", entry.File, nWithout)
+		log.Warn().Msgf("entry %s has %d without", entry.File, nWithout)
 	}
 
 	// Examine

@@ -18,22 +18,20 @@
 
 package trafilatura
 
-import "github.com/sirupsen/logrus"
-
 func logInfo(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		logrus.Infof(format, args...)
+		log.Info().Msgf(format, args...)
 	}
 }
 
 func logWarn(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		logrus.Warnf(format, args...)
+		log.Warn().Msgf(format, args...)
 	}
 }
 
 func logDebug(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		logrus.Debugf(format, args...)
+		log.Debug().Msgf(format, args...)
 	}
 }

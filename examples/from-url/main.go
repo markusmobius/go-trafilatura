@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	nurl "net/url"
 	"time"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -20,13 +20,13 @@ func main() {
 	url := "https://www.federalreserve.gov/monetarypolicy/fomcminutes20160727.htm"
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
-		logrus.Fatalf("failed to parse url: %v", err)
+		log.Fatalf("failed to parse url: %v", err)
 	}
 
 	// Fetch article
 	resp, err := httpClient.Get(url)
 	if err != nil {
-		logrus.Fatalf("failed to fetch the page: %v", err)
+		log.Fatalf("failed to fetch the page: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -38,7 +38,7 @@ func main() {
 
 	result, err := trafilatura.Extract(resp.Body, opts)
 	if err != nil {
-		logrus.Fatalf("failed to extract: %v", err)
+		log.Fatalf("failed to extract: %v", err)
 	}
 
 	// Print result

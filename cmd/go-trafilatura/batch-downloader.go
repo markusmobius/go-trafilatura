@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -61,7 +60,7 @@ func (bd *batchDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL) e
 					return err
 				}
 
-				logrus.Warnf("failed to process %s: %v", url.String(), err)
+				log.Warn().Msgf("failed to process %s: %v", url.String(), err)
 				return nil
 			}
 
@@ -72,7 +71,7 @@ func (bd *batchDownloader) downloadURLs(ctx context.Context, urls []*nurl.URL) e
 					return err
 				}
 
-				logrus.Warnf("failed to write %s: %v", url.String(), err)
+				log.Warn().Msgf("failed to write %s: %v", url.String(), err)
 				return nil
 			}
 

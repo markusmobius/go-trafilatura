@@ -1,9 +1,20 @@
 package main
 
 import (
-	"github.com/sirupsen/logrus"
+	"os"
+
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 )
+
+var log zerolog.Logger
+
+func init() {
+	log = zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: "2006-01-02 15:04",
+	}).With().Timestamp().Logger().Level(zerolog.Disabled)
+}
 
 func main() {
 	// Create root command
@@ -19,7 +30,7 @@ func main() {
 	// Execute
 	err := rootCmd.Execute()
 	if err != nil {
-		logrus.Fatalln(err)
+		log.Fatal().Err(err)
 	}
 }
 

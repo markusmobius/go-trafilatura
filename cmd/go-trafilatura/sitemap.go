@@ -31,7 +31,6 @@ import (
 
 	"github.com/markusmobius/go-trafilatura"
 	gonanoid "github.com/matoous/go-nanoid/v2"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 )
@@ -92,12 +91,12 @@ func newSitemapCmdHandler(cmd *cobra.Command) *sitemapCmdHandler {
 
 	rxAllow, err := rxFromString(allowedPattern)
 	if err != nil {
-		logrus.Fatalf("filter pattern is not valid: %v", err)
+		log.Fatal().Msgf("filter pattern is not valid: %v", err)
 	}
 
 	rxExclude, err := rxFromString(excludedPattern)
 	if err != nil {
-		logrus.Fatalf("exclude pattern is not valid: %v", err)
+		log.Fatal().Msgf("exclude pattern is not valid: %v", err)
 	}
 
 	fnFilter := func(url *nurl.URL) bool {
@@ -173,13 +172,13 @@ func (sch *sitemapCmdHandler) run(args []string) {
 	// Find sitemap URL
 	sitemapURLs, err := sch.findSitemapURLs(args[0])
 	if err != nil {
-		logrus.Fatalf("failed to find sitemap: %v", err)
+		log.Fatal().Msgf("failed to find sitemap: %v", err)
 	}
 
 	// Download all sitemaps recursively, concurrently
 	ctx := context.Background()
 	pageURLs := sch.sitemapDownloader.downloadURLs(ctx, sitemapURLs)
-	logrus.Printf("found %d page URLs", len(pageURLs))
+	log.Info().Msgf("found %d page URLs", len(pageURLs))
 
 	// If user only want to print URLs, stop
 	if sch.urlOnly {
@@ -192,7 +191,7 @@ func (sch *sitemapCmdHandler) run(args []string) {
 	// Download and process pages concurrently
 	err = sch.pagesDownloader.downloadURLs(ctx, pageURLs)
 	if err != nil {
-		logrus.Fatalf("download pages failed: %v", err)
+		log.Fatal().Msgf("download pages failed: %v", err)
 	}
 }
 
@@ -219,7 +218,7 @@ func (sch *sitemapCmdHandler) findSitemapURLs(baseURL string) ([]*nurl.URL, erro
 
 	sitemapURLs, err := sch.findSitemapURLsInRobots(parsedURL.String())
 	if err != nil {
-		logrus.Warnln("failed to look in robots.txt:", err)
+		log.Warn().Msgf("failed to look in robots.txt: %v", err)
 	}
 
 	// If there are no sitemap found, just add the default path.
@@ -233,7 +232,7 @@ func (sch *sitemapCmdHandler) findSitemapURLs(baseURL string) ([]*nurl.URL, erro
 
 func (sch *sitemapCmdHandler) findSitemapURLsInRobots(robotsURL string) ([]*nurl.URL, error) {
 	// Download URL
-	logrus.Println("downloading robots.txt:", robotsURL)
+	log.Info().Msgf("downloading robots.txt: %q", robotsURL)
 	resp, err := download(sch.httpClient, sch.userAgent, robotsURL)
 	if err != nil {
 		return nil, err

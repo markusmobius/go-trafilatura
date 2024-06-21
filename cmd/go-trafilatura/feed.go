@@ -35,7 +35,6 @@ import (
 	gonanoid "github.com/matoous/go-nanoid/v2"
 
 	"github.com/go-shiori/dom"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
 	"golang.org/x/sync/semaphore"
@@ -110,12 +109,12 @@ func newFeedCmdHandler(cmd *cobra.Command) *feedCmdHandler {
 
 	rxAllow, err := rxFromString(allowedPattern)
 	if err != nil {
-		logrus.Fatalf("filter pattern is not valid: %v", err)
+		log.Fatal().Msgf("filter pattern is not valid: %v", err)
 	}
 
 	rxExclude, err := rxFromString(excludedPattern)
 	if err != nil {
-		logrus.Fatalf("exclude pattern is not valid: %v", err)
+		log.Fatal().Msgf("exclude pattern is not valid: %v", err)
 	}
 
 	fnFilter := func(url *nurl.URL) bool {
@@ -182,15 +181,15 @@ func (fch *feedCmdHandler) run(args []string) {
 	// Find feed page
 	feedPage, err := fch.findFeedPage(args[0])
 	if err != nil {
-		logrus.Fatalf("failed to find feed: %v", err)
+		log.Fatal().Msgf("failed to find feed: %v", err)
 	}
 
 	// Parse feed page
 	pageURLs, err := fch.parseFeedPage(feedPage)
 	if err != nil {
-		logrus.Fatalf("failed to parse feed: %v", err)
+		log.Fatal().Msgf("failed to parse feed: %v", err)
 	}
-	logrus.Printf("found %d page URLs", len(pageURLs))
+	log.Info().Msgf("found %d page URLs", len(pageURLs))
 
 	// If user only want to print URLs, stop
 	if fch.urlOnly {
@@ -203,7 +202,7 @@ func (fch *feedCmdHandler) run(args []string) {
 	// Download and process pages concurrently
 	err = fch.pagesDownloader.downloadURLs(context.Background(), pageURLs)
 	if err != nil {
-		logrus.Fatalf("download pages failed: %v", err)
+		log.Fatal().Msgf("download pages failed: %v", err)
 	}
 }
 
@@ -221,7 +220,7 @@ func (fch *feedCmdHandler) findFeedPage(baseURL string) (io.Reader, error) {
 	// Process the URL
 	err := func() error {
 		// Downloading base URL
-		logrus.Println("downloading", baseURL)
+		log.Info().Msgf("downloading %q", baseURL)
 		resp, err := download(fch.httpClient, fch.userAgent, baseURL)
 		if err != nil {
 			return err
@@ -262,7 +261,7 @@ func (fch *feedCmdHandler) findFeedPage(baseURL string) (io.Reader, error) {
 	// At this point, buffer is empty but feed URL is found, so download it.
 	err = func() error {
 		// Downloading feed URL
-		logrus.Println("downloading feed", feedURL)
+		log.Info().Msgf("downloading feed %q", feedURL)
 		resp, err := download(fch.httpClient, fch.userAgent, feedURL)
 		if err != nil {
 			return err

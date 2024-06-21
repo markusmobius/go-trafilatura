@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	nurl "net/url"
+	"os"
 	"strings"
 	"unicode/utf8"
 
@@ -33,8 +34,18 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
+	"github.com/rs/zerolog"
 	"golang.org/x/net/html"
 )
+
+var log zerolog.Logger
+
+func init() {
+	log = zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: "2006-01-02 15:04",
+	}).With().Timestamp().Logger().Level(zerolog.Disabled)
+}
 
 // ExtractResult is the result of content extraction.
 type ExtractResult struct {
@@ -164,7 +175,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Size checks
 	if lenComments < opts.Config.MinExtractedCommentSize {
-		logWarn(opts, "not enough comments: %s", opts.OriginalURL)
+		logDebug(opts, "not enough comments: %s", opts.OriginalURL)
 	}
 
 	lenText = utf8.RuneCountInString(tmpBodyText)
@@ -858,6 +869,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	// Delete non potential element
 	tagName := dom.TagName(element)
 	if _, exist := potentialTags[tagName]; !exist {
+		logDebug(opts, "discarding element: %s %q", tagName, dom.TextContent(element))
 		return nil
 	}
 
@@ -1027,11 +1039,11 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		if candidateUsable || mustFavorRecall {
 			originalExtract = candidate
 			lenOriginal = lenCandidate
-			logInfo(opts, "candidate-%d usable: %s", i+1, originalUrl)
+			logDebug(opts, "candidate-%d usable: %s", i+1, originalUrl)
 		}
 
 		if lenOriginal >= opts.Config.MinExtractedSize {
-			logInfo(opts, "candidate-%d used: %s", i+1, originalUrl)
+			logDebug(opts, "candidate-%d used: %s", i+1, originalUrl)
 			break
 		}
 	}

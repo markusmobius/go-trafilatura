@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
 )
 
 func compareAuthorExtraction() {
@@ -24,14 +23,14 @@ func compareAuthorExtraction() {
 		// Make sure URL is valid
 		url, err := nurl.ParseRequestURI(strURL)
 		if err != nil {
-			logrus.Errorf("failed to parse %s: %v", strURL, err)
+			log.Error().Msgf("failed to parse %s: %v", strURL, err)
 			continue
 		}
 
 		// Open file
 		f, err := openDataFile(entry.File)
 		if err != nil {
-			logrus.Error(err)
+			log.Error().Err(err)
 			continue
 		}
 

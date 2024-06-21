@@ -27,7 +27,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
@@ -588,13 +587,13 @@ func testGetMetadataFromFile(path string) Metadata {
 	path = filepath.Join("test-files", path)
 	f, err := os.Open(path)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	// Parse HTML
 	doc, err := html.Parse(f)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	return extractMetadata(doc, defaultOpts)

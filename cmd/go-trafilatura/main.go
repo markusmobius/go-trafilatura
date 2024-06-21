@@ -32,15 +32,22 @@ import (
 	"time"
 
 	"github.com/markusmobius/go-trafilatura"
-	"github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"
 )
 
-const (
-	// defaultUserAgent is the default user agent to use, which is Firefox's.
-	defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
-)
+var log zerolog.Logger
+
+func init() {
+	log = zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stderr,
+		TimeFormat: "2006-01-02 15:04",
+	}).With().Timestamp().Logger().Level(zerolog.Disabled)
+}
+
+// defaultUserAgent is the default user agent to use, which is Firefox's.
+const defaultUserAgent = "Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0"
 
 func main() {
 	// Create root command
@@ -76,7 +83,7 @@ func main() {
 	// Execute
 	err := rootCmd.Execute()
 	if err != nil {
-		logrus.Fatalln(err)
+		log.Fatal().Err(err)
 	}
 }
 
@@ -99,17 +106,17 @@ func rootCmdHandler(cmd *cobra.Command, args []string) {
 	}
 
 	if err != nil {
-		logrus.Fatalf("failed to extract %s: %v", source, err)
+		log.Fatal().Msgf("failed to extract %s: %v", source, err)
 	}
 
 	if result == nil {
-		logrus.Fatalf("failed to extract %s: no readable content", source)
+		log.Fatal().Msgf("failed to extract %s: no readable content", source)
 	}
 
 	// Print result
 	err = writeOutput(os.Stdout, result, cmd)
 	if err != nil {
-		logrus.Fatalf("failed to write output: %v", err)
+		log.Fatal().Msgf("failed to write output: %v", err)
 	}
 }
 
@@ -150,7 +157,7 @@ func processFile(path string, opts trafilatura.Options) (*trafilatura.ExtractRes
 func processURL(client *http.Client, userAgent string, url *nurl.URL, opts trafilatura.Options) (*trafilatura.ExtractResult, error) {
 	// Download URL
 	strURL := url.String()
-	logrus.Println("downloading", strURL)
+	log.Info().Msgf("downloading %q", strURL)
 
 	resp, err := download(client, userAgent, strURL)
 	if err != nil {

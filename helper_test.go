@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/go-shiori/dom"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 )
 
@@ -42,7 +41,7 @@ func openMockFile(mockFiles map[string]string, url string) io.ReadCloser {
 
 	f, err := os.Open(path)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	return f
@@ -55,7 +54,7 @@ func parseMockFile(mockFiles map[string]string, url string) *html.Node {
 
 	doc, err := dom.Parse(f)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	return doc
@@ -70,14 +69,14 @@ func extractMockFile(mockFiles map[string]string, url string) *ExtractResult {
 	// Parse URL
 	parsedURL, err := nurl.ParseRequestURI(url)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	// Extract
 	opts := Options{OriginalURL: parsedURL, FallbackCandidates: &FallbackConfig{}}
 	result, err := Extract(f, opts)
 	if err != nil {
-		logrus.Panicln(err)
+		log.Panic().Err(err)
 	}
 
 	return result
