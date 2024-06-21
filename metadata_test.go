@@ -497,6 +497,11 @@ func Test_Metadata_MetaImages(t *testing.T) {
 	rawHTML = `<html><head><meta property="twitter:image" content="https://example.org/example-twitter.jpg"></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "https://example.org/example-twitter.jpg", metadata.Image)
+
+	// Without image
+	rawHTML = `<html><head><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Empty(t, metadata.Image)
 }
 
 func Test_Metadata_MetaTags(t *testing.T) {
