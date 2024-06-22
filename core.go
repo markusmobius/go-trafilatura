@@ -869,7 +869,9 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	// Delete non potential element
 	tagName := dom.TagName(element)
 	if _, exist := potentialTags[tagName]; !exist {
-		logDebug(opts, "discarding element: %s %q", tagName, dom.TextContent(element))
+		if tagName != "done" {
+			logDebug(opts, "discarding element: %s %q", tagName, dom.TextContent(element))
+		}
 		return nil
 	}
 
@@ -1006,19 +1008,20 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 		// or because we need to favor recall.
 		var candidateUsable bool
 
-		switch {
-		case lenCandidate == 0 || lenCandidate == lenOriginal:
+		if lenCandidate == 0 || lenCandidate == lenOriginal {
 			candidateUsable = false
-		case lenOriginal == 0 && lenCandidate > 0:
+		} else if lenOriginal == 0 && lenCandidate > 0 {
 			candidateUsable = true
-		case lenOriginal > 2*lenCandidate:
+		} else if lenOriginal > 2*lenCandidate {
 			candidateUsable = false
-		case lenCandidate > 2*lenOriginal:
+		} else if lenCandidate > 2*lenOriginal {
 			candidateUsable = true
-		default: // borderline case
+		} else {
+			// Borderline case
+			heads := dom.GetElementsByTagName(doc, "head")
 			tables := dom.GetElementsByTagName(doc, "table")
 			paragraphs := dom.GetElementsByTagName(doc, "p")
-			nTable, nParagraph := len(tables), len(paragraphs)
+			candidateHeadings := dom.QuerySelectorAll(candidate, "h2,h3,h4")
 
 			var pTextLength int
 			for _, p := range paragraphs {
@@ -1028,9 +1031,13 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 
 			if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
 				candidateUsable = true
-			} else if nTable > nParagraph && lenCandidate > opts.Config.MinExtractedSize*2 {
+			} else if len(tables) > len(paragraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else if opts.FavorRecall && len(heads) == 0 &&
+				len(candidateHeadings) > 0 && lenCandidate > lenOriginal {
 				candidateUsable = true
 			} else {
+				logDebug(opts, "extraction values: %d %d for %s", lenOriginal, lenCandidate, originalUrl)
 				candidateUsable = false
 			}
 		}

@@ -30,13 +30,14 @@ var tagsToClean = sliceToMap(
 	"area", "blink", "button", "datalist", "dialog", "frame", "frameset", "fieldset",
 	"link", "input", "ins", "label", "legend", "marquee", "math", "menuitem", "nav",
 	"noscript", "optgroup", "option", "output", "param", "progress", "rp", "rt", "rtc",
-	"select", "source", "style", "track", "template", "textarea", "time", "use",
+	"select", "source", "style", "track", "textarea", "time", "use",
 	// "meta", "hr", "img", "data", "details", "summary"
 )
 
 var tagsToStrip = sliceToMap(
 	"abbr", "acronym", "address", "bdi", "bdo", "big", "cite", "data", "dfn", "font",
-	"hgroup", "img", "ins", "mark", "meta", "ruby", "small", "tbody", "tfoot", "thead",
+	"hgroup", "img", "ins", "mark", "meta", "ruby", "small", "template",
+	"tbody", "tfoot", "thead",
 	// "center", "rb", "wbr",
 )
 

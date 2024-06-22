@@ -125,11 +125,13 @@ func contentRule2(n *html.Node) bool {
 // starts-with(@id, 'primary') or starts-with(@class, 'article ') or @class="text" or
 // @id="article" or @class="cell" or @id="story" or @class="story" or
 // contains(@class, "story-body") or contains(@class, "field-body") or
-// contains(translate(@class, "FULTEX","fultex"), "fulltext")])[1]`,
+// contains(translate(@class, "FULTEX","fultex"), "fulltext")]) or
+// @role='article'])[1]
 func contentRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	tagName := dom.TagName(n)
+	role := dom.GetAttribute(n, "role")
 
 	switch tagName {
 	case "article", "div", "main", "section":
@@ -159,7 +161,8 @@ func contentRule3(n *html.Node) bool {
 		class == "story",
 		strings.Contains(class, "story-body"),
 		strings.Contains(class, "field-body"),
-		strings.Contains(strings.ToLower(class), "fulltext"):
+		strings.Contains(strings.ToLower(class), "fulltext"),
+		role == "article":
 	default:
 		return false
 	}
