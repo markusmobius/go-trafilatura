@@ -43,6 +43,20 @@ func docCleaning(doc *html.Node, opts Options) {
 		cleaningList["td"] = struct{}{}
 		cleaningList["th"] = struct{}{}
 		cleaningList["tr"] = struct{}{}
+	} else {
+		for _, figure := range dom.QuerySelectorAll(doc, "figure") {
+			var hasTableDescendant bool
+			for _, child := range dom.GetElementsByTagName(figure, "*") {
+				if dom.TagName(child) == "table" {
+					hasTableDescendant = true
+					break
+				}
+			}
+
+			if hasTableDescendant {
+				figure.Data = "div"
+			}
+		}
 	}
 
 	if opts.IncludeImages {

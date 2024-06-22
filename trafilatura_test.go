@@ -968,6 +968,12 @@ func Test_TableProcessing(t *testing.T) {
 	tableBroken2 = dom.QuerySelector(tableBroken2, "table")
 	processedTable = handleTable(tableBroken2, potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td-cell"}, iterNodeValues(processedTable))
+
+	// Table nested in figure https://github.com/adbar/trafilatura/issues/301
+	tableInFigure := docFromStr(`<html><body><article><figure><table><th>1</th><tr><td>2</td></tr></table></figure></article></body></html>`)
+	result, _ = ExtractDocument(tableInFigure, zeroOpts)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<th>1</th>")
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
 }
 
 func Test_ListProcessing(t *testing.T) {
