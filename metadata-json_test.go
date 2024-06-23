@@ -13,8 +13,20 @@ func Test_MetadataJson(t *testing.T) {
 	assert.Equal(t, "Maggie Haberman; Shane Goldmacher; Michael Crowley", metadata.Author)
 	assert.Equal(t, "NewsArticle", metadata.PageType)
 
-	metadata = testGetMetadataFromFile("simple/json-metadata-2.html")
+	metadata = testGetMetadataFromFile("simple/json-metadata-2-a.html")
 	assert.Equal(t, "Jenny Smith", metadata.Author)
+	assert.Equal(t, "NewsArticle", metadata.PageType)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-2-b.html")
+	assert.Equal(t, "Amir Vera; Seán Federico O'Murchú; Tara Subramaniam; Adam Renton; CNN", metadata.Author)
+	assert.Equal(t, "NewsArticle", metadata.PageType)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-2-c.html")
+	assert.Equal(t, "Deborah O'Donoghue", metadata.Author)
+	assert.Equal(t, "Article", metadata.PageType)
+
+	metadata = testGetMetadataFromFile("simple/json-metadata-2-d.html")
+	assert.Equal(t, "Sam McPhee; Tara Cosoleto", metadata.Author)
 	assert.Equal(t, "NewsArticle", metadata.PageType)
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-3.html")

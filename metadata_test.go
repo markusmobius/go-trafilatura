@@ -126,6 +126,7 @@ func Test_Metadata_Authors(t *testing.T) {
 	assert.Equal(t, "Abc", normalizeAuthors("", "abc"))
 	assert.Equal(t, "Steve Steve", normalizeAuthors("", "Steve Steve 123"))
 	assert.Equal(t, "Steve Steve", normalizeAuthors("", "By Steve Steve"))
+	assert.Equal(t, "Seán Federico O'Murchú", normalizeAuthors("", "Seán Federico O'Murchú"))
 
 	// Extraction
 	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
@@ -236,6 +237,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
 
+	rawHTML = `<html><body><span id="author">Jenny Smith – The Moon</span></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Jenny Smith", metadata.Author)
+
 	rawHTML = `<html><body><span id="author">Jenny_Smith</span></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
@@ -247,6 +252,10 @@ func Test_Metadata_Authors(t *testing.T) {
 	rawHTML = `<html><body><author>Jenny Smith</author></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Jenny Smith", metadata.Author)
+
+	rawHTML = `<html><head><meta data-rh="true" property="og:author" content="By &lt;a href=&quot;/profiles/amir-vera&quot;&gt;Amir Vera&lt;/a&gt;, Seán Federico O&#x27;Murchú, &lt;a href=&quot;/profiles/tara-subramaniam&quot;&gt;Tara Subramaniam&lt;/a&gt; and Adam Renton, CNN"/></head><body></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "Amir Vera; Seán Federico O'Murchú; Tara Subramaniam; Adam Renton; CNN", metadata.Author)
 
 	rawHTML = `<html><body><div class="author"><span class="profile__name"> Jenny Smith </span> <a href="https://twitter.com/jenny_smith" class="profile__social" target="_blank"> @jenny_smith </a> <span class="profile__extra lg:hidden"> 11:57AM </span> </div></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)

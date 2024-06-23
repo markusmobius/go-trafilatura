@@ -54,14 +54,15 @@ var (
 	rxCcLicenseText = regexp.MustCompile(`(?i)(cc|creative commons) (by-nc-nd|by-nc-sa|by-nc|by-nd|by-sa|by|zero) ?([1-9]\.[0-9])?`)
 
 	rxAuthorPrefix       = regexp.MustCompile(`(?i)^([a-zäöüß]+(ed|t))? ?(written by|words by|words|by|von|from) `)
-	rxAuthorDigits       = regexp.MustCompile(`(?i)\d.+?$`)
+	rxAuthorDigits       = regexp.MustCompile(`(?i)\pN.+?$`)
 	rxAuthorSocialMedia  = regexp.MustCompile(`(?i)@\S+`)
 	rxAuthorSpaceChars   = regexp.MustCompile(`(?i)[._+]`)
 	rxAuthorNickname     = regexp.MustCompile(`(?i)["‘({\[’\'][^"]+?[‘’"\')\]}]`)
-	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[^\w]+$|[:()?*$#!%/<>{}~]`)
-	rxAuthorPreposition  = regexp.MustCompile(`(?i)\b\s+(am|on|for|at|in|to|from|of|via|with|—|-)\s+(.*)`)
+	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[^\pL\pM\pN_]+$|[:()?*$#!%/<>{}~¿]`)
+	rxAuthorPreposition  = regexp.MustCompile(`(?i)\b\s+(am|on|for|at|in|to|from|of|via|with|—|-|–)\s+(.*)`)
 	rxAuthorEmail        = regexp.MustCompile(`(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`)
-	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|\W)[u|a]nd(?:$|\W)`)
+	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|[^\pL\pM\pN_])[u|a]nd(?:$|[^\pL\pM\pN_])`)
+	rxAuthorHTML         = regexp.MustCompile(`(?i)<[^>]+>`)
 
 	metaNameAuthor = sliceToMap(
 		"article:author", "atc-metaauthor", "author", "authors", "byl", "citation_author",
@@ -375,7 +376,7 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 		case "og:description":
 			metadata.Description = content
 		case "og:author", "og:article:author":
-			metadata.Author = content
+			metadata.Author = normalizeAuthors("", content)
 		case "og:image", "og:image:url", "og:image:secure_url":
 			metadata.Image = content
 		case "og:url":
@@ -703,6 +704,9 @@ func normalizeAuthors(authors string, input string) string {
 		input = html.UnescapeString(input)
 	}
 
+	// Remove HTML tags
+	input = rxAuthorHTML.ReplaceAllString(input, "")
+
 	// Prepare list of current authors
 	listAuthor := strings.Split(authors, "; ")
 	if len(listAuthor) == 1 && listAuthor[0] == "" {
@@ -723,7 +727,7 @@ func normalizeAuthors(authors string, input string) string {
 
 		// Stop if author is empty, or single word but too long.
 		// The max length 23 is taken from ISO IEC-7813.
-		length := len(a)
+		length := utf8.RuneCountInString(a)
 		hasDash := strings.Contains(a, "-")
 		hasSpace := strings.Contains(a, " ")
 		if length == 0 || (!hasDash && !hasSpace && length >= 50) {
