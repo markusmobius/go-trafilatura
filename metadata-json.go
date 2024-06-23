@@ -2,6 +2,7 @@ package trafilatura
 
 import (
 	"encoding/json"
+	"sort"
 	"strings"
 	"unicode/utf8"
 
@@ -10,8 +11,9 @@ import (
 )
 
 type SchemaData struct {
-	Type string
-	Data map[string]any
+	Type       string
+	Data       map[string]any
+	Importance float64
 }
 
 // extractJsonLd search metadata from JSON+LD data following the Schema.org guidelines
@@ -153,37 +155,59 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, articles []SchemaData) {
 	// Prepare function to find articles and persons inside JSON+LD recursively
-	var realArticles []SchemaData
-	var pages []SchemaData
-	var blogs []SchemaData
-
 	var findImportantObjects func(obj map[string]any)
 	findImportantObjects = func(obj map[string]any) {
 		// Schema type could be either string or slices, so extract it properly
 		schemaTypes := getSchemaTypes(obj, false)
 
-		// Check if this object is either Article or Person
-	typeLoop:
 		for _, schemaType := range schemaTypes {
 			schemaData := SchemaData{Type: schemaType, Data: obj}
 			schemaType = strings.ToLower(schemaType)
 
-			switch {
-			case schemaType == "person":
+			// Check if it's person
+			if schemaType == "person" {
 				persons = append(persons, schemaData)
-				break typeLoop
-			case schemaType == "website", strings.Contains(schemaType, "organization"):
+				break
+			}
+
+			// Check if it's organization or website.
+			isWebsite := schemaType == "website"
+			isOrganization := strings.Contains(schemaType, "organization")
+
+			if isWebsite || isOrganization {
+				// Organization is more important than website.
+				switch {
+				case isOrganization:
+					schemaData.Importance = 2
+				default:
+					schemaData.Importance = 1
+				}
+
 				organizations = append(organizations, schemaData)
-				break typeLoop
-			case strings.Contains(schemaType, "article"), strings.Contains(schemaType, "posting"), schemaType == "report":
-				realArticles = append(realArticles, schemaData)
-				break typeLoop
-			case schemaType == "blog":
-				blogs = append(blogs, schemaData)
-				break typeLoop
-			case strings.Contains(schemaType, "page"), schemaType == "realestatelisting":
-				pages = append(pages, schemaData)
-				break typeLoop
+				break
+			}
+
+			// Check if it's article, blog or page.
+			isArticle := strings.Contains(schemaType, "article")
+			isPosting := strings.Contains(schemaType, "posting")
+			isReport := schemaType == "report"
+			isBlog := schemaType == "blog"
+			isPage := strings.Contains(schemaType, "page")
+			isListing := strings.Contains(schemaType, "listing")
+
+			if isArticle || isPosting || isReport || isBlog || isPage || isListing {
+				// Adjust its importance level
+				switch {
+				case isArticle, isPosting, isReport:
+					schemaData.Importance = 3
+				case isBlog:
+					schemaData.Importance = 2
+				case isPage, isListing:
+					schemaData.Importance = 1
+				}
+
+				articles = append(articles, schemaData)
+				break
 			}
 		}
 
@@ -239,11 +263,15 @@ func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, article
 		}
 	}
 
-	// Merge articles into one. This way real articles is prioritized over others.
-	articles = []SchemaData{}
-	articles = append(articles, realArticles...)
-	articles = append(articles, blogs...)
-	articles = append(articles, pages...)
+	// Sort schemas based on importance
+	sort.SliceStable(organizations, func(i, j int) bool {
+		return organizations[i].Importance > organizations[j].Importance
+	})
+
+	sort.SliceStable(articles, func(i, j int) bool {
+		return articles[i].Importance > articles[j].Importance
+	})
+
 	return
 }
 

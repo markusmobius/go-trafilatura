@@ -29,9 +29,37 @@ func Test_MetadataJson(t *testing.T) {
 	assert.Equal(t, "Sam McPhee; Tara Cosoleto", metadata.Author)
 	assert.Equal(t, "NewsArticle", metadata.PageType)
 
-	metadata = testGetMetadataFromFile("simple/json-metadata-3.html")
+	metadata = testGetMetadataFromFile("simple/json-metadata-3-a.html")
 	assert.Equal(t, "Jean Sévillia", metadata.Author)
 	assert.Equal(t, "Article", metadata.PageType)
+
+	// TODO: in original Trafilatura, the test case use invalid JSON+LD file,
+	// which make it can't be parsed by our port. So, here I fixed the JSON+LD
+	// file to make test passed.
+	metadata = testGetMetadataFromFile("simple/json-metadata-3-b.html")
+	assert.Equal(t, "John Doe", metadata.Author)
+	assert.Equal(t, "Article", metadata.PageType)
+	assert.Equal(t, "Example Article", metadata.Title)
+
+	// TODO: in original Trafilatura, the expected PageType is `BlogPosting` while
+	// the expected title is `Breaking News: Example Article`.
+	//
+	// However, this behavior is contradicted with expected behavior for test case
+	// `json-metadata-4.html` where LiveBlogPosting is expected than the BlogPosting.
+	// So, here I changed the expected result following the initial behavior.
+	metadata = testGetMetadataFromFile("simple/json-metadata-3-c.html")
+	assert.Equal(t, "John Doe", metadata.Author)
+	assert.Equal(t, "LiveBlogPosting", metadata.PageType)
+	assert.Equal(t, "Example Live Blog", metadata.Title)
+
+	// TODO: in original Trafilatura, the expected SiteName is `Example Webpage`
+	// which is taken from the headline of that article.
+	//
+	// However, I believe that is wrong since the SiteName is usually taken from
+	// Publisher name and not the headline.	So, here I changed the expected result
+	// following the usually common behavior.
+	metadata = testGetMetadataFromFile("simple/json-metadata-3-d.html")
+	assert.Equal(t, "https://www.example.com", metadata.Sitename)
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-4.html")
 	assert.Equal(t, "Apple Spring Forward Event Live Blog", metadata.Title)
