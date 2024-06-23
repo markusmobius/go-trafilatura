@@ -29,17 +29,14 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	for _, article := range articles {
 		// Grab "author" property from schema with @type "Person"
 		if metadata.Author == "" {
-			var validAuthors []string
+			var authorNames string
 			for _, author := range getSchemaNames(article.Data["author"], "person") {
 				author = validateMetadataName(author)
-				author = normalizeAuthors("", author)
-				if author != "" {
-					validAuthors = append(validAuthors, author)
-				}
+				authorNames = normalizeAuthors(authorNames, author)
 			}
 
-			if len(validAuthors) > 0 {
-				metadata.Author = strings.Join(validAuthors, "; ")
+			if authorNames != "" {
+				metadata.Author = authorNames
 			}
 		}
 
@@ -51,9 +48,9 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		}
 
 		// Grab category
-		category := trim(getValue[string](article.Data, "articleSection"))
-		if category != "" {
-			metadata.Categories = append(metadata.Categories, category)
+		categories := getStringValues(article.Data, "articleSection")
+		if len(categories) != 0 {
+			metadata.Categories = append(metadata.Categories, categories...)
 		}
 
 		// Grab tags
@@ -64,7 +61,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 		// Grab title
 		if metadata.Title == "" {
-			metadata.Title = trim(getValue[string](article.Data, "name"))
+			metadata.Title = getSingleStringValue(article.Data, "name")
 		}
 
 		// If title is empty or only consist of one word, try to look in headline
@@ -74,7 +71,7 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 					continue
 				}
 
-				title := trim(getValue[string](article.Data, attr))
+				title := getSingleStringValue(article.Data, attr)
 				if title != "" && !strings.Contains(title, "...") {
 					metadata.Title = title
 					break
@@ -90,19 +87,16 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 	// If author not found, look in persons
 	if metadata.Author == "" {
-		names := []string{}
+		var authorNames string
 		for _, person := range persons {
 			for _, name := range getSchemaNames(person.Data) {
 				name = validateMetadataName(name)
-				name = normalizeAuthors("", name)
-				if name != "" {
-					names = append(names, name)
-				}
+				authorNames = normalizeAuthors(authorNames, name)
 			}
 		}
 
-		if len(names) > 0 {
-			metadata.Author = strings.Join(names, "; ")
+		if authorNames != "" {
+			metadata.Author = authorNames
 		}
 	}
 
@@ -275,16 +269,37 @@ func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, article
 	return
 }
 
-func getValue[T comparable](obj map[string]any, key string) T {
-	// If value is T type, return it
-	value := obj[key]
-	if v, isT := value.(T); isT {
-		return v
+func getStringValues(obj map[string]any, key string) []string {
+	var result []string
+
+	switch value := obj[key].(type) {
+	case string:
+		if cleanStr := trim(value); cleanStr != "" {
+			result = []string{cleanStr}
+		}
+
+	case []any:
+		for _, item := range value {
+			str, ok := item.(string)
+			if !ok {
+				continue
+			}
+
+			if cleanStr := trim(str); cleanStr != "" {
+				result = append(result, cleanStr)
+			}
+		}
 	}
 
-	// If not, return its zero value
-	var zero T
-	return zero
+	return result
+}
+
+func getSingleStringValue(obj map[string]any, key string) string {
+	values := getStringValues(obj, key)
+	if len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
 
 func getSchemaNames(v any, expectedTypes ...string) []string {
@@ -329,28 +344,34 @@ func getSchemaNames(v any, expectedTypes ...string) []string {
 		}
 
 		// If this schema has "name" string property, try it
-		name := trim(getValue[string](value, "name"))
+		names := getStringValues(value, "name")
 
 		// If name is empty and its type is Person, try name combination
-		if name == "" && strIn("person", schemaTypes...) {
-			givenName := getValue[string](value, "givenName")
-			additionalName := getValue[string](value, "additionalName")
-			familyName := getValue[string](value, "familyName")
-			name = trim(givenName + " " + additionalName + " " + familyName)
+		if len(names) == 0 && strIn("person", schemaTypes...) {
+			givenName := getSingleStringValue(value, "givenName")
+			additionalName := getSingleStringValue(value, "additionalName")
+			familyName := getSingleStringValue(value, "familyName")
+			fullName := trim(givenName + " " + additionalName + " " + familyName)
+			names = []string{fullName}
 		}
 
-		// If name still empty, try alternate name
-		if name == "" {
-			name = trim(getValue[string](value, "alternateName"))
+		// If name still empty, try its legal name
+		if len(names) == 0 {
+			names = getStringValues(value, "legalName")
+		}
+
+		// If name still empty, next try its alternate name
+		if len(names) == 0 {
+			names = getStringValues(value, "alternateName")
 		}
 
 		// If name is found, we can return it
-		if name != "" {
-			return []string{name}
+		if len(names) != 0 {
+			return names
 		}
 
-		// At this found, since name still not found, there is a possibility that the JSON+LD use
-		// name with uncommon format, so here we try to treat it as schema or array.
+		// At this point name is still not found, so there is a possibility that the
+		// JSON+LD use name with uncommon format. Here we try to treat it as schema or array.
 		switch childValue := value["name"].(type) {
 		case map[string]any, []any:
 			return getSchemaNames(childValue, expectedTypes...)

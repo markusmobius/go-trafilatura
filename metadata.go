@@ -43,7 +43,7 @@ var (
 	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
 	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[–•·—|⁄*⋆~‹«<›»>:-]\s+(.+)$`) // part without dots?
 	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
-	rxNameJson       = regexp.MustCompile(`(?i)"name?\\?": ?\\?"([^"\\]+)`)
+	rxNameJson       = regexp.MustCompile(`(?i)"name\\?":\s*\\?"([^"\\]+)`)
 	rxUrlCheck       = regexp.MustCompile(`(?i)https?://`)
 	rxSitenameFinder = regexp.MustCompile(`(?i)https?://(?:www\.|w[0-9]+\.)?([^/]+)`)
 	rxHtmlStripTag   = regexp.MustCompile(`(?i)(<!--.*?-->|<[^>]*>)`)
