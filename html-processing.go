@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	nurl "net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -487,4 +488,36 @@ func ancestorIs(node *html.Node, tag string) bool {
 		node = node.Parent
 	}
 	return false
+}
+
+// toAbsoluteURL convert url to absolute path based on base.
+// However, if url is prefixed with hash (#), the url won't be changed.
+func toAbsoluteURL(url string, base *nurl.URL) string {
+	if url == "" || base == nil {
+		return url
+	}
+
+	// If it is hash tag, return as it is
+	if strings.HasPrefix(url, "#") {
+		return url
+	}
+
+	// If it is data URI, return as it is
+	if strings.HasPrefix(url, "data:") {
+		return url
+	}
+
+	// If it is already an absolute URL, return as it is
+	tmp, err := nurl.ParseRequestURI(url)
+	if err == nil && tmp.Scheme != "" && tmp.Hostname() != "" {
+		return url
+	}
+
+	// Otherwise, resolve against base URI.
+	tmp, err = nurl.Parse(url)
+	if err != nil {
+		return url
+	}
+
+	return base.ResolveReference(tmp).String()
 }

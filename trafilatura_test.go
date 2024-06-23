@@ -642,6 +642,14 @@ func Test_Links(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<a href="testlink.html">Test link text.</a>This part of the text has to be long enough.`)
 
+	// Relative link conversion
+	originalURL, _ := nurl.ParseRequestURI("https://www.example.com")
+	result, _ = Extract(strings.NewReader(htmlStr), Options{
+		IncludeLinks: true,
+		Config:       zeroConfig,
+		OriginalURL:  originalURL})
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<a href="https://www.example.com/testlink.html">Test link text.</a>This part of the text has to be long enough.`)
+
 	// Extracting links without target
 	htmlStr = `<html><body><p><a>Test link text.</a>This part of the text has to be long enough.</p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
