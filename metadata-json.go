@@ -269,39 +269,6 @@ func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, article
 	return
 }
 
-func getStringValues(obj map[string]any, key string) []string {
-	var result []string
-
-	switch value := obj[key].(type) {
-	case string:
-		if cleanStr := trim(value); cleanStr != "" {
-			result = []string{cleanStr}
-		}
-
-	case []any:
-		for _, item := range value {
-			str, ok := item.(string)
-			if !ok {
-				continue
-			}
-
-			if cleanStr := trim(str); cleanStr != "" {
-				result = append(result, cleanStr)
-			}
-		}
-	}
-
-	return result
-}
-
-func getSingleStringValue(obj map[string]any, key string) string {
-	values := getStringValues(obj, key)
-	if len(values) > 0 {
-		return values[0]
-	}
-	return ""
-}
-
 func getSchemaNames(v any, expectedTypes ...string) []string {
 	// First, check if its string
 	if value, isString := v.(string); isString {
@@ -402,29 +369,45 @@ func getSchemaNames(v any, expectedTypes ...string) []string {
 }
 
 func getSchemaTypes(schema map[string]any, toLower bool) []string {
-	schemaRawType, exist := schema["@type"]
-	if !exist {
-		return nil
-	}
-
-	var schemaTypes []string
-	switch tp := schemaRawType.(type) {
-	case string:
-		if toLower {
-			tp = strings.ToLower(tp)
-		}
-		schemaTypes = []string{tp}
-
-	case []any:
-		for _, entry := range tp {
-			if strType, isString := entry.(string); isString {
-				if toLower {
-					strType = strings.ToLower(strType)
-				}
-				schemaTypes = append(schemaTypes, strType)
-			}
+	schemaTypes := getStringValues(schema, "@type")
+	if toLower {
+		for i, tp := range schemaTypes {
+			schemaTypes[i] = strings.ToLower(tp)
 		}
 	}
 
 	return schemaTypes
+}
+
+func getStringValues(obj map[string]any, key string) []string {
+	var result []string
+
+	switch value := obj[key].(type) {
+	case string:
+		if cleanStr := trim(value); cleanStr != "" {
+			result = []string{cleanStr}
+		}
+
+	case []any:
+		for _, item := range value {
+			str, ok := item.(string)
+			if !ok {
+				continue
+			}
+
+			if cleanStr := trim(str); cleanStr != "" {
+				result = append(result, cleanStr)
+			}
+		}
+	}
+
+	return result
+}
+
+func getSingleStringValue(obj map[string]any, key string) string {
+	values := getStringValues(obj, key)
+	if len(values) > 0 {
+		return values[0]
+	}
+	return ""
 }
