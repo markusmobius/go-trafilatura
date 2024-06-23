@@ -541,10 +541,44 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	return nil
 }
 
+func getCodeBlockElement(element *html.Node) *html.Node {
+	// GitHub
+	parent := element.Parent
+	if parent != nil && strings.Contains(dom.ClassName(parent), "highlight") {
+		return element
+	}
+
+	// Highlight.js
+	code := dom.QuerySelector(element, "code")
+	if code != nil && len(dom.Children(element)) == 1 {
+		return code
+	}
+
+	return nil
+}
+
+func handleCodeBlocks(element, code *html.Node) *html.Node {
+	processedElement := dom.CreateElement("code")
+	for _, child := range dom.GetElementsByTagName(element, "*") {
+		if dom.TagName(child) == "lb" {
+			etree.SetText(child, "\n")
+		}
+		child.Data = "done"
+	}
+
+	etree.SetText(processedElement, etree.IterText(code, " "))
+	return processedElement
+}
+
 // handleQuotes process quotes elements.
 func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
-	processedElement := etree.Element(dom.TagName(element))
+	// Handle code block first
+	code := getCodeBlockElement(element)
+	if code != nil {
+		return handleCodeBlocks(element, code)
+	}
 
+	processedElement := etree.Element(dom.TagName(element))
 	for _, child := range etree.Iter(element) {
 		processedChild := processNode(child, cache, opts)
 		if processedChild != nil {
@@ -866,8 +900,13 @@ func handleImage(element *html.Node) *html.Node {
 
 // handleOtherElement handle diverse or unknown elements in the scope of relevant tags.
 func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
-	// Delete non potential element
+	// Handle W3Schools Code
 	tagName := dom.TagName(element)
+	if tagName == "div" && strings.Contains(dom.ClassName(element), "w3-code") {
+		return handleCodeBlocks(element, element)
+	}
+
+	// Delete non potential element
 	if _, exist := potentialTags[tagName]; !exist {
 		if tagName != "done" {
 			logDebug(opts, "discarding element: %s %q", tagName, dom.TextContent(element))
@@ -895,9 +934,9 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	logInfo(opts, "recovering wild text elements")
 
-	var searchList []string
-	searchList = append(searchList, listXmlQuoteTags...)
-	searchList = append(searchList, "code", "p", "table")
+	var selectorList []string
+	selectorList = append(selectorList, listXmlQuoteTags...)
+	selectorList = append(selectorList, "code", "p", "table", `div[class*="w3-code"]`)
 
 	if opts.FavorRecall {
 		potentialTags = duplicateMap(potentialTags)
@@ -906,9 +945,9 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 			potentialTags[t] = struct{}{}
 		}
 
-		searchList = append(searchList, "div")
-		searchList = append(searchList, listXmlLbTags...)
-		searchList = append(searchList, listXmlListTags...)
+		selectorList = append(selectorList, "div")
+		selectorList = append(selectorList, listXmlLbTags...)
+		selectorList = append(selectorList, listXmlListTags...)
 	}
 
 	// Prune
@@ -922,7 +961,8 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	var processedElems []*html.Node
-	for _, element := range etree.Iter(searchDoc, searchList...) {
+	selectors := strings.Join(selectorList, ", ")
+	for _, element := range dom.QuerySelectorAll(searchDoc, selectors) {
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
