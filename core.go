@@ -435,9 +435,9 @@ func handleTextElem(element *html.Node, potentialTags map[string]struct{}, cache
 		return handleParagraphs(element, potentialTags, cache, opts)
 	} else if inMap(tagName, mapXmlLbTags) {
 		if textCharsTest(etree.Tail(element)) {
-			if element = processNode(element, cache, opts); element != nil {
+			if processedLb := processNode(element, cache, opts); processedLb != nil {
 				newElement := etree.Element("p")
-				etree.SetText(newElement, etree.Tail(element))
+				etree.SetText(newElement, etree.Tail(processedLb))
 				return newElement
 			}
 		}
