@@ -11,9 +11,10 @@ import (
 )
 
 type SchemaData struct {
-	Type       string
+	Types      []string
 	Data       map[string]any
 	Importance float64
+	Parent     *SchemaData
 }
 
 // extractJsonLd search metadata from JSON+LD data following the Schema.org guidelines
@@ -80,8 +81,8 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 		}
 
 		// If title found, use article type as page type
-		if metadata.PageType == "" && metadata.Title != "" {
-			metadata.PageType = article.Type
+		if metadata.PageType == "" && metadata.Title != "" && len(article.Types) > 0 {
+			metadata.PageType = article.Types[0]
 		}
 	}
 
@@ -118,8 +119,8 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	}
 
 	// If type not found, use the first article type
-	if metadata.PageType == "" && len(articles) > 0 {
-		metadata.PageType = articles[0].Type
+	if metadata.PageType == "" && len(articles) > 0 && len(articles[0].Types) > 0 {
+		metadata.PageType = articles[0].Types[0]
 	}
 
 	// Uniquify tags and categories
@@ -149,72 +150,77 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 
 func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, articles []SchemaData) {
 	// Prepare function to find articles and persons inside JSON+LD recursively
-	var findImportantObjects func(obj map[string]any)
-	findImportantObjects = func(obj map[string]any) {
+	var findImportantObjects func(obj map[string]any, parent *SchemaData)
+	findImportantObjects = func(obj map[string]any, parent *SchemaData) {
 		// Schema type could be either string or slices, so extract it properly
 		schemaTypes := getSchemaTypes(obj, false)
 
-		for _, schemaType := range schemaTypes {
-			schemaData := SchemaData{Type: schemaType, Data: obj}
-			schemaType = strings.ToLower(schemaType)
+		// Check if the schemas is usable for our purpose
+		var isPerson bool
+		var isWebsite, isOrganization bool
+		var isArticle, isPosting, isReport, isBlog, isPage, isListing bool
 
-			// Check if it's person
-			if schemaType == "person" {
-				persons = append(persons, schemaData)
-				break
+		for _, st := range schemaTypes {
+			st = strings.ToLower(st)
+			isPerson = isPerson || st == "person"
+			isWebsite = isWebsite || st == "website"
+			isOrganization = isOrganization || strings.Contains(st, "organization")
+			isArticle = isArticle || strings.Contains(st, "article")
+			isPosting = isPosting || strings.Contains(st, "posting")
+			isReport = isReport || st == "report"
+			isBlog = isBlog || st == "blog"
+			isPage = isPage || strings.Contains(st, "page")
+			isListing = isListing || strings.Contains(st, "listing")
+		}
+
+		// Create initial schema data
+		schemaData := SchemaData{
+			Types:  schemaTypes,
+			Data:   obj,
+			Parent: parent,
+		}
+
+		// Depending on its type, save the schema to respective slice
+		if isPerson {
+			persons = append(persons, schemaData)
+		}
+
+		if isWebsite || isOrganization {
+			// Organization is more important than website.
+			switch {
+			case isOrganization:
+				schemaData.Importance = 2
+			default:
+				schemaData.Importance = 1
 			}
 
-			// Check if it's organization or website.
-			isWebsite := schemaType == "website"
-			isOrganization := strings.Contains(schemaType, "organization")
+			organizations = append(organizations, schemaData)
+		}
 
-			if isWebsite || isOrganization {
-				// Organization is more important than website.
-				switch {
-				case isOrganization:
-					schemaData.Importance = 2
-				default:
-					schemaData.Importance = 1
-				}
-
-				organizations = append(organizations, schemaData)
-				break
+		if isArticle || isPosting || isReport || isBlog || isPage || isListing {
+			// Adjust its importance level
+			switch {
+			case isArticle, isPosting, isReport:
+				schemaData.Importance = 3
+			case isBlog:
+				schemaData.Importance = 2
+			case isPage, isListing:
+				schemaData.Importance = 1
 			}
 
-			// Check if it's article, blog or page.
-			isArticle := strings.Contains(schemaType, "article")
-			isPosting := strings.Contains(schemaType, "posting")
-			isReport := schemaType == "report"
-			isBlog := schemaType == "blog"
-			isPage := strings.Contains(schemaType, "page")
-			isListing := strings.Contains(schemaType, "listing")
-
-			if isArticle || isPosting || isReport || isBlog || isPage || isListing {
-				// Adjust its importance level
-				switch {
-				case isArticle, isPosting, isReport:
-					schemaData.Importance = 3
-				case isBlog:
-					schemaData.Importance = 2
-				case isPage, isListing:
-					schemaData.Importance = 1
-				}
-
-				articles = append(articles, schemaData)
-				break
-			}
+			articles = append(articles, schemaData)
 		}
 
 		// Continue to look in its sub values
 		for _, value := range obj {
 			switch v := value.(type) {
 			case map[string]any:
-				findImportantObjects(v)
+				findImportantObjects(v, &schemaData)
 
 			case []any:
 				for _, item := range v {
 					if subObj, isObj := item.(map[string]any); isObj {
-						findImportantObjects(subObj)
+						findImportantObjects(subObj, &schemaData)
 					}
 				}
 			}
@@ -253,7 +259,7 @@ func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, article
 
 		// Extract each data
 		for _, data := range dataList {
-			findImportantObjects(data)
+			findImportantObjects(data, nil)
 		}
 	}
 
@@ -265,6 +271,30 @@ func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, article
 	sort.SliceStable(articles, func(i, j int) bool {
 		return articles[i].Importance > articles[j].Importance
 	})
+
+	// When possible, only use persons from articles
+	var articlePersons []SchemaData
+	for _, person := range persons {
+		if schemaInArticle(person, "person") {
+			articlePersons = append(articlePersons, person)
+		}
+	}
+
+	if len(articlePersons) > 0 {
+		persons = articlePersons
+	}
+
+	// Do the same for organizations
+	var articleOrganizations []SchemaData
+	for _, org := range organizations {
+		if schemaInArticle(org, "organization") {
+			articleOrganizations = append(articleOrganizations, org)
+		}
+	}
+
+	if len(articleOrganizations) > 0 {
+		organizations = articleOrganizations
+	}
 
 	return
 }
@@ -410,4 +440,47 @@ func getSingleStringValue(obj map[string]any, key string) string {
 		return values[0]
 	}
 	return ""
+}
+
+func schemaInArticle(data SchemaData, wantedType string) bool {
+	// If it doesn't have any parent, it's important
+	if data.Parent == nil {
+		return true
+	}
+
+	// Check if parent is person or organization
+	var parentIsPerson bool
+	var parentIsOrganization bool
+
+	for _, st := range data.Parent.Types {
+		st = strings.ToLower(st)
+		parentIsPerson = parentIsPerson || st == "person"
+		parentIsOrganization = parentIsOrganization || st == "website" || strings.Contains(st, "organization")
+	}
+
+	// If necessary, check grandparent types
+	parentTypesToCheck := data.Parent.Types
+	if (wantedType == "person" && parentIsPerson) || (wantedType == "organization" && parentIsOrganization) {
+		if data.Parent.Parent == nil {
+			return true
+		} else {
+			parentTypesToCheck = data.Parent.Parent.Types
+		}
+	}
+
+	// Now, check if this schema inside article
+	for _, st := range parentTypesToCheck {
+		st = strings.ToLower(st)
+		isArticle := strings.Contains(st, "article")
+		isPosting := strings.Contains(st, "posting")
+		isReport := st == "report"
+		isBlog := st == "blog"
+		isPage := strings.Contains(st, "page")
+		isListing := strings.Contains(st, "listing")
+		if isArticle || isPosting || isReport || isBlog || isPage || isListing {
+			return true
+		}
+	}
+
+	return false
 }

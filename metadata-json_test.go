@@ -167,7 +167,7 @@ func Test_MetadataJson(t *testing.T) {
 	metadata = testGetMetadataFromFile("simple/json-metadata-22.html")
 	assert.Equal(t, "Find perfection in these places where land meets water.", metadata.Title)
 	assert.Equal(t, "National Geographic", metadata.Sitename)
-	assert.Equal(t, "Kimberley Lovato; Miguel Naranjo", metadata.Author)
+	assert.Equal(t, "Kimberley Lovato", metadata.Author)
 	assert.Equal(t, "Article", metadata.PageType)
 
 	metadata = testGetMetadataFromFile("simple/json-metadata-23.html")
