@@ -206,7 +206,7 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 
 	// Line break bypass
 	tagName := dom.TagName(node)
-	if !fixComments && (tagName == "br" || tagName == "hr") {
+	if !fixComments && inMap(tagName, mapXmlLbTags) {
 		etree.SetTail(node, trim(tail))
 		return node
 	}
@@ -228,11 +228,7 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 	etree.SetText(node, text)
 	etree.SetTail(node, tail)
 
-	if text == "" { // || !rxWords.MatchString(text) {
-		return nil
-	}
-
-	if textFilter(node) {
+	if text == "" || textFilter(node) {
 		return nil
 	}
 

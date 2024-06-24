@@ -53,24 +53,17 @@ func checkHtmlLanguage(doc *html.Node, opts Options, strict bool) bool {
 	}
 
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Language
-	metaNodes := dom.QuerySelectorAll(doc, `meta[http-equiv="content-language"][content]`)
-	if len(metaNodes) > 0 {
-		for _, metaNode := range metaNodes {
-			metaContent := dom.GetAttribute(metaNode, "content")
-			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
-				if strings.ToLower(lang) == opts.TargetLanguage {
-					return true
-				}
-			}
-		}
-
-		logWarn(opts, "html language detection in meta failed")
-		return false
+	selectors := []string{
+		`meta[http-equiv="content-language"][content]`,
+		`meta[property="og:locale"][content]`,
 	}
 
-	// Locale
-	metaNodes = dom.QuerySelectorAll(doc, `meta[property="og:locale"][content]`)
-	if len(metaNodes) > 0 {
+	for _, selector := range selectors {
+		metaNodes := dom.QuerySelectorAll(doc, selector)
+		if len(metaNodes) == 0 {
+			continue
+		}
+
 		for _, metaNode := range metaNodes {
 			metaContent := dom.GetAttribute(metaNode, "content")
 			for _, lang := range rxHtmlLang.FindAllString(metaContent, -1) {
@@ -121,7 +114,7 @@ func languageClassifier(contentText, commentsText string) string {
 func textFilter(n *html.Node) bool {
 	var testText string
 	text, tail := etree.Text(n), etree.Tail(n)
-	if text == "" && tail != "" {
+	if text == "" {
 		testText = tail
 	} else {
 		testText = text
@@ -142,7 +135,7 @@ func textFilter(n *html.Node) bool {
 
 // textCharsTest determine if a string is only composed of spaces and/or control characters.
 func textCharsTest(s string) bool {
-	s = strings.TrimSpace(s)
+	s = trim(s)
 	return s != ""
 }
 
