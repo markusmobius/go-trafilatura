@@ -31,6 +31,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-htmldate"
@@ -189,15 +190,33 @@ func Test_ExoticTags(t *testing.T) {
 
 func Test_LanguageClassifier(t *testing.T) {
 	var lang string
+	var htmlInput string
+	var result *ExtractResult
 
+	// Content text only
 	lang = languageClassifier("Hier ist ein Text auf Deutsch", "")
 	assert.Equal(t, "de", lang)
 
 	lang = languageClassifier("Hier ist ein Text auf Deutsch", "")
 	assert.NotEqual(t, "en", lang)
 
+	// Comments text
 	lang = languageClassifier("Hier ist ein Text auf Deutsch", "Die Kommentare sind aber etwas länger.")
 	assert.Equal(t, "de", lang)
+
+	lang = languageClassifier("This is English.", "Die Kommentare sind aber etwas länger.")
+	assert.Equal(t, "de", lang)
+
+	// Extraction result
+	htmlInput = `<html><body><p>Texto en español</p></body></html>`
+	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
+	assert.Equal(t, "es", result.Metadata.Language)
+
+	// Originally they use "Texte en français" here but it's too short which
+	// make whatlanggo confuse it with Afrikaans, so here I pick a longer sentence.
+	htmlInput = `<html><body><p>Après la pluie, le beau temps.</p></body></html>`
+	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
+	assert.Equal(t, "fr", result.Metadata.Language)
 }
 
 func Test_Cache(t *testing.T) {
@@ -379,14 +398,6 @@ func Test_Baseline(t *testing.T) {
 	doc = docFromStr("<html><body><div>   Document body...   </div><script> console.log('Hello world') </script></body></html>")
 	_, result = baseline(doc)
 	assert.Equal(t, "Document body...", result)
-}
-
-func Test_Language(t *testing.T) {
-	// Main text
-	assert.Equal(t, "de", languageClassifier("Hier ist ein Text auf Deutsch", ""))
-
-	// Comments text
-	assert.Equal(t, "de", languageClassifier("This is English.", "Die Kommentare sind aber etwas länger."))
 }
 
 func Test_Filters(t *testing.T) {
@@ -1355,4 +1366,23 @@ func Test_PruneSelector(t *testing.T) {
 	opts.PruneSelector = "p, h1"
 	result, _ = ExtractDocument(doc3, opts)
 	assert.Equal(t, "42", result.ContentText)
+}
+
+func Test_MixedContentExtraction(t *testing.T) {
+	htmlContent := `<html><body><p>Text here</p><img src="img.jpg"/><video src="video.mp4"/></body></html>`
+	result, _ := Extract(strings.NewReader(htmlContent), zeroOpts)
+	assert.Equal(t, "Text here", result.ContentText)
+}
+
+func Test_NonStdHtmlEntities(t *testing.T) {
+	htmlContent := `<html><body><p>Text &customentity; more text</p></body></html>`
+	result, _ := Extract(strings.NewReader(htmlContent), zeroOpts)
+	assert.Equal(t, "Text &customentity; more text", result.ContentText)
+}
+
+func Test_LargeDocPerformance(t *testing.T) {
+	htmlContent := `<html><body>` + strings.Repeat(`<p>Sample text</p>`, 1000) + `</body></html>`
+	start := time.Now()
+	Extract(strings.NewReader(htmlContent), zeroOpts)
+	assert.LessOrEqual(t, time.Since(start), 5*time.Second)
 }
