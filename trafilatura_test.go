@@ -1139,6 +1139,7 @@ func Test_CodeBlocks(t *testing.T) {
 	var result *ExtractResult
 	var htmlInput string
 	var htmlOutput string
+	var expected string
 
 	// Highlight js
 	htmlInput = `` +
@@ -1201,9 +1202,89 @@ func Test_CodeBlocks(t *testing.T) {
 	opts = Options{Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlInput), opts)
 
-	htmlOutput = dom.OuterHTML(result.ContentNode)
-	// TODO: this one is different than the original, because the formatting
-	// is different. Investigate later.
-	assert.Contains(t, htmlOutput, `<code>class Person:`)
+	htmlOutput = trim(dom.OuterHTML(result.ContentNode))
+	expected = `` +
+		`<code> ` +
+		`class Person:<br/> ` +
+		`def __init__(self, name, age):<br/> ` +
+		`self.name = name<br/> ` +
+		`self.age = age<br/>` +
+		`<br/>p1 = Person(&#34;John&#34;, 36)<br/> ` +
+		`<br/>print(p1.name)<br/>print(p1.age) ` +
+		`</code>`
+	assert.Contains(t, htmlOutput, expected)
+	assert.NotContains(t, htmlOutput, `<q>`)
+
+	// Pip
+	htmlInput = `
+	<div>
+		<p>Code:</p>
+		<pre lang="python3">
+			<span class="kn">import</span>
+			<span class="nn">openai</span>
+			<span class="kn">from</span>
+			<span class="nn">openai_function_call</span>
+			<span class="kn">import</span>
+			<span class="n">openai_function</span>
+		</pre>
+	</div>`
+
+	opts = Options{Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlInput), opts)
+
+	htmlOutput = trim(dom.OuterHTML(result.ContentNode))
+	expected = `<code> import openai from openai_function_call import openai_function </code>`
+	assert.Contains(t, htmlOutput, expected)
+	assert.NotContains(t, htmlOutput, `<q>`)
+
+	// Medium JS
+	htmlInput = `
+	<div>
+		<p>Code:</p>
+		<pre class="lw lx ly lz ma nq nr ns bo nt ba bj">
+			<span id="fe48" class="nu mo ev nr b bf nv nw l nx ny" data-selectable-paragraph="">
+				<span class="hljs-keyword">import</span> openai_function<br><br>
+				<span class="hljs-meta">@openai_function</span>
+			</span>
+		</pre>
+	</div>`
+
+	opts = Options{Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlInput), opts)
+
+	htmlOutput = trim(dom.OuterHTML(result.ContentNode))
+	expected = `<code> import openai_function<br/><br/> @openai_function </code>`
+	assert.Contains(t, htmlOutput, expected)
+	assert.NotContains(t, htmlOutput, `<q>`)
+
+	// Medium SSR
+	htmlInput = `
+	<div>
+		<p>Code:</p>
+		<pre class="lw lx ly lz ma nq nr ns bo nt ba bj">
+			<span id="fe48" class="nu mo ev nr b bf nv nw l nx ny">
+				import openai_function<br><br>
+				@openai_functiondef sum(a:int, b:int):<br/>
+				&quot;&quot;&quot;Sum description adds a + b&quot;&quot;&quot;
+			</span>
+		</pre>
+	</div>`
+
+	opts = Options{Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlInput), opts)
+
+	htmlOutput = trim(dom.OuterHTML(result.ContentNode))
+	expected = `<code> import openai_function<br/><br/> @openai_functiondef sum(a:int, b:int):<br/> &#34;&#34;&#34;Sum description adds a + b&#34;&#34;&#34; </code>`
+	assert.Contains(t, htmlOutput, expected)
+	assert.NotContains(t, htmlOutput, `<q>`)
+
+	// Code element
+	htmlInput = `<div><p>Code:</p><pre><code><span>my code</span></code></pre>`
+
+	opts = Options{Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlInput), opts)
+
+	htmlOutput = trim(dom.OuterHTML(result.ContentNode))
+	assert.Contains(t, htmlOutput, `<code>my code</code>`)
 	assert.NotContains(t, htmlOutput, `<q>`)
 }

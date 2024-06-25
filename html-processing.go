@@ -517,3 +517,80 @@ func toAbsoluteURL(url string, base *nurl.URL) string {
 
 	return base.ResolveReference(tmp).String()
 }
+
+// Simplify HTML markup.
+// Here in original Trafilatura we are supposed to convert HTML tags
+// into the one that suitable for XML. However, since we prefer the results
+// to be HTML, we won't do it here.
+func convertTags(tree *html.Node, opts Options) {
+	// Delete links for faster processing
+	if !opts.IncludeLinks {
+		// Prepare selector
+		cssSelector := "div a, ul a, ol a" // "p a" ?
+		if !opts.ExcludeTables {
+			cssSelector += ", table a"
+		}
+
+		// Temporary change tags
+		importantLinks := dom.QuerySelectorAll(tree, cssSelector)
+		for _, elem := range importantLinks {
+			elem.Data = "protected-a"
+		}
+
+		// Strip the rest of links
+		etree.StripTags(tree, "a")
+
+		// Revert back
+		for _, elem := range importantLinks {
+			elem.Data = "a"
+		}
+	} else {
+		// Convert relative URL to absolute
+		for _, elem := range dom.QuerySelectorAll(tree, "a") {
+			// Extract link
+			href := trim(dom.GetAttribute(elem, "href"))
+			target := trim(dom.GetAttribute(elem, "target"))
+
+			// Clear up existing attributes
+			elem.Attr = nil
+
+			// Convert relative URL to absolute
+			if href != "" {
+				href = toAbsoluteURL(href, opts.OriginalURL)
+				dom.SetAttribute(elem, "href", href)
+			}
+
+			if target != "" {
+				target = toAbsoluteURL(target, opts.OriginalURL)
+				dom.SetAttribute(elem, "target", target)
+			}
+		}
+	}
+
+	// Iterate over all concerned elements
+	for _, elem := range etree.Iter(tree, listXmlQuoteTags...) {
+		var codeFlag bool
+
+		// Pre with a single span is more likely to be code
+		if dom.TagName(elem) == "pre" {
+			children := dom.Children(elem)
+			if len(children) == 1 && dom.TagName(children[0]) == "span" {
+				codeFlag = true
+			}
+		}
+
+		// Find hljs elements to detect if it's code
+		hljsSelector := `span[class*=" hljs"], span[class^="hljs"]`
+		hljsElems := dom.QuerySelectorAll(elem, hljsSelector)
+		if len(hljsElems) > 0 {
+			codeFlag = true
+			for _, hljsElem := range hljsElems {
+				hljsElem.Attr = nil
+			}
+		}
+
+		if codeFlag {
+			elem.Data = "code"
+		}
+	}
+}

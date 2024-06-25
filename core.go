@@ -130,9 +130,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	docCleaning(doc, opts)
 	simplifyTags(doc, opts)
 
-	// TODO: Here in original Trafilatura, we are supposed to convert HTML tags
-	// into the one that suitable for XML. However, since we prefer the results
-	// to be XML, we won't do it here.
+	// Convert HTML tags
+	convertTags(doc, opts)
 
 	// Extract comments first, then remove
 	var tmpComments string
@@ -541,41 +540,46 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	return nil
 }
 
-func getCodeBlockElement(element *html.Node) *html.Node {
+func isCodeBlockElement(element *html.Node) bool {
+	// Pip
+	if dom.GetAttribute(element, "lang") != "" || dom.TagName(element) == "code" {
+		return true
+	}
+
 	// GitHub
 	parent := element.Parent
 	if parent != nil && strings.Contains(dom.ClassName(parent), "highlight") {
-		return element
+		return true
 	}
 
 	// Highlight.js
 	code := dom.QuerySelector(element, "code")
 	if code != nil && len(dom.Children(element)) == 1 {
-		return code
+		return true
 	}
 
-	return nil
+	return false
 }
 
-func handleCodeBlocks(element, code *html.Node) *html.Node {
-	processedElement := dom.CreateElement("code")
-	for _, child := range dom.GetElementsByTagName(element, "*") {
-		if dom.TagName(child) == "lb" {
-			etree.SetText(child, "\n")
-		}
+func handleCodeBlocks(element *html.Node) *html.Node {
+	processedElement := dom.Clone(element, true)
+	for _, child := range etree.Iter(element) {
 		child.Data = "done"
 	}
 
-	etree.SetText(processedElement, etree.IterText(code, " "))
+	processedElement.Data = "code"
+	for _, child := range etree.Iter(processedElement) {
+		child.Attr = nil
+	}
+
 	return processedElement
 }
 
 // handleQuotes process quotes elements.
 func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	// Handle code block first
-	code := getCodeBlockElement(element)
-	if code != nil {
-		return handleCodeBlocks(element, code)
+	if isCodeBlockElement(element) {
+		return handleCodeBlocks(element)
 	}
 
 	processedElement := etree.Element(dom.TagName(element))
@@ -905,7 +909,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 	// Handle W3Schools Code
 	tagName := dom.TagName(element)
 	if tagName == "div" && strings.Contains(dom.ClassName(element), "w3-code") {
-		return handleCodeBlocks(element, element)
+		return handleCodeBlocks(element)
 	}
 
 	// Delete non potential element
