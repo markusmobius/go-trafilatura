@@ -33,6 +33,7 @@ import (
 	"testing"
 
 	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/stretchr/testify/assert"
@@ -702,6 +703,22 @@ func Test_ExtractionOptions(t *testing.T) {
 	opts = Options{TargetLanguage: "de", Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.Nil(t, result)
+
+	// Try HtmlDate config
+	htmlStr = `<html><head/><body>` +
+		strings.Repeat(`<p>ABC def ghi jkl.</p>`, 1000) +
+		`<p>Posted on 1st Dec 2019<.</p></body></html>`
+	doc, _ := dom.FastParse(strings.NewReader(htmlStr))
+
+	dateOpts := htmldate.Options{UseOriginalDate: true}
+	opts = Options{Config: zeroConfig, HtmlDateOptions: &dateOpts}
+
+	meta := extractMetadata(doc, opts)
+	assert.NotZero(t, meta.Date)
+
+	dateOpts.SkipExtensiveSearch = true
+	meta = extractMetadata(doc, opts)
+	assert.Zero(t, meta.Date)
 }
 
 func Test_PrecisionRecall(t *testing.T) {

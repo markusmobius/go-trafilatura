@@ -125,11 +125,11 @@ type Options struct {
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 
-	//HtmlDateOverride uses pre-extracted date from `htmldate` package
+	// HtmlDateOverride is user provided extracted date from `go-htmldate` package.
 	HtmlDateOverride *htmldate.Result
 
-	// HtmlDateOptions is configuration for the external `htmldate` package that used to look
-	// for publish date of a web page.
+	// HtmlDateOptions is user provided configuration for the external `go-htmldate`
+	// package that used to look for publish date of a web page.
 	HtmlDateOptions *htmldate.Options
 
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
