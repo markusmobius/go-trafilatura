@@ -22,7 +22,6 @@
 package trafilatura
 
 import (
-	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -30,6 +29,48 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
+)
+
+var (
+	elementWithSizeAttr = sliceToMap("table", "th", "td", "hr", "pre")
+
+	// List of allowed attributes are taken from go-domdistiller
+	allowedAttributes = sliceToMap(
+		"abbr", "accept-charset", "accept", "accesskey", "action", "align", "alink",
+		"allow", "allowfullscreen", "allowpaymentrequest", "alt", "archive", "as",
+		"async", "autocapitalize", "autocomplete", "autocorrect", "autofocus",
+		"autoplay", "autopictureinpicture", "axis", "background", "behavior",
+		"bgcolor", "border", "bordercolor", "capture", "cellpadding", "cellspacing",
+		"char", "challenge", "charoff", "charset", "checked", "cite", "class",
+		"classid", "clear", "code", "codebase", "codetype", "color", "cols",
+		"colspan", "compact", "content", "contenteditable", "controls",
+		"controlslist", "conversiondestination", "coords", "crossorigin",
+		"csp", "data", "datetime", "declare", "decoding", "default", "defer",
+		"dir", "direction", "dirname", "disabled", "disablepictureinpicture",
+		"disableremoteplayback", "disallowdocumentaccess", "download", "draggable",
+		"elementtiming", "enctype", "end", "enterkeyhint", "event", "exportparts",
+		"face", "for", "form", "formaction", "formenctype", "formmethod",
+		"formnovalidate", "formtarget", "frame", "frameborder", "headers",
+		"height", "hidden", "high", "href", "hreflang", "hreftranslate", "hspace",
+		"http-equiv", "id", "imagesizes", "imagesrcset", "importance",
+		"impressiondata", "impressionexpiry", "incremental", "inert", "inputmode",
+		"integrity", "is", "ismap", "keytype", "kind", "invisible", "label", "lang",
+		"language", "latencyhint", "leftmargin", "link", "list", "loading", "longdesc",
+		"loop", "low", "lowsrc", "manifest", "marginheight", "marginwidth", "max",
+		"maxlength", "mayscript", "media", "method", "min", "minlength", "multiple",
+		"muted", "name", "nohref", "nomodule", "nonce", "noresize", "noshade",
+		"novalidate", "nowrap", "object", "open", "optimum", "part", "pattern",
+		"placeholder", "playsinline", "ping", "policy", "poster", "preload", "pseudo",
+		"readonly", "referrerpolicy", "rel", "reportingorigin", "required", "resources",
+		"rev", "reversed", "role", "rows", "rowspan", "rules", "sandbox", "scheme",
+		"scope", "scrollamount", "scrolldelay", "scrolling", "select", "selected",
+		"shadowroot", "shadowrootdelegatesfocus", "shape", "size", "sizes", "slot",
+		"span", "spellcheck", "src", "srcset", "srcdoc", "srclang", "standby", "start",
+		"step", "style", "summary", "tabindex", "target", "text", "title", "topmargin",
+		"translate", "truespeed", "trusttoken", "type", "usemap", "valign", "value",
+		"valuetype", "version", "vlink", "vspace", "virtualkeyboardpolicy",
+		"webkitdirectory", "width", "wrap",
+	)
 )
 
 // docCleaning cleans the document by discarding unwanted elements
@@ -388,6 +429,7 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	return element
 }
 
+// ADDITIONAL:
 // postCleaning is used to clean the extracted content.
 // This is additional function that doesn't exist in original.
 func postCleaning(doc *html.Node) {
@@ -411,27 +453,31 @@ func postCleaning(doc *html.Node) {
 
 	// Remove useless attributes
 	for _, element := range etree.Iter(doc) {
-		newAttr := []html.Attribute{}
+		tagName := dom.TagName(element)
+		finalAttrs := []html.Attribute{}
+		_, elementAllowedToHaveSize := elementWithSizeAttr[tagName]
+
 		for _, attr := range element.Attr {
-			// Remove styling attributes
-			_, isStyling := presentationalAttributes[attr.Key]
-			if isStyling {
+			// Exclude identification and presentational attributes.
+			switch attr.Key {
+			case "id", "class", "align", "background", "bgcolor", "border", "cellpadding",
+				"cellspacing", "frame", "hspace", "rules", "style", "valign", "vspace":
+				continue
+			case "width", "height":
+				if !elementAllowedToHaveSize {
+					continue
+				}
+			}
+
+			// Exclude unsafe attributes
+			if _, allowed := allowedAttributes[attr.Key]; !allowed {
 				continue
 			}
 
-			// Remove id, class, data and event attributes
-			switch {
-			case attr.Key == "id",
-				attr.Key == "class",
-				strings.HasPrefix(attr.Key, "data-"),
-				strings.HasPrefix(attr.Key, "on"):
-				continue
-			}
-
-			newAttr = append(newAttr, attr)
+			finalAttrs = append(finalAttrs, attr)
 		}
 
-		element.Attr = newAttr
+		element.Attr = finalAttrs
 	}
 }
 
