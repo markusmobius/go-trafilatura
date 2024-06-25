@@ -22,7 +22,6 @@
 package trafilatura
 
 import (
-	nurl "net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -486,38 +485,6 @@ func ancestorIs(node *html.Node, tag string) bool {
 	return false
 }
 
-// toAbsoluteURL convert url to absolute path based on base.
-// However, if url is prefixed with hash (#), the url won't be changed.
-func toAbsoluteURL(url string, base *nurl.URL) string {
-	if url == "" || base == nil {
-		return url
-	}
-
-	// If it is hash tag, return as it is
-	if strings.HasPrefix(url, "#") {
-		return url
-	}
-
-	// If it is data URI, return as it is
-	if strings.HasPrefix(url, "data:") {
-		return url
-	}
-
-	// If it is already an absolute URL, return as it is
-	tmp, err := nurl.ParseRequestURI(url)
-	if err == nil && tmp.Scheme != "" && tmp.Hostname() != "" {
-		return url
-	}
-
-	// Otherwise, resolve against base URI.
-	tmp, err = nurl.Parse(url)
-	if err != nil {
-		return url
-	}
-
-	return base.ResolveReference(tmp).String()
-}
-
 // Simplify HTML markup.
 // Here in original Trafilatura we are supposed to convert HTML tags
 // into the one that suitable for XML. However, since we prefer the results
@@ -556,12 +523,12 @@ func convertTags(tree *html.Node, opts Options) {
 
 			// Convert relative URL to absolute
 			if href != "" {
-				href = toAbsoluteURL(href, opts.OriginalURL)
+				href = createAbsoluteURL(href, opts.OriginalURL)
 				dom.SetAttribute(elem, "href", href)
 			}
 
 			if target != "" {
-				target = toAbsoluteURL(target, opts.OriginalURL)
+				target = createAbsoluteURL(target, opts.OriginalURL)
 				dom.SetAttribute(elem, "target", target)
 			}
 		}

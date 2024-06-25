@@ -697,12 +697,10 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 			child.Attr = nil
 
 			if childHref != "" {
-				childHref = toAbsoluteURL(childHref, opts.OriginalURL)
 				dom.SetAttribute(child, "href", childHref)
 			}
 
 			if childTarget != "" {
-				childTarget = toAbsoluteURL(childTarget, opts.OriginalURL)
 				dom.SetAttribute(child, "target", childTarget)
 			}
 		}
