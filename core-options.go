@@ -131,4 +131,7 @@ type Options struct {
 	// HtmlDateOptions is configuration for the external `htmldate` package that used to look
 	// for publish date of a web page.
 	HtmlDateOptions *htmldate.Options
+
+	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
+	PruneSelector string
 }

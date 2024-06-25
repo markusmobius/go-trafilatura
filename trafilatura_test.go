@@ -1288,3 +1288,54 @@ func Test_CodeBlocks(t *testing.T) {
 	assert.Contains(t, htmlOutput, `<code>my code</code>`)
 	assert.NotContains(t, htmlOutput, `<q>`)
 }
+
+func Test_PruneSelector(t *testing.T) {
+	// Helper function
+	createDoc := func(strContent string) *html.Node {
+		str := fmt.Sprintf(`<html><body>%s</body></html>`, strContent)
+		doc, _ := dom.FastParse(strings.NewReader(str))
+		return doc
+	}
+
+	// Variable helper
+	var result *ExtractResult
+	opts := Options{
+		Config:             zeroConfig,
+		FallbackCandidates: &FallbackConfig{},
+	}
+
+	// Example HTML
+	p := `<p>abc</p>`
+	h1 := `<h1>ABC</h1>`
+	h2 := `<h2>42</h2>`
+	doc1 := createDoc(strings.Repeat(p, 50))
+	doc2 := createDoc(h1 + strings.Repeat(p, 50))
+	doc3 := createDoc(h1 + h2 + strings.Repeat(p, 50))
+
+	// Sanity check
+	result, _ = ExtractDocument(doc1, opts)
+	assert.NotEmpty(t, dom.OuterHTML(result.ContentNode))
+
+	result, _ = ExtractDocument(doc2, opts)
+	assert.NotEmpty(t, dom.OuterHTML(result.ContentNode))
+
+	result, _ = ExtractDocument(doc3, opts)
+	assert.NotEmpty(t, dom.OuterHTML(result.ContentNode))
+
+	// With prune selector
+	opts.PruneSelector = "p"
+	result, _ = ExtractDocument(doc1, opts)
+	assert.Equal(t, "", result.ContentText)
+
+	opts.PruneSelector = "p"
+	result, _ = ExtractDocument(doc2, opts)
+	assert.Equal(t, "ABC", result.ContentText)
+
+	opts.PruneSelector = "p, h1"
+	result, _ = ExtractDocument(doc2, opts)
+	assert.Equal(t, "", result.ContentText)
+
+	opts.PruneSelector = "p, h1"
+	result, _ = ExtractDocument(doc3, opts)
+	assert.Equal(t, "42", result.ContentText)
+}

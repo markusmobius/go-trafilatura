@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/abadojack/whatlanggo v1.0.1
+	github.com/andybalholm/cascadia v1.3.2
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.2.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
@@ -22,7 +23,6 @@ require (
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/pie/v2 v2.8.1 // indirect

@@ -30,6 +30,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/andybalholm/cascadia"
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
@@ -94,11 +95,6 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		return nil, fmt.Errorf("web page language is not %s", opts.TargetLanguage)
 	}
 
-	// Clone and backup document to make sure the original kept untouched
-	doc = dom.Clone(doc, true)
-	docBackup1 := dom.Clone(doc, true)
-	docBackup2 := dom.Clone(doc, true)
-
 	// Fetch metadata
 	metadata := extractMetadata(doc, opts)
 
@@ -125,6 +121,20 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 			opts.OriginalURL = parsedURL
 		}
 	}
+
+	// Prune using selectors that user specified.
+	// No backup as this is completely full control of the user.
+	if opts.PruneSelector != "" {
+		cssSelector, err := cascadia.ParseGroup(opts.PruneSelector)
+		if err == nil {
+			doc = pruneUnwantedNodes(doc, []selector.Rule{cssSelector.Match})
+		}
+	}
+
+	// Clone and backup document to make sure the original kept untouched
+	doc = dom.Clone(doc, true)
+	docBackup1 := dom.Clone(doc, true)
+	docBackup2 := dom.Clone(doc, true)
 
 	// Clean document
 	docCleaning(doc, opts)
