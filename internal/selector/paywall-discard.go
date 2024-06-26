@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -50,14 +48,14 @@ func discardedPaywallRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "paywall"),
-		strings.Contains(id, "premium"),
-		strings.Contains(class, "paid-content"),
-		strings.Contains(class, "paidcontent"),
-		strings.Contains(class, "obfuscated"),
-		strings.Contains(class, "blurred"),
-		strings.Contains(class, "restricted"),
-		strings.Contains(class, "overlay"):
+	case contains(id, "paywall"),
+		contains(id, "premium"),
+		contains(class, "paid-content"),
+		contains(class, "paidcontent"),
+		contains(class, "obfuscated"),
+		contains(class, "blurred"),
+		contains(class, "restricted"),
+		contains(class, "overlay"):
 	default:
 		return false
 	}

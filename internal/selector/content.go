@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -41,7 +39,7 @@ var Content = []Rule{
 // contains(@class, "post-text") or contains(@class, "post_text") or
 // contains(@class, "post-body") or contains(@class, "post-entry") or contains(@class, "postentry") or
 // contains(@class, "post-content") or contains(@class, "post_content") or
-// contains(@class, "postcontent") or contains(@class, "postContent") or
+// contains(@class, "postcontent") or contains(@class, "postContent") or contains(@class, "post_inner_wrapper") or
 // contains(@class, "article-text") or contains(@class, "articletext") or contains(@class, "articleText")
 // or contains(@id, "entry-content") or
 // contains(@class, "entry-content") or contains(@id, "article-content") or
@@ -70,38 +68,39 @@ func contentRule1(n *html.Node) bool {
 	case
 		class == "post",
 		class == "entry",
-		strings.Contains(class, "post-text"),
-		strings.Contains(class, "post_text"),
-		strings.Contains(class, "post-body"),
-		strings.Contains(class, "post-entry"),
-		strings.Contains(class, "postentry"),
-		strings.Contains(class, "post-content"),
-		strings.Contains(class, "post_content"),
-		strings.Contains(strings.ToLower(class), "postcontent"),
-		strings.Contains(class, "article-text"),
-		strings.Contains(strings.ToLower(class), "articletext"),
-		strings.Contains(id, "entry-content"),
-		strings.Contains(class, "entry-content"),
-		strings.Contains(id, "article-content"),
-		strings.Contains(class, "article-content"),
-		strings.Contains(id, "article__content"),
-		strings.Contains(class, "article__content"),
-		strings.Contains(id, "article-body"),
-		strings.Contains(class, "article-body"),
-		strings.Contains(id, "article__body"),
-		strings.Contains(class, "article__body"),
+		contains(class, "post-text"),
+		contains(class, "post_text"),
+		contains(class, "post-body"),
+		contains(class, "post-entry"),
+		contains(class, "postentry"),
+		contains(class, "post-content"),
+		contains(class, "post_content"),
+		contains(lower(class), "postcontent"),
+		contains(class, "post_inner_wrapper"),
+		contains(class, "article-text"),
+		contains(lower(class), "articletext"),
+		contains(id, "entry-content"),
+		contains(class, "entry-content"),
+		contains(id, "article-content"),
+		contains(class, "article-content"),
+		contains(id, "article__content"),
+		contains(class, "article__content"),
+		contains(id, "article-body"),
+		contains(class, "article-body"),
+		contains(id, "article__body"),
+		contains(class, "article__body"),
 		itemProp == "articleBody",
-		strings.Contains(strings.ToLower(id), "articlebody"),
-		strings.Contains(strings.ToLower(class), "articlebody"),
+		contains(lower(id), "articlebody"),
+		contains(lower(class), "articlebody"),
 		id == "articleContent",
-		strings.Contains(class, "ArticleContent"),
-		strings.Contains(class, "page-content"),
-		strings.Contains(class, "text-content"),
-		strings.Contains(id, "body-text"),
-		strings.Contains(class, "body-text"),
-		strings.Contains(class, "article__container"),
-		strings.Contains(id, "art-content"),
-		strings.Contains(class, "art-content"):
+		contains(class, "ArticleContent"),
+		contains(class, "page-content"),
+		contains(class, "text-content"),
+		contains(id, "body-text"),
+		contains(class, "body-text"),
+		contains(class, "article__container"),
+		contains(id, "art-content"),
+		contains(class, "art-content"):
 	default:
 		return false
 	}
@@ -124,7 +123,7 @@ func contentRule2(n *html.Node) bool {
 // contains(@class, 'main-column') or contains(@class, 'wpb_text_column') or
 // starts-with(@id, 'primary') or starts-with(@class, 'article ') or @class="text" or
 // @id="article" or @class="cell" or @id="story" or @class="story" or
-// contains(@class, "story-body") or contains(@class, "field-body") or
+// contains(@class, "story-body") or contains(@id, "story-body") or contains(@class, "field-body") or
 // contains(translate(@class, "FULTEX","fultex"), "fulltext")]) or
 // @role='article'])[1]
 func contentRule3(n *html.Node) bool {
@@ -140,28 +139,29 @@ func contentRule3(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(class, "post-bodycopy"),
-		strings.Contains(class, "storycontent"),
-		strings.Contains(class, "story-content"),
+	case contains(class, "post-bodycopy"),
+		contains(class, "storycontent"),
+		contains(class, "story-content"),
 		class == "postarea",
 		class == "art-postcontent",
-		strings.Contains(class, "theme-content"),
-		strings.Contains(class, "blog-content"),
-		strings.Contains(class, "section-content"),
-		strings.Contains(class, "single-content"),
-		strings.Contains(class, "single-post"),
-		strings.Contains(class, "main-column"),
-		strings.Contains(class, "wpb_text_column"),
-		strings.HasPrefix(id, "primary"),
-		strings.HasPrefix(class, "article"),
+		contains(class, "theme-content"),
+		contains(class, "blog-content"),
+		contains(class, "section-content"),
+		contains(class, "single-content"),
+		contains(class, "single-post"),
+		contains(class, "main-column"),
+		contains(class, "wpb_text_column"),
+		startsWith(id, "primary"),
+		startsWith(class, "article"),
 		class == "text",
 		id == "article",
 		class == "cell",
 		id == "story",
 		class == "story",
-		strings.Contains(class, "story-body"),
-		strings.Contains(class, "field-body"),
-		strings.Contains(strings.ToLower(class), "fulltext"),
+		contains(class, "story-body"),
+		contains(id, "story-body"),
+		contains(class, "field-body"),
+		contains(lower(class), "fulltext"),
 		role == "article":
 	default:
 		return false
@@ -188,16 +188,16 @@ func contentRule4(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "content-main"),
-		strings.Contains(class, "content-main"),
-		strings.Contains(class, "content_main"),
-		strings.Contains(id, "content-body"),
-		strings.Contains(class, "content-body"),
-		strings.Contains(id, "contentBody"),
-		strings.Contains(class, "content__body"),
-		strings.Contains(strings.ToLower(id), "main-content"),
-		strings.Contains(strings.ToLower(class), "main-content"),
-		strings.Contains(strings.ToLower(class), "page-content"),
+	case contains(id, "content-main"),
+		contains(class, "content-main"),
+		contains(class, "content_main"),
+		contains(id, "content-body"),
+		contains(class, "content-body"),
+		contains(id, "contentBody"),
+		contains(class, "content__body"),
+		contains(lower(id), "main-content"),
+		contains(lower(class), "main-content"),
+		contains(lower(class), "page-content"),
 		id == "content",
 		class == "content":
 	default:
@@ -223,9 +223,9 @@ func contentRule5(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(class, "main"),
-		strings.HasPrefix(id, "main"),
-		strings.HasPrefix(role, "main"):
+	case startsWith(class, "main"),
+		startsWith(id, "main"),
+		startsWith(role, "main"):
 	default:
 		return false
 	}

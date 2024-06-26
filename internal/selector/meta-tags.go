@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -68,7 +66,7 @@ func metaTagsRule2(n *html.Node) bool {
 
 	for _, ancestor := range ancestors {
 		class := dom.ClassName(ancestor)
-		if strings.HasPrefix(class, "entry-tags") {
+		if startsWith(class, "entry-tags") {
 			return true
 		}
 	}
@@ -96,9 +94,9 @@ func metaTagsRule3(n *html.Node) bool {
 		case class == "row",
 			class == "jp-relatedposts",
 			class == "entry-utility",
-			strings.HasPrefix(class, "tag"),
-			strings.HasPrefix(class, "postmeta"),
-			strings.HasPrefix(class, "meta"):
+			startsWith(class, "tag"),
+			startsWith(class, "postmeta"),
+			startsWith(class, "meta"):
 			return true
 		}
 	}
@@ -117,8 +115,8 @@ func metaTagsRule4(n *html.Node) bool {
 
 		switch {
 		case class == "entry-meta",
-			strings.Contains(class, "topics"),
-			strings.Contains(class, "tags-links"):
+			contains(class, "topics"),
+			contains(class, "tags-links"):
 			return true
 		}
 	}

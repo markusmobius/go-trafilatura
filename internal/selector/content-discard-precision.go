@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -55,11 +53,11 @@ func precisionDiscardedContentRule2(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "bottom"),
-		strings.Contains(class, "bottom"),
-		strings.Contains(id, "link"),
-		strings.Contains(class, "link"),
-		strings.Contains(style, "border"):
+	case contains(id, "bottom"),
+		contains(class, "bottom"),
+		contains(id, "link"),
+		contains(class, "link"),
+		contains(style, "border"):
 	default:
 		return false
 	}

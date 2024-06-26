@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -55,25 +53,25 @@ func metaAuthorDiscardRule1(n *html.Node) bool {
 		class == "comments",
 		class == "title",
 		class == "date",
-		strings.Contains(id, "commentlist"),
-		strings.Contains(class, "commentlist"),
-		strings.Contains(class, "sidebar"),
-		strings.Contains(class, "is-hidden"),
-		strings.Contains(class, "quote"),
-		strings.Contains(id, "comment-list"),
-		strings.Contains(class, "comment-list"),
-		strings.Contains(class, "embedly-instagram"),
-		strings.Contains(id, "ProductReviews"),
-		strings.HasPrefix(id, "comments"),
-		strings.Contains(dataComponent, "Figure"),
-		strings.Contains(class, "article-share"),
-		strings.Contains(class, "article-support"),
-		strings.Contains(class, "print"),
-		strings.Contains(class, "category"),
-		strings.Contains(class, "meta-date"),
-		strings.Contains(class, "meta-reviewer"),
-		strings.HasPrefix(class, "comments"),
-		strings.HasPrefix(class, "Comments"):
+		contains(id, "commentlist"),
+		contains(class, "commentlist"),
+		contains(class, "sidebar"),
+		contains(class, "is-hidden"),
+		contains(class, "quote"),
+		contains(id, "comment-list"),
+		contains(class, "comment-list"),
+		contains(class, "embedly-instagram"),
+		contains(id, "ProductReviews"),
+		startsWith(id, "comments"),
+		contains(dataComponent, "Figure"),
+		contains(class, "article-share"),
+		contains(class, "article-support"),
+		contains(class, "print"),
+		contains(class, "category"),
+		contains(class, "meta-date"),
+		contains(class, "meta-reviewer"),
+		startsWith(class, "comments"),
+		startsWith(class, "Comments"):
 	default:
 		return false
 	}

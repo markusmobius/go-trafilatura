@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -56,15 +54,15 @@ func metaCategoriesRule1(n *html.Node) bool {
 		class := dom.ClassName(ancestor)
 
 		switch {
-		case strings.HasPrefix(class, "post-info"),
-			strings.HasPrefix(class, "postinfo"),
-			strings.HasPrefix(class, "post-meta"),
-			strings.HasPrefix(class, "postmeta"),
-			strings.HasPrefix(class, "meta"),
-			strings.HasPrefix(class, "entry-meta"),
-			strings.HasPrefix(class, "entry-info"),
-			strings.HasPrefix(class, "entry-utility"),
-			strings.HasPrefix(id, "postpath"):
+		case startsWith(class, "post-info"),
+			startsWith(class, "postinfo"),
+			startsWith(class, "post-meta"),
+			startsWith(class, "postmeta"),
+			startsWith(class, "meta"),
+			startsWith(class, "entry-meta"),
+			startsWith(class, "entry-info"),
+			startsWith(class, "entry-utility"),
+			startsWith(id, "postpath"):
 			return true
 		}
 	}
@@ -88,8 +86,8 @@ func metaCategoriesRule2(n *html.Node) bool {
 		class := dom.ClassName(ancestor)
 
 		switch {
-		case strings.HasPrefix(class, "postmeta"),
-			strings.HasPrefix(class, "entry-categories"),
+		case startsWith(class, "postmeta"),
+			startsWith(class, "entry-categories"),
 			class == "postinfo",
 			id == "filedunder":
 			return true
@@ -114,8 +112,8 @@ func metaCategoriesRule3(n *html.Node) bool {
 		class := dom.ClassName(ancestor)
 
 		switch {
-		case strings.HasPrefix(class, "entry-meta"),
-			strings.HasPrefix(class, "entry-footer"):
+		case startsWith(class, "entry-meta"),
+			startsWith(class, "entry-footer"):
 			return true
 		}
 	}
@@ -142,7 +140,7 @@ func metaCategoriesRule4(n *html.Node) bool {
 		case class == "post-category",
 			class == "postcategory",
 			class == "entry-category",
-			strings.Contains(class, "cat-links"):
+			contains(class, "cat-links"):
 			return true
 		}
 	}

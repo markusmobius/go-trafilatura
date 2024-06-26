@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -51,14 +49,14 @@ func commentsRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "commentlist"),
-		strings.Contains(class, "commentlist"),
-		strings.Contains(class, "comment-page"),
-		strings.Contains(id, "comment-list"),
-		strings.Contains(class, "comment-list"), // additional
-		strings.Contains(class, "comments-list"),
-		strings.Contains(class, "comments-content"),
-		strings.Contains(class, "post-comments"):
+	case contains(id, "commentlist"),
+		contains(class, "commentlist"),
+		contains(class, "comment-page"),
+		contains(id, "comment-list"),
+		contains(class, "comment-list"), // additional
+		contains(class, "comments-list"),
+		contains(class, "comments-content"),
+		contains(class, "post-comments"):
 	default:
 		return false
 	}
@@ -82,11 +80,11 @@ func commentsRule2(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(id, "comments"),
-		strings.HasPrefix(strings.ToLower(class), "comments"),
-		strings.HasPrefix(id, "comment-"),
-		strings.HasPrefix(class, "comment-"),
-		strings.Contains(class, "article-comments"):
+	case startsWith(id, "comments"),
+		startsWith(lower(class), "comments"),
+		startsWith(id, "comment-"),
+		startsWith(class, "comment-"),
+		contains(class, "article-comments"):
 	default:
 		return false
 	}
@@ -107,9 +105,9 @@ func commentsRule3(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(id, "comol"),
-		strings.HasPrefix(id, "disqus_thread"),
-		strings.HasPrefix(id, "dsq_comments"):
+	case startsWith(id, "comol"),
+		startsWith(id, "disqus_thread"),
+		startsWith(id, "dsq_comments"):
 	default:
 		return false
 	}
@@ -130,8 +128,8 @@ func commentsRule4(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(id, "social"),
-		strings.Contains(class, "comment"):
+	case startsWith(id, "social"),
+		contains(class, "comment"):
 	default:
 		return false
 	}

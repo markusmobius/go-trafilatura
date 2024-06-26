@@ -22,6 +22,8 @@
 package selector
 
 import (
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -35,4 +37,16 @@ func getNodeAncestors(node *html.Node, ancestorTag string) []*html.Node {
 	}
 
 	return ancestors
+}
+
+func contains(s, substr string) bool {
+	return strings.Contains(s, substr)
+}
+
+func startsWith(s, prefix string) bool {
+	return strings.HasPrefix(s, prefix)
+}
+
+func lower(s string) string {
+	return strings.ToLower(s)
 }

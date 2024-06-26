@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -50,13 +48,13 @@ func removedCommentsRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(strings.ToLower(id), "comment"),
-		strings.HasPrefix(strings.ToLower(class), "comment"),
-		strings.Contains(class, "article-comments"),
-		strings.Contains(class, "post-comments"),
-		strings.HasPrefix(id, "comol"),
-		strings.HasPrefix(id, "disqus_thread"),
-		strings.HasPrefix(id, "dsq-comments"):
+	case startsWith(lower(id), "comment"),
+		startsWith(lower(class), "comment"),
+		contains(class, "article-comments"),
+		contains(class, "post-comments"),
+		startsWith(id, "comol"),
+		startsWith(id, "disqus_thread"),
+		startsWith(id, "dsq-comments"):
 	default:
 		return false
 	}

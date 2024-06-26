@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -47,8 +45,8 @@ func discardedImageRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(id, "caption"),
-		strings.Contains(class, "caption"):
+	case contains(id, "caption"),
+		contains(class, "caption"):
 	default:
 		return false
 	}

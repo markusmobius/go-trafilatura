@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -46,8 +44,8 @@ func discardedTeaserRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(strings.ToLower(id), "teaser"),
-		strings.Contains(strings.ToLower(class), "teaser"):
+	case contains(lower(id), "teaser"),
+		contains(lower(class), "teaser"):
 	default:
 		return false
 	}

@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -57,10 +55,10 @@ func metaAuthorRule1(n *html.Node) bool {
 		class == "author",
 		itemProp == "author name",
 		rel == "me",
-		strings.Contains(class, "author-name"),
-		strings.Contains(class, "AuthorName"),
-		strings.Contains(class, "authorName"),
-		strings.Contains(class, "author name"):
+		contains(class, "author-name"),
+		contains(class, "AuthorName"),
+		contains(class, "authorName"),
+		contains(class, "author name"):
 	default:
 		return false
 	}
@@ -83,21 +81,21 @@ func metaAuthorRule2(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(class, "author"),
-		strings.Contains(id, "author"),
-		strings.Contains(itemProp, "author"),
+	case contains(class, "author"),
+		contains(id, "author"),
+		contains(itemProp, "author"),
 		class == "byline",
-		strings.Contains(id, "zuozhe"),
-		strings.Contains(class, "zuozhe"),
-		strings.Contains(id, "bianji"),
-		strings.Contains(class, "bianji"),
-		strings.Contains(id, "xiaobian"),
-		strings.Contains(class, "xiaobian"),
-		strings.Contains(class, "submitted-by"),
-		strings.Contains(class, "posted-by"),
+		contains(id, "zuozhe"),
+		contains(class, "zuozhe"),
+		contains(id, "bianji"),
+		contains(class, "bianji"),
+		contains(id, "xiaobian"),
+		contains(class, "xiaobian"),
+		contains(class, "submitted-by"),
+		contains(class, "posted-by"),
 		class == "username",
 		class == "BBL",
-		strings.Contains(class, "journalist-name"):
+		contains(class, "journalist-name"):
 	default:
 		return false
 	}
@@ -113,18 +111,14 @@ func metaAuthorRule3(n *html.Node) bool {
 	dataComponent := dom.GetAttribute(n, "data-component")
 	itemProp := dom.GetAttribute(n, "itemprop")
 
-	lId := strings.ToLower(id)
-	lClass := strings.ToLower(class)
-	lDataComponent := strings.ToLower(dataComponent)
-
 	switch {
-	case strings.Contains(lId, "author"),
-		strings.Contains(lClass, "author"),
-		strings.Contains(class, "screenname"),
-		strings.Contains(lDataComponent, "byline"),
-		strings.Contains(itemProp, "author"),
-		strings.Contains(class, "writer"),
-		strings.Contains(lClass, "byline"):
+	case contains(lower(id), "author"),
+		contains(lower(class), "author"),
+		contains(class, "screenname"),
+		contains(lower(dataComponent), "byline"),
+		contains(itemProp, "author"),
+		contains(class, "writer"),
+		contains(lower(class), "byline"):
 	default:
 		return false
 	}

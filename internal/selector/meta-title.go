@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -48,13 +46,13 @@ func metaTitleRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(class, "post-title"),
-		strings.Contains(class, "entry-title"),
-		strings.Contains(class, "headline"),
-		strings.Contains(id, "headline"),
-		strings.Contains(itemProp, "headline"),
-		strings.Contains(class, "post__title"),
-		strings.Contains(class, "article-title"):
+	case contains(class, "post-title"),
+		contains(class, "entry-title"),
+		contains(class, "headline"),
+		contains(id, "headline"),
+		contains(itemProp, "headline"),
+		contains(class, "post__title"),
+		contains(class, "article-title"):
 	default:
 		return false
 	}
@@ -85,8 +83,8 @@ func metaTitleRule3(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.Contains(class, "title"),
-		strings.Contains(id, "title"):
+	case contains(class, "title"),
+		contains(id, "title"):
 	default:
 		return false
 	}

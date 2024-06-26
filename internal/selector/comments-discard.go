@@ -22,8 +22,6 @@
 package selector
 
 import (
-	"strings"
-
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -46,7 +44,7 @@ func discardedCommentsRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case strings.HasPrefix(id, "respond"):
+	case startsWith(id, "respond"):
 	default:
 		return false
 	}
@@ -72,16 +70,16 @@ func discardedCommentsRule3(n *html.Node) bool {
 
 	switch {
 	case class == "comments-title",
-		strings.Contains(class, "comments-title"),
-		strings.Contains(class, "nocomments"),
-		strings.HasPrefix(id, "reply-"),
-		strings.HasPrefix(class, "reply-"),
-		strings.Contains(class, "-reply-"),
-		strings.Contains(class, "message"),
-		strings.Contains(class, "signin"),
-		strings.Contains(id, "akismet"),
-		strings.Contains(class, "akismet"),
-		strings.Contains(style, "display:none"):
+		contains(class, "comments-title"),
+		contains(class, "nocomments"),
+		startsWith(id, "reply-"),
+		startsWith(class, "reply-"),
+		contains(class, "-reply-"),
+		contains(class, "message"),
+		contains(class, "signin"),
+		contains(id, "akismet"),
+		contains(class, "akismet"),
+		contains(style, "display:none"):
 	default:
 		return false
 	}
