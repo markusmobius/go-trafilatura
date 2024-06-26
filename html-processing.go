@@ -31,48 +31,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-var (
-	elementWithSizeAttr = sliceToMap("table", "th", "td", "hr", "pre")
-
-	// List of allowed attributes are taken from go-domdistiller
-	allowedAttributes = sliceToMap(
-		"abbr", "accept-charset", "accept", "accesskey", "action", "align", "alink",
-		"allow", "allowfullscreen", "allowpaymentrequest", "alt", "archive", "as",
-		"async", "autocapitalize", "autocomplete", "autocorrect", "autofocus",
-		"autoplay", "autopictureinpicture", "axis", "background", "behavior",
-		"bgcolor", "border", "bordercolor", "capture", "cellpadding", "cellspacing",
-		"char", "challenge", "charoff", "charset", "checked", "cite", "class",
-		"classid", "clear", "code", "codebase", "codetype", "color", "cols",
-		"colspan", "compact", "content", "contenteditable", "controls",
-		"controlslist", "conversiondestination", "coords", "crossorigin",
-		"csp", "data", "datetime", "declare", "decoding", "default", "defer",
-		"dir", "direction", "dirname", "disabled", "disablepictureinpicture",
-		"disableremoteplayback", "disallowdocumentaccess", "download", "draggable",
-		"elementtiming", "enctype", "end", "enterkeyhint", "event", "exportparts",
-		"face", "for", "form", "formaction", "formenctype", "formmethod",
-		"formnovalidate", "formtarget", "frame", "frameborder", "headers",
-		"height", "hidden", "high", "href", "hreflang", "hreftranslate", "hspace",
-		"http-equiv", "id", "imagesizes", "imagesrcset", "importance",
-		"impressiondata", "impressionexpiry", "incremental", "inert", "inputmode",
-		"integrity", "is", "ismap", "keytype", "kind", "invisible", "label", "lang",
-		"language", "latencyhint", "leftmargin", "link", "list", "loading", "longdesc",
-		"loop", "low", "lowsrc", "manifest", "marginheight", "marginwidth", "max",
-		"maxlength", "mayscript", "media", "method", "min", "minlength", "multiple",
-		"muted", "name", "nohref", "nomodule", "nonce", "noresize", "noshade",
-		"novalidate", "nowrap", "object", "open", "optimum", "part", "pattern",
-		"placeholder", "playsinline", "ping", "policy", "poster", "preload", "pseudo",
-		"readonly", "referrerpolicy", "rel", "reportingorigin", "required", "resources",
-		"rev", "reversed", "role", "rows", "rowspan", "rules", "sandbox", "scheme",
-		"scope", "scrollamount", "scrolldelay", "scrolling", "select", "selected",
-		"shadowroot", "shadowrootdelegatesfocus", "shape", "size", "sizes", "slot",
-		"span", "spellcheck", "src", "srcset", "srcdoc", "srclang", "standby", "start",
-		"step", "style", "summary", "tabindex", "target", "text", "title", "topmargin",
-		"translate", "truespeed", "trusttoken", "type", "usemap", "valign", "value",
-		"valuetype", "version", "vlink", "vspace", "virtualkeyboardpolicy",
-		"webkitdirectory", "width", "wrap",
-	)
-)
-
 // docCleaning cleans the document by discarding unwanted elements
 func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy

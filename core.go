@@ -1117,6 +1117,14 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	return originalExtract, finalText
 }
 
+func basicCleaning(doc *html.Node) *html.Node {
+	discardedElements := dom.QuerySelectorAll(doc, "aside,footer,script,style")
+	for i := len(discardedElements) - 1; i >= 0; i-- {
+		discardedElements[i].Parent.RemoveChild(discardedElements[i])
+	}
+	return doc
+}
+
 // baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
 func baseline(doc *html.Node) (*html.Node, string) {
 	postBody := etree.Element("body")
@@ -1177,10 +1185,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	}
 
 	// Basic tree cleaning
-	discardedElements := dom.QuerySelectorAll(doc, "aside,footer,script,style")
-	for i := len(discardedElements) - 1; i >= 0; i-- {
-		discardedElements[i].Parent.RemoveChild(discardedElements[i])
-	}
+	doc = basicCleaning(doc)
 
 	// Scrape from article tag
 	articleElement := dom.QuerySelector(doc, "article")
