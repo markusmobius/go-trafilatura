@@ -296,7 +296,7 @@ func Test_Formatting(t *testing.T) {
 	result, _ = Extract(r, zeroOpts)
 	assert.Contains(t, fnHtml(result), "<p>")
 	assert.Contains(t, fnHtml(result), "<strong>Wild text</strong>")
-	assert.Equal(t, "Wild text", dom.TextContent(result.ContentNode))
+	assert.Equal(t, "Wild text", result.ContentText)
 
 	// Links
 	r = strings.NewReader(`<html><body><p><a href="">Link text</a></p></body></html>`)

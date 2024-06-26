@@ -31,7 +31,8 @@ import (
 	"golang.org/x/net/html"
 )
 
-// docCleaning cleans the document by discarding unwanted elements
+// docCleaning cleans the document by discarding unwanted elements.
+// In iriginal it's named `tree_cleaning`.
 func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy
 	cleaningList := duplicateMap(tagsToClean)
