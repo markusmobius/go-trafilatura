@@ -72,7 +72,7 @@ var OverallDiscardedContent = []Rule{
 // or contains(@id, "premium-") or contains(@id, "paywall")
 // or contains(@class, "obfuscated") or contains(@class, "blurred")
 // or contains(@class, " ad ")
-// or contains(@class, "next-post")
+// or contains(@class, "next-post") or contains(@class, "side-stories")
 // or contains(@class, "related-stories") or contains(@class, "most-popular")
 // or contains(@class, "mol-factbox") or starts-with(@class, "ZendeskForm")
 // or contains(@class, "message-container") or contains(@id, "message_container")
@@ -166,6 +166,7 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 		contains(class, "blurred"),
 		contains(class, " ad "),
 		contains(class, "next-post"),
+		contains(class, "side-stories"),
 		contains(class, "related-stories"),
 		contains(class, "most-popular"),
 		contains(class, "mol-factbox"),
@@ -188,8 +189,8 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 // comment debris + hidden parts
 // `.//*[@class="comments-title" or contains(@class, "comments-title") or
 // contains(@class, "nocomments") or starts-with(@id, "reply-") or starts-with(@class, "reply-") or
-// contains(@class, "-reply-") or contains(@class, "message")
-// or contains(@id, "akismet") or contains(@class, "akismet") or
+// contains(@class, "-reply-") or contains(@class, "message") or contains(@id, "reader-comments")
+// or contains(@id, "akismet") or contains(@class, "akismet") or contains(@class, "suggest-links") or
 // starts-with(@class, "hide-") or contains(@class, "hide-print") or contains(@id, "hidden")
 // or contains(@style, "hidden") or contains(@hidden, "hidden") or contains(@class, "noprint")
 // or contains(@style, "display:none") or contains(@style, "display: none") or contains(@class, " hidden") or @aria-hidden="true"
@@ -209,8 +210,10 @@ func overallDiscardedContentRule2(n *html.Node) bool {
 		startsWith(class, "reply-"),
 		contains(class, "-reply-"),
 		contains(class, "message"),
+		contains(id, "reader-comments"),
 		contains(id, "akismet"),
 		contains(class, "akismet"),
+		contains(class, "suggest-links"),
 		startsWith(class, "hide-"),
 		contains(class, "hide-print"),
 		contains(id, "hidden"),
