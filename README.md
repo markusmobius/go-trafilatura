@@ -8,11 +8,12 @@ The structure of this package is arranged following the structure of original Py
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Status](#status)
 - [Usage as Go package](#usage-as-go-package)
 - [Usage as CLI Application](#usage-as-cli-application)
 - [Performance](#performance)
+  - [Compiling with cgo under Linux](#compiling-with-cgo-under-linux)
+  - [Compiling with cgo under Windows](#compiling-with-cgo-under-windows)
 - [Comparison with Other Go Packages](#comparison-with-other-go-packages)
 - [Comparison with Original Trafilatura](#comparison-with-original-trafilatura)
 - [Acknowledgements](#acknowledgements)
@@ -20,7 +21,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura v1.5.0 (commit [2639b24][4]).
+This package is stable enough for use and up to date with the original Trafilatura v1.8.0 (commit [c7e00f3][4]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -158,6 +159,7 @@ After `re2` available in your system, you can build your app using tag `re2_wasm
 ```
 go build -tags re2_cgo .
 ```
+
 More detailed instructions in how to prepare your system for compiling with cgo are provided below.
 
 When using `re2_wasm` tag, it will make your app uses `re2` that packaged as WebAssembly module so it should be runnable even without cgo. However, if your input is too small, it might be even slower than using Go's standard regex engine.
@@ -176,12 +178,14 @@ sudo apt-get install -y libre2-dev
 ```
 
 ### Compiling with cgo under Windows
+
 On Windows start by installing [MSYS2][msys2]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
 
 ```bash
 pacman -S mingw-w64-x86_64-gcc
 pacman -S mingw-w64-x86_64-re2
 ```
+
 If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
 
 ```cmd
@@ -257,13 +261,13 @@ This package won't be exist without effort by Adrien Barbaresi, the author of th
 
 ## License
 
-Like the original, `go-trafilatura` is distributed under the [GNU General Public License v3.0](LICENSE).
+Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICENSE).
 
 [0]: https://github.com/adbar/trafilatura
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[4]: https://github.com/adbar/trafilatura/commit/2639b24
+[4]: https://github.com/adbar/trafilatura/commit/c7e00f3
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
