@@ -109,4 +109,5 @@ var rwMockFiles = map[string]string{
 	"https://www.reuters.com/article/us-awards-sag/parasite-scores-upset-at-sag-awards-boosting-oscar-chances-idUSKBN1ZI0EH":                                         "reuters.com.parasite.html",
 	"https://vancouversun.com/technology/microsoft-moves-to-erase-its-carbon-footprint-from-the-atmosphere-in-climate-push/wcm/76e426d9-56de-40ad-9504-18d5101013d2": "vancouversun.com.microsoft.html",
 	"https://www.lanouvellerepublique.fr/indre-et-loire/commune/saint-martin-le-beau/family-park-la-derniere-saison-a-saint-martin-le-beau":                          "lanouvellerepublique.fr.martin.html",
+	"http://www.pcgamer.com/2012/08/09/skyrim-part-1/":                                                                                                               "pcgamer.com.skyrim.html",
 }

@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-shiori/dom"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,6 +34,11 @@ func Test_Extract(t *testing.T) {
 	resContains := func(result *ExtractResult, str string) bool {
 		return strings.Contains(result.ContentText, str) ||
 			strings.Contains(result.CommentsText, str)
+	}
+
+	htmlContains := func(result *ExtractResult, str string) bool {
+		return strings.Contains(dom.OuterHTML(result.ContentNode), str) ||
+			strings.Contains(dom.OuterHTML(result.CommentsNode), str)
 	}
 
 	var result *ExtractResult
@@ -394,6 +400,7 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Palm Springs Mini (links)"))
 	assert.False(t, resContains(result, "Diese Website verwendet Akismet"))
 	assert.False(t, resContains(result, "New York, New York"))
+	assert.True(t, htmlContains(result, "Flauschjacke: <strong>Bershka</strong>"))
 
 	result = extractMockFile(rwMockFiles, "https://www.gofeminin.de/abnehmen/wie-kann-ich-schnell-abnehmen-s1431651.html")
 	assert.True(t, resContains(result, "Die Psyche spielt eine nicht unerhebliche Rolle"))
@@ -515,6 +522,8 @@ func Test_Extract(t *testing.T) {
 	assert.False(t, resContains(result, "Matthias Weber ist ERP-Experte mit langjähriger Berufserfahrung."))
 	assert.False(t, resContains(result, "Die Top 5 digitalen Trends für den Mittelstand"))
 	assert.False(t, resContains(result, ", leading edge,"))
+	assert.True(t, htmlContains(result, `<strong>Vision zukünftiger Softwaregenerationen</strong>.`))
+	assert.True(t, htmlContains(result, `von <b>The unbelievable Machine Company (*um)</b> zur Verfügung gestellt.`))
 
 	result = extractMockFile(rwMockFiles, "https://boingboing.net/2013/07/19/hating-millennials-the-preju.html")
 	assert.True(t, resContains(result, "Click through for the whole thing."))
@@ -625,4 +634,9 @@ func Test_Extract(t *testing.T) {
 	assert.True(t, resContains(result, "It was not immediately clear if"))
 	assert.False(t, resContains(result, "turns CO2 into soap"))
 	assert.False(t, resContains(result, "Reuters files"))
+
+	// Test extract with links
+	result = extractMockFile(rwMockFiles, "http://www.pcgamer.com/2012/08/09/skyrim-part-1/", true)
+	assert.True(t, htmlContains(result, `In <a href="https://www.pcgamer.com/best-skyrim-mods/">Skyrim</a>, a mage`))
+	assert.True(t, htmlContains(result, `<em>Legends </em>don&#39;t destroy <em>houses</em>,`))
 }

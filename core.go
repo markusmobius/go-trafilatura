@@ -277,7 +277,7 @@ func processCommentsNode(elem *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	// Make sure node is not empty and not duplicated
-	processedNode := handleTextNode(elem, cache, true, opts)
+	processedNode := handleTextNode(elem, cache, true, false, opts)
 	if processedNode != nil {
 		processedNode.Attr = nil
 		return processedNode
@@ -501,7 +501,7 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 						dom.AppendChild(newChildElem, processedSubChild)
 					}
 				} else {
-					processedSubChild := handleTextNode(subElement, cache, false, opts)
+					processedSubChild := handleTextNode(subElement, cache, false, false, opts)
 					if processedSubChild != nil {
 						subChildElement := etree.SubElement(newChildElem, dom.TagName(processedSubChild))
 						etree.SetText(subChildElement, etree.Text(processedSubChild))
@@ -637,7 +637,7 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		title = dom.Clone(element, false)
 		for _, child := range dom.ChildNodes(element) {
 			clonedChild := dom.Clone(child, true)
-			processedChild := handleTextNode(clonedChild, cache, false, opts)
+			processedChild := handleTextNode(clonedChild, cache, false, false, opts)
 
 			if processedChild != nil {
 				dom.AppendChild(title, processedChild)
@@ -826,7 +826,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 
 					var processedSubChild *html.Node
 					if inMap(childTag, mapXmlCellTags) || inMap(childTag, mapXmlHiTags) {
-						processedSubChild = handleTextNode(child, cache, true, opts)
+						processedSubChild = handleTextNode(child, cache, true, false, opts)
 					} else {
 						processedSubChild = handleTextElem(child, potentialTagsWithDiv, cache, opts)
 					}
@@ -930,7 +930,7 @@ func handleOtherElement(element *html.Node, potentialTags map[string]struct{}, c
 
 	// TODO: make a copy and prune it in case it contains sub-elements handled on their own?
 	if tagName == "div" || tagName == "details" {
-		processedElement := handleTextNode(element, cache, false, opts)
+		processedElement := handleTextNode(element, cache, false, true, opts)
 		if processedElement != nil && textCharsTest(etree.Text(processedElement)) {
 			processedElement.Attr = nil
 			if dom.TagName(processedElement) == "div" {

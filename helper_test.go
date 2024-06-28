@@ -61,7 +61,7 @@ func parseMockFile(mockFiles map[string]string, url string) *html.Node {
 }
 
 // extractMockFile open then extract content from a mock file.
-func extractMockFile(mockFiles map[string]string, url string) *ExtractResult {
+func extractMockFile(mockFiles map[string]string, url string, enableLink ...bool) *ExtractResult {
 	// Open mock file
 	f := openMockFile(mockFiles, url)
 	defer f.Close()
@@ -73,7 +73,15 @@ func extractMockFile(mockFiles map[string]string, url string) *ExtractResult {
 	}
 
 	// Extract
-	opts := Options{OriginalURL: parsedURL, FallbackCandidates: &FallbackConfig{}}
+	var includeLinks bool
+	if len(enableLink) > 0 {
+		includeLinks = enableLink[0]
+	}
+
+	opts := Options{
+		OriginalURL:        parsedURL,
+		FallbackCandidates: &FallbackConfig{},
+		IncludeLinks:       includeLinks}
 	result, err := Extract(f, opts)
 	if err != nil {
 		log.Panic().Err(err)

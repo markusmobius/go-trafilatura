@@ -195,7 +195,7 @@ func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...
 }
 
 // handleTextNode converts, formats and probes potential text elements.
-func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Options) *html.Node {
+func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpaces bool, opts Options) *html.Node {
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
@@ -206,7 +206,9 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments bool, opts Op
 	// Line break bypass
 	tagName := dom.TagName(node)
 	if !fixComments && inMap(tagName, mapXmlLbTags) {
-		etree.SetTail(node, trim(tail))
+		if !preserveSpaces {
+			etree.SetTail(node, trim(tail))
+		}
 		return node
 	}
 
