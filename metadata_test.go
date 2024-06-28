@@ -77,6 +77,14 @@ func Test_Metadata_Titles(t *testing.T) {
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Empty(t, metadata.Title)
 
+	rawHTML = `<html><head><title>Test Title</title><meta property="og:title" content=" " /></head><body><h1>First</h1></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "First", metadata.Title)
+
+	rawHTML = `<html><head><title>Test Title</title><meta name="title" content=" " /></head><body><h1>First</h1></body></html>`
+	metadata = testGetMetadataFromHTML(rawHTML)
+	assert.Equal(t, "First", metadata.Title)
+
 	rawHTML = `<html><head><title>Test Title</title></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML)
 	assert.Equal(t, "Test Title", metadata.Title)
