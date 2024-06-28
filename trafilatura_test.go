@@ -129,17 +129,6 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Contains(t, result.ContentText, "Epcot Center")
 	assert.Contains(t, result.ContentText, "award-winning fireworks")
 
-	// Paywalls
-	opts = Options{Config: zeroConfig}
-	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Equal(t, "1 3", result.ContentText)
-
-	opts = Options{Config: zeroConfig}
-	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Equal(t, "1 3", result.ContentText)
-
 	// Edge cases
 	htmlString = `
 	<!DOCTYPE html>
@@ -186,6 +175,65 @@ func Test_ExoticTags(t *testing.T) {
 	opts = Options{IncludeLinks: true, IncludeImages: true}
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.NotEmpty(t, result.ContentText)
+}
+
+func Test_HtmlProcessing(t *testing.T) {
+	var opts Options
+	var node *html.Node
+	var htmlString string
+	var result *ExtractResult
+
+	strToNode := func(s string) *html.Node {
+		n, _ := dom.FastParse(strings.NewReader(s))
+		return n
+	}
+
+	// Paywalls
+	opts = Options{Config: zeroConfig}
+	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
+	result, _ = Extract(strings.NewReader(htmlString), opts)
+	assert.Equal(t, "1 3", result.ContentText)
+
+	// Test tail of node deleted if set as text
+	node = strToNode(`<div><p></p>tail</div>`)
+	node = processNode(dom.QuerySelector(node, "p"), nil, defaultOpts)
+	assert.Equal(t, "tail", etree.Text(node))
+	assert.Equal(t, "", etree.Tail(node))
+
+	node = strToNode(`<ol><li></li>text in tail</ol>`)
+	node = processNode(dom.QuerySelector(node, "li"), nil, defaultOpts)
+	assert.Equal(t, "text in tail", etree.Text(node))
+	assert.Equal(t, "", etree.Tail(node))
+
+	node = strToNode(`<p><br/>tail</p>`)
+	node = processNode(dom.QuerySelector(node, "br"), nil, defaultOpts)
+	assert.Equal(t, "", etree.Text(node))
+	assert.Equal(t, "tail", etree.Tail(node))
+
+	node = strToNode(`<div><p>some text</p>tail</div>`)
+	node = processNode(dom.QuerySelector(node, "p"), nil, defaultOpts)
+	assert.Equal(t, "some text", etree.Text(node))
+	assert.Equal(t, "tail", etree.Tail(node))
+
+	// Text node handler
+	node = strToNode(`<p><a href="url"><strong>bold</strong>inner</a>outer</p>`)
+	node = handleTextNode(dom.QuerySelector(node, "a"), nil, false, false, defaultOpts)
+	assert.Equal(t, "outer", etree.Tail(node))
+
+	node = strToNode(`<p><a href="url">text</a>tail</p>`)
+	node = handleTextNode(dom.QuerySelector(node, "a"), nil, false, false, defaultOpts)
+	assert.Equal(t, "text", etree.Text(node))
+	assert.Equal(t, "tail", etree.Tail(node))
+
+	node = strToNode(`<p><a href="url"></a>tail</p>`)
+	node = handleTextNode(dom.QuerySelector(node, "a"), nil, false, false, defaultOpts)
+	assert.Equal(t, "tail", etree.Text(node))
+	assert.Equal(t, "", etree.Tail(node))
+
+	node = strToNode(`<p><a href="url">text<strong>bold</strong></a>tail</p>`)
+	node = handleTextNode(dom.QuerySelector(node, "a"), nil, false, false, defaultOpts)
+	assert.Equal(t, "text", etree.Text(node))
+	assert.Equal(t, "tail", etree.Tail(node))
 }
 
 func Test_LanguageClassifier(t *testing.T) {

@@ -199,7 +199,8 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
-	if text == "" && tail == "" {
+	children := dom.Children(node)
+	if text == "" && tail == "" && len(children) == 0 {
 		return nil
 	}
 
@@ -213,10 +214,10 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 	}
 
 	// If text is empty, try tail
-	if text == "" {
-		text = tail
-		etree.SetText(node, tail)
-		etree.SetTail(node, "")
+	if text == "" && len(children) == 0 {
+		text, tail = tail, ""
+		etree.SetText(node, text)
+		etree.SetTail(node, tail)
 
 		// Handle differently for br/hr
 		if fixComments && (tagName == "br" || tagName == "hr") {
@@ -225,11 +226,13 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 	}
 
 	// Trim values
-	text, tail = trim(text), trim(tail)
-	etree.SetText(node, text)
-	etree.SetTail(node, tail)
+	if !preserveSpaces {
+		text, tail = trim(text), trim(tail)
+		etree.SetText(node, text)
+		etree.SetTail(node, tail)
+	}
 
-	if text == "" || textFilter(node) {
+	if text == "" && textFilter(node) {
 		return nil
 	}
 
