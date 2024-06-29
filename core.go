@@ -702,7 +702,11 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		switch childTag {
 		case "p": // nested <p>
 			logWarn(opts, "extra p within p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
-			etree.SetText(child, " "+etree.Text(child))
+			childText := etree.Text(child)
+			parentText := etree.Text(child.Parent)
+			if parentText != "" && childText != "" {
+				etree.SetText(child, " "+etree.Text(child))
+			}
 			etree.Strip(child)
 
 		case "a": // links
