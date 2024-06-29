@@ -1201,11 +1201,11 @@ func Test_ListProcessing(t *testing.T) {
 	assert.Equal(t, "tail", etree.Tail(dom.Children(firstItem)[0])) // TODO: TIFU
 
 	// List item with tail and nested list
-	listItemWithTailAndNestedList := etree.FromString(`
-	<ul>
-		<li><ul><li>text</li></ul></li>
-		tail
-	</ul>`)
+	listItemWithTailAndNestedList := etree.FromString(`` +
+		`<ul>` +
+		`<li><ul><li>text</li></ul></li>` +
+		`tail` +
+		`</ul>`)
 	processedList = handleLists(listItemWithTailAndNestedList, nil, defaultOpts)
 	assert.Equal(t, "tail", etree.Tail(dom.QuerySelector(processedList, "li ul")))
 }

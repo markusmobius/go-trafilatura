@@ -114,13 +114,8 @@ func ToString(tree *html.Node, prettify ...bool) string {
 	dom.AppendChild(container, dom.Clone(tree, true))
 
 	// Put tails of tree inside container
-	for next := tree.NextSibling; next != nil; next = next.NextSibling {
-		if next.Type == html.ElementNode {
-			break
-		} else if next.Type == html.TextNode {
-			clone := dom.Clone(next, false)
-			dom.AppendChild(container, clone)
-		}
+	for _, tail := range TailNodes(tree) {
+		dom.AppendChild(container, dom.Clone(tail, true))
 	}
 
 	// Convert to string

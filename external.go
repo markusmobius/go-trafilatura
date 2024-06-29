@@ -22,6 +22,8 @@
 package trafilatura
 
 import (
+	"unicode/utf8"
+
 	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
@@ -34,6 +36,137 @@ var tagsToSanitize = sliceToMap(
 	"input", "label", "link", "nav", "noindex", "noscript",
 	"object", "option", "select", "source", "svg", "time",
 )
+
+// compareExtraction decide whether to choose own or external extraction based on a series
+// of heuristics. In original Trafilatura, they use python-readability and justext, while
+// here we use go-readability and go-domdistiller. Since there are difference in
+// implementation between them, here we do it a bit differently compared to the original code.
+func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+	// Bypass for favor recall
+	originalText := trim(etree.IterText(originalExtract, " "))
+	lenOriginal := utf8.RuneCountInString(originalText)
+	if opts.FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
+		return originalExtract, originalText
+	}
+
+	// Clean doc to be used for Readability and Dom Distiller
+	cleanedDoc := dom.Clone(doc, true)
+	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+
+	fallbackCandidates := []*html.Node{}
+	//if there are other fallback candidates we use those
+	if opts.FallbackCandidates.OtherFallbacks != nil && len(opts.FallbackCandidates.OtherFallbacks) > 0 {
+		fallbackCandidates = opts.FallbackCandidates.OtherFallbacks
+	} else {
+		if opts.FallbackCandidates.HasReadability {
+			if opts.FallbackCandidates.ReadabilityFallback != nil {
+				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.ReadabilityFallback)
+			}
+		} else {
+			//we run readability
+			readabilityExtract, err := tryReadability(cleanedDoc, opts)
+			if err == nil {
+				fallbackCandidates = append(fallbackCandidates, readabilityExtract)
+			} else {
+				logWarn(opts, "readability failed: %v", err)
+			}
+		}
+		//now we append domdistiller if it was alreadyrun
+		if opts.FallbackCandidates.HasDistiller {
+			if opts.FallbackCandidates.DistillerFallback != nil {
+				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.DistillerFallback)
+			}
+		} else {
+			// Here we append nil to fallback candidates. This nil value is used to
+			// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
+			// this way to make sure that dom-distiller will only be run if readability
+			// result is still not good enough to use.
+			fallbackCandidates = append(fallbackCandidates, nil)
+		}
+	}
+
+	// Convert url to string for logging
+	var originalUrl string
+	if opts.OriginalURL != nil {
+		originalUrl = opts.OriginalURL.String()
+	}
+
+	// Compare
+	for i, candidate := range fallbackCandidates {
+		// Use dom-distiller if necessary
+		if candidate == nil {
+			var err error
+			candidate, err = tryDomDistiller(cleanedDoc, opts)
+			if err != nil {
+				logWarn(opts, "dom-distiller failed: %v", err)
+				continue
+			}
+		}
+
+		// Extract text from candidate
+		candidateText := trim(dom.TextContent(candidate))
+		lenCandidate := utf8.RuneCountInString(candidateText)
+		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
+
+		// TODO: This part is pretty different compared to the original.
+		// Check if this candidate can be used, either because it pass length check
+		// or because we need to favor recall.
+		var candidateUsable bool
+
+		if lenCandidate == 0 || lenCandidate == lenOriginal {
+			candidateUsable = false
+		} else if lenOriginal == 0 && lenCandidate > 0 {
+			candidateUsable = true
+		} else if lenOriginal > 2*lenCandidate {
+			candidateUsable = false
+		} else if lenCandidate > 2*lenOriginal {
+			candidateUsable = true
+		} else {
+			// Borderline case
+			heads := dom.GetElementsByTagName(doc, "head")
+			tables := dom.GetElementsByTagName(doc, "table")
+			paragraphs := dom.GetElementsByTagName(doc, "p")
+			candidateHeadings := dom.QuerySelectorAll(candidate, "h2,h3,h4")
+
+			var pTextLength int
+			for _, p := range paragraphs {
+				pText := trim(etree.IterText(p, " "))
+				pTextLength += utf8.RuneCountInString(pText)
+			}
+
+			if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else if len(tables) > len(paragraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
+				candidateUsable = true
+			} else if opts.FavorRecall && len(heads) == 0 &&
+				len(candidateHeadings) > 0 && lenCandidate > lenOriginal {
+				candidateUsable = true
+			} else {
+				logDebug(opts, "extraction values: %d %d for %s", lenOriginal, lenCandidate, originalUrl)
+				candidateUsable = false
+			}
+		}
+
+		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
+		if candidateUsable || mustFavorRecall {
+			originalExtract = candidate
+			lenOriginal = lenCandidate
+			logDebug(opts, "candidate-%d usable: %s", i+1, originalUrl)
+		}
+
+		if lenOriginal >= opts.Config.MinExtractedSize {
+			logDebug(opts, "candidate-%d used: %s", i+1, originalUrl)
+			break
+		}
+	}
+
+	// Sanitize the tree
+	sanitizeTree(originalExtract, opts)
+
+	// Return data
+	finalText := trim(etree.IterText(originalExtract, " "))
+	return originalExtract, finalText
+}
 
 func tryReadability(doc *html.Node, opts Options) (*html.Node, error) {
 	// Extract using go-readability

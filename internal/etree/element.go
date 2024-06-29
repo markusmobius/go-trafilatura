@@ -76,6 +76,21 @@ func Iter(element *html.Node, tags ...string) []*html.Node {
 	return elementList
 }
 
+// IterDescendants here is similar with Iter, except it excludes itself.
+func IterDescendants(element *html.Node, tags ...string) []*html.Node {
+	elementList := Iter(element, tags...)
+	if len(elementList) == 0 {
+		return nil
+	}
+
+	// If the first element in the list is itself, exclude it.
+	if elementList[0] == element {
+		return elementList[1:]
+	}
+
+	return elementList
+}
+
 // Text returns texts before first subelement. If there was no text,
 // this function will returns an empty string.
 func Text(element *html.Node) string {

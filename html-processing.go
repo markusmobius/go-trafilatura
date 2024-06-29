@@ -199,13 +199,13 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
+	tagName := dom.TagName(node)
 	children := dom.Children(node)
-	if text == "" && tail == "" && len(children) == 0 {
+	if tagName == "done" || (len(children) == 0 && text == "" && tail == "") {
 		return nil
 	}
 
 	// Line break bypass
-	tagName := dom.TagName(node)
 	if !fixComments && inMap(tagName, mapXmlLbTags) {
 		if !preserveSpaces {
 			etree.SetTail(node, trim(tail))
@@ -220,7 +220,7 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 		etree.SetTail(node, tail)
 
 		// Handle differently for br/hr
-		if fixComments && (tagName == "br" || tagName == "hr") {
+		if fixComments && inMap(tagName, mapXmlLbTags) {
 			node.Data = "p"
 		}
 	}
@@ -357,13 +357,11 @@ func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks 
 
 // processNode converts, formats, and probes potential text elements (light format).
 func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	text := etree.Text(element)
+	tail := etree.Tail(element)
 	tagName := dom.TagName(element)
-	if tagName == "done" {
-		return nil
-	}
-
-	text, tail := etree.Text(element), etree.Tail(element)
-	if len(dom.Children(element)) == 0 && text == "" && tail == "" {
+	children := dom.Children(element)
+	if tagName == "done" || (len(children) == 0 && text == "" && tail == "") {
 		return nil
 	}
 
@@ -374,9 +372,9 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 
 	// Adapt content string
 	if !inMap(tagName, mapXmlLbTags) && text == "" && tail != "" {
-		etree.SetText(element, tail)
-		etree.SetTail(element, "")
 		text, tail = tail, ""
+		etree.SetText(element, text)
+		etree.SetTail(element, tail)
 	}
 
 	// Content checks
@@ -544,7 +542,8 @@ func convertTags(tree *html.Node, opts Options) {
 		}
 	}
 
-	// Iterate over all concerned elements
+	// Iterate over all concerned elements.
+	// In this case we only care about quotes.
 	for _, elem := range etree.Iter(tree, listXmlQuoteTags...) {
 		var codeFlag bool
 
