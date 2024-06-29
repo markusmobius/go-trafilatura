@@ -21,7 +21,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura v1.8.0 (commit [c7e00f3][4]).
+This package is stable enough for use and up to date with the original Trafilatura v1.9.0 (commit [11255bd][4]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -221,10 +221,10 @@ Here is the result when compared with the original Trafilatura v1.5.0:
 |        `trafilatura` + fallback         |   0.914   | 0.907  |  0.911   |  0.910  |
 |  `trafilatura` + fallback + precision   |   0.925   | 0.880  |  0.905   |  0.902  |
 |    `trafilatura` + fallback + recall    |   0.898   | 0.911  |  0.904   |  0.905  |
-|            `go-trafilatura`             |   0.908   | 0.884  |  0.897   |  0.896  |
-|       `go-trafilatura` + fallback       |   0.911   | 0.899  |  0.906   |  0.905  |
-| `go-trafilatura` + fallback + precision |   0.922   | 0.869  |  0.898   |  0.895  |
-|  `go-trafilatura` + fallback + recall   |   0.896   | 0.905  |  0.900   |  0.901  |
+|            `go-trafilatura`             |   0.911   | 0.884  |  0.899   |  0.897  |
+|       `go-trafilatura` + fallback       |   0.914   | 0.897  |  0.906   |  0.905  |
+| `go-trafilatura` + fallback + precision |   0.924   | 0.869  |  0.899   |  0.896  |
+|  `go-trafilatura` + fallback + recall   |   0.901   | 0.903  |  0.902   |  0.902  |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
@@ -267,7 +267,7 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[4]: https://github.com/adbar/trafilatura/commit/c7e00f3
+[4]: https://github.com/adbar/trafilatura/commit/11255bd
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
