@@ -21,7 +21,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura v1.9.0 (commit [11255bd][4]).
+This package is stable enough for use and up to date with the original Trafilatura [v1.10.0][last-version] (commit [b36b6fa][last-commit]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -200,27 +200,27 @@ Here we compare the extraction result between `go-trafilatura`, `go-readability`
 go run scripts/comparison/*.go content
 ```
 
-For the test, we use 750 documents, 2236 text & 2250 boilerplate segments (2022-05-18). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+For the test, we use 750 documents, 2236 text & 2250 boilerplate segments (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
 |            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
 | :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|        `go-readability`        |   0.863   | 0.872  |  0.867   |  0.867  |   6.794   |
-|       `go-domdistiller`        |   0.865   | 0.855  |  0.861   |  0.860  |   7.938   |
-|        `go-trafilatura`        |   0.908   | 0.884  |  0.897   |  0.896  |   9.180   |
-| `go-trafilatura` with fallback |   0.911   | 0.899  |  0.906   |  0.905  |  23.827   |
+|        `go-readability`        |   0.861   | 0.873  |  0.866   |  0.867  |   8.386   |
+|       `go-domdistiller`        |   0.864   | 0.856  |  0.861   |  0.860  |   8.139   |
+|        `go-trafilatura`        |   0.911   | 0.884  |  0.899   |  0.897  |   9.682   |
+| `go-trafilatura` with fallback |   0.914   | 0.897  |  0.906   |  0.905  |  26.624   |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For instance, the image extraction in `go-trafilatura` is still not as good as the other.
 
 ## Comparison with Original Trafilatura
 
-Here is the result when compared with the original Trafilatura v1.5.0:
+Here is the result when compared with the original Trafilatura v1.10.0:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: |
-|              `trafilatura`              |   0.913   | 0.891  |  0.903   |  0.902  |
-|        `trafilatura` + fallback         |   0.914   | 0.907  |  0.911   |  0.910  |
-|  `trafilatura` + fallback + precision   |   0.925   | 0.880  |  0.905   |  0.902  |
-|    `trafilatura` + fallback + recall    |   0.898   | 0.911  |  0.904   |  0.905  |
+|              `trafilatura`              |   0.916   | 0.890  |  0.905   |  0.903  |
+|        `trafilatura` + fallback         |   0.918   | 0.907  |  0.913   |  0.912  |
+|  `trafilatura` + fallback + precision   |   0.929   | 0.877  |  0.905   |  0.902  |
+|    `trafilatura` + fallback + recall    |   0.904   | 0.913  |  0.908   |  0.908  |
 |            `go-trafilatura`             |   0.911   | 0.884  |  0.899   |  0.897  |
 |       `go-trafilatura` + fallback       |   0.914   | 0.897  |  0.906   |  0.905  |
 | `go-trafilatura` + fallback + precision |   0.924   | 0.869  |  0.899   |  0.896  |
@@ -232,12 +232,12 @@ For the speed, here is the comparison between our port and the original Trafilat
 
 |             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
 | :---------------------------: | :------: | :------: | :------------------: | :---------------: |
-|         `trafilatura`         |  12.98   |  18.65   |        26.55         |       13.74       |
-|       `go-trafilatura`        |   9.18   |  23.83   |        24.12         |       19.46       |
-| `go-trafilatura` + `re2_wasm` |   5.54   |  12.41   |        12.21         |       8.23        |
-| `go-trafilatura` + `re2_cgo`  |   5.87   |  14.04   |        14.54         |       10.07       |
+|         `trafilatura`         |  15.09   |  22.54   |        31.40         |       17.74       |
+|       `go-trafilatura`        |  9.682   |  26.62   |        28.08         |       22.84       |
+| `go-trafilatura` + `re2_wasm` |   7.88   |  17.22   |        17.59         |       10.93       |
+| `go-trafilatura` + `re2_cgo`  |   6.54   |  16.59   |        15.83         |       10.47       |
 
-As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor fro `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
+As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor from `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
 
 ## Acknowledgements
 
@@ -267,7 +267,8 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[4]: https://github.com/adbar/trafilatura/commit/11255bd
+[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.10.0
+[last-commit]: https://github.com/adbar/trafilatura/commit/b36b6fa
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
@@ -275,3 +276,4 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [k-web]: https://www.dwds.de/d/k-web
 [re2]: https://github.com/google/re2
 [go-re2]: https://github.com/wasilibs/go-re2
+[msys2]: https://www.msys2.org/
