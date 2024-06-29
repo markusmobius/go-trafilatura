@@ -1039,8 +1039,12 @@ func Test_TableProcessing(t *testing.T) {
 			</ul>
 		</td></tr>
 	</table>`)
-	processedTable = handleTable(tableWithList, potentialTags, nil, defaultOpts)
+	processedTable = handleTable(dom.Clone(tableWithList, true), potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul"}, iterNodeValues(processedTable))
+
+	recallOpts := Options{Config: DefaultConfig(), FavorRecall: true}
+	processedTable = handleTable(dom.Clone(tableWithList, true), potentialTags, nil, recallOpts)
+	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul", "li-one", "li-two"}, iterNodeValues(processedTable))
 
 	// Broken table 1 (broken as in uncommon structure)
 	tableBroken1 := etree.FromString(`<table><td>cell1</td><tr><td>cell2</td></tr></table>`)

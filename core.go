@@ -816,7 +816,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 	etree.StripTags(tableElement, "thead", "tbody", "tfoot")
 
 	// Explore sub-elements
-	for _, subElement := range dom.GetElementsByTagName(tableElement, "*") {
+	for _, subElement := range etree.IterDescendants(tableElement) {
 		subElementTag := dom.TagName(subElement)
 		if subElementTag == "tr" {
 			if len(dom.Children(newRow)) > 0 {
@@ -839,12 +839,18 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 				etree.SetTail(newChildElem, etree.Tail(subElement))
 				subElement.Data = "done"
 
-				for _, child := range dom.GetElementsByTagName(subElement, "*") {
+				for _, child := range etree.IterDescendants(subElement) {
 					childTag := dom.TagName(child)
 
 					var processedSubChild *html.Node
 					if inMap(childTag, mapXmlCellTags) || inMap(childTag, mapXmlHiTags) {
 						processedSubChild = handleTextNode(child, cache, true, false, opts)
+					} else if inMap(childTag, mapXmlListTags) && opts.FavorRecall {
+						processedSubChild = handleLists(child, cache, opts)
+						if processedSubChild != nil {
+							etree.Append(newChildElem, dom.Clone(processedSubChild, true))
+							processedSubChild = nil
+						}
 					} else {
 						processedSubChild = handleTextElem(child, potentialTagsWithDiv, cache, opts)
 					}
