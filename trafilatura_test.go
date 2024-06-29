@@ -788,11 +788,11 @@ func Test_PrecisionRecall(t *testing.T) {
 	// Basic test
 	htmlStr = `<html><body><p>This here is the text.</p></body></html>`
 
-	opts = Options{FavorPrecision: true, Config: zeroConfig}
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
 
-	opts = Options{FavorRecall: true, Config: zeroConfig}
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotNil(t, result)
 
@@ -806,15 +806,15 @@ func Test_PrecisionRecall(t *testing.T) {
 		</div>
 	</body></html>`
 
-	opts = Options{FavorRecall: true, Config: zeroConfig}
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.Contains(t, result.ContentText, "teaser text")
 
-	opts = Options{FavorRecall: false, Config: zeroConfig}
+	opts = Options{Focus: Balanced, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
 
-	opts = Options{FavorPrecision: true, Config: zeroConfig}
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "teaser text")
 
@@ -825,11 +825,11 @@ func Test_PrecisionRecall(t *testing.T) {
 		<a href="test2.html">2.</a>
 	</p></div></article></body></html>`
 
-	opts = Options{FavorRecall: true, Config: zeroConfig}
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
 
-	opts = Options{FavorPrecision: true, Config: zeroConfig}
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
 }
@@ -1042,7 +1042,7 @@ func Test_TableProcessing(t *testing.T) {
 	processedTable = handleTable(dom.Clone(tableWithList, true), potentialTags, nil, defaultOpts)
 	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul"}, iterNodeValues(processedTable))
 
-	recallOpts := Options{Config: DefaultConfig(), FavorRecall: true}
+	recallOpts := Options{Config: DefaultConfig(), Focus: FavorRecall}
 	processedTable = handleTable(dom.Clone(tableWithList, true), potentialTags, nil, recallOpts)
 	assert.Equal(t, []string{"table", "tr", "td", "p-a list", "ul", "li-one", "li-two"}, iterNodeValues(processedTable))
 

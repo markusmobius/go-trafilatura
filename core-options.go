@@ -28,6 +28,15 @@ import (
 	"golang.org/x/net/html"
 )
 
+// ExtractionFocus specify the focus of extraction.
+type ExtractionFocus uint8
+
+const (
+	Balanced ExtractionFocus = iota
+	FavorRecall
+	FavorPrecision
+)
+
 // Config is advanced setting to fine tune the extraction result.
 // You can use it to specify the minimal size of the extracted content
 // and how many duplicate text allowed. However, for most of the time
@@ -89,11 +98,8 @@ type Options struct {
 	// OtherFallbacks!=nil will ensure that this list is used (rather than readability/distiller)
 	FallbackCandidates *FallbackConfig
 
-	// FavorPrecision specify whether to prefer less text but correct extraction.
-	FavorPrecision bool
-
-	// FavorRecall specify whether to prefer more text even when unsure.
-	FavorRecall bool
+	// Focus specify the extraction behavior of Trafilatura.
+	Focus ExtractionFocus
 
 	// ExcludeComments specify whether to exclude comments from the extraction result.
 	ExcludeComments bool

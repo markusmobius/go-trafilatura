@@ -67,14 +67,26 @@ func docCleaning(doc *html.Node, opts Options) {
 		delete(strippingList, "img")
 	}
 
+	// Remove nodes in stripping list but keep its children
+	for tagName := range strippingList {
+		etree.StripTags(doc, tagName)
+	}
+
+	// Prevent removal of paragraphs
+	var pWasExist bool
+	docBackup := dom.Clone(doc, true)
+	if opts.Focus == FavorRecall && len(dom.GetElementsByTagName(doc, "p")) > 0 {
+		pWasExist = true
+	}
+
 	// Remove nodes in cleaning list including its children
 	for tagName := range cleaningList {
 		etree.StripElements(doc, false, tagName)
 	}
 
-	// Remove nodes in stripping list but keep its children
-	for tagName := range strippingList {
-		etree.StripTags(doc, tagName)
+	// If paragraphs is removed, revert to backup
+	if pWasExist && len(dom.GetElementsByTagName(doc, "p")) == 0 {
+		doc = docBackup
 	}
 
 	// Remove HTML comment
@@ -257,7 +269,7 @@ func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	var threshold float64
 
 	if dom.TagName(element) == "p" {
-		if !opts.FavorPrecision {
+		if opts.Focus != FavorPrecision {
 			if dom.NextElementSibling(element) == nil {
 				limitLength, threshold = 60, 0.8
 			} else {
@@ -333,7 +345,7 @@ func linkDensityTestTables(table *html.Node, opts Options) bool {
 func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
 	// Longer strings impact recall in favor of precision
 	threshold := 10
-	if opts.FavorPrecision {
+	if opts.Focus == FavorPrecision {
 		threshold = 50
 	}
 
@@ -465,7 +477,7 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 
 	if backtracking {
 		threshold := 100
-		if opts.FavorPrecision {
+		if opts.Focus == FavorPrecision {
 			threshold = 200
 		}
 

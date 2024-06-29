@@ -45,7 +45,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	// Bypass for favor recall
 	originalText := trim(etree.IterText(originalExtract, " "))
 	lenOriginal := utf8.RuneCountInString(originalText)
-	if opts.FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
+	if opts.Focus == FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
 		return originalExtract, originalText
 	}
 
@@ -138,7 +138,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 				candidateUsable = true
 			} else if len(tables) > len(paragraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
 				candidateUsable = true
-			} else if opts.FavorRecall && len(heads) == 0 &&
+			} else if opts.Focus == FavorRecall && len(heads) == 0 &&
 				len(candidateHeadings) > 0 && lenCandidate > lenOriginal {
 				candidateUsable = true
 			} else {
@@ -147,7 +147,7 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 			}
 		}
 
-		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.FavorRecall
+		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.Focus == FavorRecall
 		if candidateUsable || mustFavorRecall {
 			originalExtract = candidate
 			lenOriginal = lenCandidate

@@ -31,12 +31,12 @@ func compareContentExtraction() {
 	params := prepareExtractorParameter()
 
 	var errors []error
-	errors = append(errors, runReadability(params)...)                      // Readability
-	errors = append(errors, runDomDistiller(params)...)                     // DOM Distiller
-	errors = append(errors, runTrafilatura(params, false, false, false)...) // Standard Trafilatura
-	errors = append(errors, runTrafilatura(params, true, false, false)...)  // Trafilatura + Fallback
-	errors = append(errors, runTrafilatura(params, true, true, false)...)   // Trafilatura + Precision
-	errors = append(errors, runTrafilatura(params, true, false, true)...)   // Trafilatura + Recall
+	errors = append(errors, runReadability(params)...)                                   // Readability
+	errors = append(errors, runDomDistiller(params)...)                                  // DOM Distiller
+	errors = append(errors, runTrafilatura(params, false, trafilatura.Balanced)...)      // Standard Trafilatura
+	errors = append(errors, runTrafilatura(params, true, trafilatura.Balanced)...)       // Trafilatura + Fallback
+	errors = append(errors, runTrafilatura(params, true, trafilatura.FavorPrecision)...) // Trafilatura + Precision
+	errors = append(errors, runTrafilatura(params, true, trafilatura.FavorRecall)...)    // Trafilatura + Recall
 
 	// Print errors
 	for _, err := range errors {
@@ -80,15 +80,15 @@ func prepareExtractorParameter() []ExtractorParameter {
 	return params
 }
 
-func runTrafilatura(params []ExtractorParameter, useFallback, favorPrecision, favorRecall bool) []error {
+func runTrafilatura(params []ExtractorParameter, useFallback bool, focus trafilatura.ExtractionFocus) []error {
 	title := "trafilatura"
 	if useFallback {
 		title += "+fallback"
 	}
 
-	if favorPrecision {
+	if focus == trafilatura.FavorPrecision {
 		title += "+precision"
-	} else if favorRecall {
+	} else if focus == trafilatura.FavorRecall {
 		title += "+recall"
 	}
 
@@ -98,8 +98,7 @@ func runTrafilatura(params []ExtractorParameter, useFallback, favorPrecision, fa
 	var opts = trafilatura.Options{
 		ExcludeComments: true,
 		ExcludeTables:   false,
-		FavorPrecision:  favorPrecision,
-		FavorRecall:     favorRecall,
+		Focus:           focus,
 	}
 	if useFallback {
 		opts.FallbackCandidates = &trafilatura.FallbackConfig{}

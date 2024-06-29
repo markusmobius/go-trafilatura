@@ -425,7 +425,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 					var processedSubChild *html.Node
 					if inMap(childTag, mapXmlCellTags) || inMap(childTag, mapXmlHiTags) {
 						processedSubChild = handleTextNode(child, cache, true, false, opts)
-					} else if inMap(childTag, mapXmlListTags) && opts.FavorRecall {
+					} else if inMap(childTag, mapXmlListTags) && opts.Focus == FavorRecall {
 						processedSubChild = handleLists(child, cache, opts)
 						if processedSubChild != nil {
 							etree.Append(newChildElem, dom.Clone(processedSubChild, true))
@@ -557,7 +557,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	selectorList = append(selectorList, listXmlQuoteTags...)
 	selectorList = append(selectorList, "code", "p", "table", `div[class*="w3-code"]`)
 
-	if opts.FavorRecall {
+	if opts.Focus == FavorRecall {
 		potentialTags = duplicateMap(potentialTags)
 		potentialTags["div"] = struct{}{}
 		for _, t := range listXmlLbTags {
@@ -603,9 +603,9 @@ func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 	}
 
 	// Balance precision / recall
-	if !opts.FavorRecall {
+	if opts.Focus != FavorRecall {
 		subTree = pruneUnwantedNodes(subTree, selector.DiscardedTeaser)
-		if opts.FavorPrecision {
+		if opts.Focus == FavorPrecision {
 			subTree = pruneUnwantedNodes(subTree, selector.PrecisionDiscardedContent)
 		}
 	}
@@ -616,7 +616,7 @@ func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 	deleteByLinkDensity(subTree, opts, false, "p")
 
 	// Also filter fw/head, table and quote elements?
-	if opts.FavorPrecision {
+	if opts.Focus == FavorPrecision {
 		// Delete trailing titles
 		children := dom.Children(subTree)
 		for i := len(children) - 1; i >= 0; i-- {
@@ -675,7 +675,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Define iteration strategy
 		_, tableIsPotentialTag := potentialTags["table"]
-		if tableIsPotentialTag || opts.FavorPrecision {
+		if tableIsPotentialTag || opts.Focus == FavorPrecision {
 			tables := etree.Iter(subTree, "table")
 			for i := len(tables) - 1; i >= 0; i-- {
 				if linkDensityTestTables(tables[i], opts) {
@@ -696,9 +696,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		factor := 3
-		if opts.FavorRecall {
-			factor = 5
-		} else if opts.FavorPrecision {
+		if opts.Focus == FavorPrecision {
 			factor = 1
 		}
 
@@ -761,11 +759,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
-		if opts.FavorRecall {
-			potentialTags = duplicateMap(potentialTags)
-			potentialTags["div"] = struct{}{}
-		}
-
 		resultBody = dom.CreateElement("body")
 		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
 		tmpText = trim(etree.IterText(resultBody, " "))

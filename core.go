@@ -149,7 +149,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	if !opts.ExcludeComments { // Comment is included
 		commentsBody, tmpComments = extractComments(doc, cache, opts)
 		lenComments = utf8.RuneCountInString(tmpComments)
-	} else if opts.FavorPrecision {
+	} else if opts.Focus == FavorPrecision {
 		doc = pruneUnwantedNodes(doc, selector.RemovedComments)
 	}
 
