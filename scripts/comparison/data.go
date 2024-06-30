@@ -8679,4 +8679,41 @@ var comparisonData = map[string]ComparisonEntry{
 		With:    []string{"Vorteilen eines sicheren und durchgängig", "Registrierung ist die WebAkte innerhalb", "weitere Informationen erhalten"},
 		Without: []string{"Ähnliche Beiträge", "Meistgelesene Artikel", "Aktuelle Meldungen"},
 	},
+	"https://advertising.jodel.com/": {
+		File:    "jodel.com.advertising.html",
+		With:    []string{"Was sorgt dafür, dass deine Marke auf Jodel sicher ist?", "Visuelle und Text-Posts werden in einer 2. Stufe", "Lass dich inspirieren und starte deine Erfolgsgeschichte heute"},
+		Without: []string{"Welche Unternehmen bereits Jodel vertrauen", "Termin wählen", "All Rights Reserved."},
+	},
+	"https://www.geeks3d.com/hacklab/20190110/python-3-simple-http-request-with-the-socket-module/": {
+		File:    "geeks3d.com.hacklab.html",
+		With:    []string{"This module provides access to the BSD socket interface", "Host:www.google.com", "http_response_len = len(http_response)"},
+		Without: []string{"(Demo) APP Launcher", "Demos: geexlab-demopack-python3/socket/01-socket-http-request/main.xml", "Your email address will not be published"},
+	},
+	"https://github.com/golemfactory/yapapi": {
+		File:    "github.com.yapapi.html",
+		With:    []string{"Golem application development", "poetry add yapapi", "YAGNA_PAYMENT_DRIVER"},
+		Without: []string{"Watchers", "2022 GitHub", "Failed to load latest commit information"},
+	},
+	"https://www.telegraph.co.uk/news/uknews/law-and-order/9209302/Plumber-jailed-after-boiler-killed-millionaires-daughter.html": {
+		File:    "telegraph.co.uk.plumber.html",
+		With:    []string{"The deadly fumes leaked out of the dodgy boiler flue pipe", "The quality of work fell below your normal high standards", "sobbed in court as Hartley was led to begin his sentence"},
+		Without: []string{"More stories", "2:54pm", "Follow us on"},
+	},
+	"https://german.stackexchange.com/questions/10376/when-to-use-wurde-versus-war-eg-ich-wurde-ausgeraubt-vs-ich-war-ausgerau": {
+		File:     "german.stackexchange.com.ausgeraubt.html",
+		With:     []string{"How does one know", "Ich wurde ausgeraubt", "in that context"},
+		Without:  []string{"2 months ago", "20:37", "Sorted by"},
+		Comments: []string{"is simply not correct.", "Unless of what?", "Daher gebe ich hier -1"},
+	},
+	"https://docs.docker.com/engine/install/": {
+		File:    "docs.docker.com.install.html",
+		With:    []string{"Docker Desktop for Windows", "0.0.0-YYYYmmddHHMMSS-abcdefabcdef", "Please DO NOT file a public issue"},
+		Without: []string{"Installation per distro", "On this page:", "Toggle navigation"},
+		Tags:    []string{"docker", "installation", "install", "Docker Engine", "Docker Engine", "docker editions", "stable", "edge"},
+	},
+	"https://www.thebalance.com/coinbase-vs-coinbase-pro-5116733": {
+		File:    "thebalance.com.coinbase.html",
+		With:    []string{"Coinbase and Coinbase Pro are two of the most popular cryptocurrency exchanges", " At a Glance ", "1 GBP withdrawal"},
+		Without: []string{"Jacob Wade is a personal finance expert", "Kraken vs. Coinbase", "We recommend the best products"},
+	},
 }
