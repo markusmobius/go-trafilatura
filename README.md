@@ -200,14 +200,14 @@ Here we compare the extraction result between `go-trafilatura`, `go-readability`
 go run scripts/comparison/*.go content
 ```
 
-For the test, we use 750 documents, 2236 text & 2250 boilerplate segments (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+For the test, we use 976 documents taken from various sources (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
 |            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
 | :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|        `go-readability`        |   0.861   | 0.873  |  0.866   |  0.867  |   8.386   |
-|       `go-domdistiller`        |   0.864   | 0.856  |  0.861   |  0.860  |   8.139   |
-|        `go-trafilatura`        |   0.911   | 0.884  |  0.899   |  0.897  |   9.682   |
-| `go-trafilatura` with fallback |   0.914   | 0.897  |  0.906   |  0.905  |  26.624   |
+|        `go-readability`        |   0.870   | 0.882  |  0.875   |  0.876  |  11.731   |
+|       `go-domdistiller`        |   0.871   | 0.865  |  0.869   |  0.868  |  11.829   |
+|        `go-trafilatura`        |   0.908   | 0.885  |  0.898   |  0.896  |  16.167   |
+| `go-trafilatura` with fallback |   0.912   | 0.902  |  0.907   |  0.906  |  36.524   |
 
 As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For instance, the image extraction in `go-trafilatura` is still not as good as the other.
 
@@ -217,14 +217,14 @@ Here is the result when compared with the original Trafilatura v1.10.0:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: |
-|              `trafilatura`              |   0.916   | 0.890  |  0.905   |  0.903  |
-|        `trafilatura` + fallback         |   0.918   | 0.907  |  0.913   |  0.912  |
-|  `trafilatura` + fallback + precision   |   0.929   | 0.877  |  0.905   |  0.902  |
-|    `trafilatura` + fallback + recall    |   0.904   | 0.913  |  0.908   |  0.908  |
-|            `go-trafilatura`             |   0.911   | 0.884  |  0.899   |  0.897  |
-|       `go-trafilatura` + fallback       |   0.914   | 0.897  |  0.906   |  0.905  |
-| `go-trafilatura` + fallback + precision |   0.924   | 0.869  |  0.899   |  0.896  |
-|  `go-trafilatura` + fallback + recall   |   0.901   | 0.903  |  0.902   |  0.902  |
+|              `trafilatura`              |   0.912   | 0.886  |  0.900   |  0.899  |
+|        `trafilatura` + fallback         |   0.913   | 0.903  |  0.904   |  0.902  |
+|  `trafilatura` + fallback + precision   |   0.925   | 0.879  |  0.904   |  0.902  |
+|    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.904   |  0.904  |
+|            `go-trafilatura`             |   0.908   | 0.885  |  0.898   |  0.896  |
+|       `go-trafilatura` + fallback       |   0.912   | 0.902  |  0.907   |  0.906  |
+| `go-trafilatura` + fallback + precision |   0.924   | 0.876  |  0.902   |  0.899  |
+|  `go-trafilatura` + fallback + recall   |   0.899   | 0.904  |  0.901   |  0.901  |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
@@ -232,10 +232,10 @@ For the speed, here is the comparison between our port and the original Trafilat
 
 |             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
 | :---------------------------: | :------: | :------: | :------------------: | :---------------: |
-|         `trafilatura`         |  15.09   |  22.54   |        31.40         |       17.74       |
-|       `go-trafilatura`        |  9.682   |  26.62   |        28.08         |       22.84       |
-| `go-trafilatura` + `re2_wasm` |   7.88   |  17.22   |        17.59         |       10.93       |
-| `go-trafilatura` + `re2_cgo`  |   6.54   |  16.59   |        15.83         |       10.47       |
+|         `trafilatura`         |  19.59   |  29.01   |        39.68         |       22.71       |
+|       `go-trafilatura`        |  16.17   |  36.52   |        36.73         |       27.50       |
+| `go-trafilatura` + `re2_wasm` |  11.29   |  21.35   |        21.28         |       14.39       |
+| `go-trafilatura` + `re2_cgo`  |   9.95   |  21.20   |        20.26         |       13.02       |
 
 As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor from `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
 

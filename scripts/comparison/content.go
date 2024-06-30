@@ -30,6 +30,8 @@ type EvaluationResult struct {
 func compareContentExtraction() {
 	params := prepareExtractorParameter()
 
+	fmt.Printf("Number of documents: %d\n", len(params))
+
 	var errors []error
 	errors = append(errors, runReadability(params)...)                                   // Readability
 	errors = append(errors, runDomDistiller(params)...)                                  // DOM Distiller
