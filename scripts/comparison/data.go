@@ -4598,7 +4598,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"do dyskusji", "Używamy informacji zapisanych", "UDOSTĘPNIJ"},
 	},
 	"https://www.polityka.pl/tygodnikpolityka/swiat/2116825,1,krolowa-elzbieta-wyplywa-w-swiat-sygnal-dla-chin-i-rosji.read": {
-		File:    "\"Królowa Elżbieta\" wypływa w świat. Sygnał dla Chin i Rosji - Polityka.pl.html",
+		File:    "Królowa Elżbieta wypływa w świat. Sygnał dla Chin i Rosji - Polityka.pl.html",
 		With:    []string{"Pierwszy rejs HMS", "Bandera podąża za handlem", "zaważyła na jego trasie."},
 		Without: []string{"Czytaj też", "Były dowódca wojsk USA", "starszy analityk"},
 	},
@@ -4638,7 +4638,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Without: []string{"więcej]", "drukuj", "RIRM"},
 	},
 	"https://www.wsieciprawdy.pl/sieci-ipn-czyli-element-infrastruktury-krytycznej-pnews-4715.html": {
-		File:    "\"Sieci\"_ IPN, czyli element infrastruktury krytycznej Tygodnik Sieci.html",
+		File:    "Sieci_ IPN, czyli element infrastruktury krytycznej Tygodnik Sieci.html",
 		With:    []string{"Zadania Instytutu Pamięci", "co zechcą - czytamy.", "łamach nowego wydania"},
 		Without: []string{"opublikowano:", "Zobacz także", "Zapraszamy też do subskrypcji"},
 	},
