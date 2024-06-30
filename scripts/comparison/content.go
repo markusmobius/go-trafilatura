@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	nurl "net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"github.com/markusmobius/go-trafilatura"
 	"golang.org/x/net/html"
 )
+
+type ExtractorRunner func([]ExtractorParameter) (ExtractionPerformance, []error)
 
 type ExtractorParameter struct {
 	URL      *nurl.URL
@@ -24,26 +27,70 @@ type EvaluationResult struct {
 	FalseNegatives int
 	FalsePositives int
 	TrueNegatives  int
-	Duration       time.Duration
+}
+
+type ExtractionPerformance struct {
+	Title     string
+	Duration  time.Duration
+	Precision float64
+	Recall    float64
+	Accuracy  float64
+	FScore    float64
 }
 
 func compareContentExtraction() {
+	// Prepare table
+	tab := NewTable()
+	tab.AddHeaders(
+		"Extractor",
+		"Duration (s)",
+		"Precision",
+		"Recall",
+		"Accuracy",
+		"F Score",
+	)
+
+	// Prepare extractor parameter
 	params := prepareExtractorParameter()
 
-	fmt.Printf("Number of documents: %d\n", len(params))
+	// Prepare extractors
+	runners := []ExtractorRunner{
+		prepareReadability(),                                 // Readability
+		prepareDomDistiller(),                                // DOM Distiller
+		prepareTrafilatura(false, trafilatura.Balanced),      // Standard Trafilatura
+		prepareTrafilatura(true, trafilatura.Balanced),       // Trafilatura + Fallback
+		prepareTrafilatura(true, trafilatura.FavorPrecision), // Trafilatura + Precision
+		prepareTrafilatura(true, trafilatura.FavorRecall),    // Trafilatura + Recall
+	}
 
+	// Run extractors
 	var errors []error
-	errors = append(errors, runReadability(params)...)                                   // Readability
-	errors = append(errors, runDomDistiller(params)...)                                  // DOM Distiller
-	errors = append(errors, runTrafilatura(params, false, trafilatura.Balanced)...)      // Standard Trafilatura
-	errors = append(errors, runTrafilatura(params, true, trafilatura.Balanced)...)       // Trafilatura + Fallback
-	errors = append(errors, runTrafilatura(params, true, trafilatura.FavorPrecision)...) // Trafilatura + Precision
-	errors = append(errors, runTrafilatura(params, true, trafilatura.FavorRecall)...)    // Trafilatura + Recall
+	for _, runner := range runners {
+		// Run the runner
+		perf, runnerErrors := runner(params)
+		errors = append(errors, runnerErrors...)
+
+		// Put performance to table
+		tab.AddRow(
+			perf.Title,
+			str(perf.Duration.Seconds()),
+			str(perf.Precision),
+			str(perf.Recall),
+			str(perf.Accuracy),
+			str(perf.FScore),
+		)
+	}
 
 	// Print errors
 	for _, err := range errors {
 		log.Warn().Err(err)
 	}
+
+	// Print documents count
+	fmt.Printf("Number of documents: %d\n", len(params))
+
+	// Print table
+	tab.Print()
 }
 
 func prepareExtractorParameter() []ExtractorParameter {
@@ -82,102 +129,114 @@ func prepareExtractorParameter() []ExtractorParameter {
 	return params
 }
 
-func runTrafilatura(params []ExtractorParameter, useFallback bool, focus trafilatura.ExtractionFocus) []error {
-	title := "trafilatura"
-	if useFallback {
-		title += "+fallback"
-	}
-
-	if focus == trafilatura.FavorPrecision {
-		title += "+precision"
-	} else if focus == trafilatura.FavorRecall {
-		title += "+recall"
-	}
-
-	start := time.Now()
-	var errors []error
-	var evaluation EvaluationResult
-	var opts = trafilatura.Options{
-		ExcludeComments: true,
-		ExcludeTables:   false,
-		Focus:           focus,
-	}
-	if useFallback {
-		opts.FallbackCandidates = &trafilatura.FallbackConfig{}
-	}
-
-	for _, param := range params {
-		var textResult string
-		opts.OriginalURL = param.URL
-		result, err := trafilatura.ExtractDocument(param.Document, opts)
-		if err != nil {
-			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-		} else {
-			textResult = result.ContentText
+func prepareTrafilatura(useFallback bool, focus trafilatura.ExtractionFocus) ExtractorRunner {
+	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
+		// Prepare title
+		titles := []string{"Trafilatura"}
+		if useFallback {
+			titles = append(titles, "Fallback")
 		}
 
-		evaluation = evaluateResult(evaluation, textResult, param.Entry)
-	}
-
-	evaluation.Duration = time.Since(start)
-	printEvaluationResult(title, evaluation)
-	fmt.Println()
-
-	return errors
-}
-
-func runReadability(params []ExtractorParameter) []error {
-	title := "readability"
-	start := time.Now()
-
-	var errors []error
-	var evaluation EvaluationResult
-	for _, param := range params {
-		article, err := readability.FromDocument(param.Document, param.URL)
-		if err != nil {
-			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+		if focus == trafilatura.FavorPrecision {
+			titles = append(titles, "Precision")
+		} else if focus == trafilatura.FavorRecall {
+			titles = append(titles, "Recall")
 		}
 
-		evaluation = evaluateResult(evaluation, article.TextContent, param.Entry)
-	}
+		title := strings.Join(titles, " + ")
 
-	evaluation.Duration = time.Since(start)
-	printEvaluationResult(title, evaluation)
-	fmt.Println()
+		// Print log
+		log.Info().Msgf("running %s", title)
 
-	return errors
-}
-
-func runDomDistiller(params []ExtractorParameter) []error {
-	title := "dom distiller"
-	start := time.Now()
-
-	var errors []error
-	var evaluation EvaluationResult
-	for _, param := range params {
-		var textResult string
-		res, err := distiller.Apply(param.Document, &distiller.Options{
-			OriginalURL:    param.URL,
-			SkipPagination: true})
-		if err != nil {
-			errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-		} else {
-			textResult = res.Text
+		// Prepare Trafilatura options
+		opts := trafilatura.Options{
+			ExcludeComments: true,
+			ExcludeTables:   false,
+			Focus:           focus,
 		}
 
-		evaluation = evaluateResult(evaluation, textResult, param.Entry)
+		if useFallback {
+			opts.FallbackCandidates = &trafilatura.FallbackConfig{}
+		}
+
+		// Initiate extraction result
+		start := time.Now()
+		var errors []error
+		var evaluation EvaluationResult
+
+		// Process each parameter
+		for _, param := range params {
+			var textResult string
+			opts.OriginalURL = param.URL
+			result, err := trafilatura.ExtractDocument(param.Document, opts)
+
+			if err != nil {
+				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			} else {
+				textResult = result.ContentText
+			}
+
+			evaluation = evaluateResult(evaluation, textResult, param.Entry)
+		}
+
+		// Return the performance
+		perf := calculatePerformance(title, time.Since(start), evaluation)
+		return perf, errors
 	}
-
-	evaluation.Duration = time.Since(start)
-	printEvaluationResult(title, evaluation)
-	fmt.Println()
-
-	return errors
 }
 
-func evaluateResult(current EvaluationResult, result string, entry ComparisonEntry) EvaluationResult {
-	var ev EvaluationResult
+func prepareReadability() ExtractorRunner {
+	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
+		start := time.Now()
+		title := "Readability"
+		log.Info().Msgf("running %s", title)
 
+		var errors []error
+		var evaluation EvaluationResult
+		for _, param := range params {
+			article, err := readability.FromDocument(param.Document, param.URL)
+			if err != nil {
+				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			}
+
+			evaluation = evaluateResult(evaluation, article.TextContent, param.Entry)
+		}
+
+		perf := calculatePerformance(title, time.Since(start), evaluation)
+		return perf, errors
+	}
+}
+
+func prepareDomDistiller() ExtractorRunner {
+	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
+		start := time.Now()
+		title := "Dom Distiller"
+		log.Info().Msgf("running %s", title)
+
+		var errors []error
+		var evaluation EvaluationResult
+		for _, param := range params {
+			var textResult string
+			res, err := distiller.Apply(param.Document, &distiller.Options{
+				OriginalURL:    param.URL,
+				SkipPagination: true,
+			})
+
+			if err != nil {
+				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+			} else {
+				textResult = res.Text
+			}
+
+			evaluation = evaluateResult(evaluation, textResult, param.Entry)
+		}
+
+		perf := calculatePerformance(title, time.Since(start), evaluation)
+		return perf, errors
+	}
+}
+
+func evaluateResult(ev EvaluationResult, result string, entry ComparisonEntry) EvaluationResult {
 	// Report problematic entry
 	if nWith := len(entry.With); nWith == 0 || nWith > 6 {
 		log.Warn().Msgf("entry %s has %d with", entry.File, nWith)
@@ -187,40 +246,35 @@ func evaluateResult(current EvaluationResult, result string, entry ComparisonEnt
 		log.Warn().Msgf("entry %s has %d without", entry.File, nWithout)
 	}
 
-	// Examine
+	// If result empty, return early
 	if result == "" {
-		ev.FalseNegatives = len(entry.With)
-		ev.TrueNegatives = len(entry.Without)
-	} else {
-		// Expected output
-		for _, str := range entry.With {
-			if strings.Contains(result, str) {
-				ev.TruePositives++
-			} else {
-				ev.FalseNegatives++
-			}
-		}
+		ev.FalseNegatives += len(entry.With)
+		ev.TrueNegatives += len(entry.Without)
+		return ev
+	}
 
-		// Unwanted output
-		for _, str := range entry.Without {
-			if strings.Contains(result, str) {
-				ev.FalsePositives++
-			} else {
-				ev.TrueNegatives++
-			}
+	// Check expected output
+	for _, str := range entry.With {
+		if strings.Contains(result, str) {
+			ev.TruePositives++
+		} else {
+			ev.FalseNegatives++
 		}
 	}
 
-	// Merge with the current
-	return EvaluationResult{
-		TruePositives:  current.TruePositives + ev.TruePositives,
-		FalseNegatives: current.FalseNegatives + ev.FalseNegatives,
-		FalsePositives: current.FalsePositives + ev.FalsePositives,
-		TrueNegatives:  current.TrueNegatives + ev.TrueNegatives,
+	// Check unwanted output
+	for _, str := range entry.Without {
+		if strings.Contains(result, str) {
+			ev.FalsePositives++
+		} else {
+			ev.TrueNegatives++
+		}
 	}
+
+	return ev
 }
 
-func printEvaluationResult(title string, ev EvaluationResult) {
+func calculatePerformance(title string, duration time.Duration, ev EvaluationResult) ExtractionPerformance {
 	// Calculate performance
 	tp := float64(ev.TruePositives)
 	fn := float64(ev.FalseNegatives)
@@ -232,10 +286,16 @@ func printEvaluationResult(title string, ev EvaluationResult) {
 	fScore := (2 * tp) / (2*tp + fp + fn)
 
 	// Print data
-	fmt.Println(strings.ToUpper(title))
-	fmt.Printf("Duration  = %.3f second(s)\n", ev.Duration.Seconds())
-	fmt.Printf("Precision = %.3f\n", precision)
-	fmt.Printf("Recall    = %.3f\n", recall)
-	fmt.Printf("Accuracy  = %.3f\n", accuracy)
-	fmt.Printf("F Score   = %.3f\n", fScore)
+	return ExtractionPerformance{
+		Title:     title,
+		Duration:  duration,
+		Precision: precision,
+		Recall:    recall,
+		Accuracy:  accuracy,
+		FScore:    fScore,
+	}
+}
+
+func str(val float64) string {
+	return strconv.FormatFloat(val, 'f', 3, 64)
 }
