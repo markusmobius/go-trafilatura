@@ -73,20 +73,21 @@ func docCleaning(doc *html.Node, opts Options) {
 	}
 
 	// Prevent removal of paragraphs
-	var pWasExist bool
-	docBackup := dom.Clone(doc, true)
 	if opts.Focus == FavorRecall && len(dom.GetElementsByTagName(doc, "p")) > 0 {
-		pWasExist = true
-	}
+		docBackup := dom.Clone(doc, true)
+		for tagName := range cleaningList {
+			etree.StripElements(doc, false, tagName)
+		}
 
-	// Remove nodes in cleaning list including its children
-	for tagName := range cleaningList {
-		etree.StripElements(doc, false, tagName)
-	}
-
-	// If paragraphs is removed, revert to backup
-	if pWasExist && len(dom.GetElementsByTagName(doc, "p")) == 0 {
-		doc = docBackup
+		// If paragraphs is removed, revert to backup
+		if len(dom.GetElementsByTagName(doc, "p")) == 0 {
+			doc = docBackup
+		}
+	} else {
+		// Remove nodes in cleaning list including its children
+		for tagName := range cleaningList {
+			etree.StripElements(doc, false, tagName)
+		}
 	}
 
 	// Remove HTML comment
@@ -327,9 +328,10 @@ func linkDensityTestTables(table *html.Node, opts Options) bool {
 			return true
 		}
 
-		if (textLength <= 1000 && float64(linkLength) > float64(textLength)*0.8) ||
-			(textLength > 1000 && float64(linkLength) > float64(textLength)*0.5) {
-			return true
+		if textLength < 1000 {
+			return float64(linkLength) > float64(textLength)*0.8
+		} else {
+			return float64(linkLength) > float64(textLength)*0.5
 		}
 
 		// TODO: it seems to does more harm than good
@@ -459,32 +461,22 @@ func postCleaning(doc *html.Node) {
 // their length, and remove the elements identified as boilerplate.
 func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, tagNames ...string) {
 	var nodesToDelete []*html.Node
-	textNodes := make(map[string][]*html.Node)
+
+	threshold := 100
+	if opts.Focus == FavorPrecision {
+		threshold = 200
+	}
 
 	for _, elem := range etree.Iter(subTree, tagNames...) {
 		nonEmptyLinks, isHighDensity := linkDensityTest(elem, opts)
 
 		if isHighDensity {
 			nodesToDelete = append(nodesToDelete, elem)
-			continue
-		}
-
-		if backtracking && len(nonEmptyLinks) > 0 {
+		} else if backtracking && len(nonEmptyLinks) > 0 {
 			text := trim(dom.TextContent(elem))
-			textNodes[text] = append(textNodes[text], elem)
-		}
-	}
-
-	if backtracking {
-		threshold := 100
-		if opts.Focus == FavorPrecision {
-			threshold = 200
-		}
-
-		for text, nodes := range textNodes {
 			textLength := utf8.RuneCountInString(text)
-			if textLength > 0 && textLength < threshold && len(nodes) >= 3 {
-				nodesToDelete = append(nodesToDelete, nodes...)
+			if textLength > 0 && textLength < threshold && len(dom.Children(elem)) >= 3 {
+				nodesToDelete = append(nodesToDelete, elem)
 			}
 		}
 	}
