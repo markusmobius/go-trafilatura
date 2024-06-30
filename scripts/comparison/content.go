@@ -94,6 +94,8 @@ func compareContentExtraction() {
 }
 
 func prepareExtractorParameter() []ExtractorParameter {
+	log.Info().Msg("prepare parameters")
+
 	var params []ExtractorParameter
 
 	for strURL, entry := range comparisonData {
@@ -107,7 +109,7 @@ func prepareExtractorParameter() []ExtractorParameter {
 		// Open file
 		f, err := openDataFile(entry.File)
 		if err != nil {
-			log.Error().Err(err)
+			log.Error().Msgf("%v", err)
 			continue
 		}
 
