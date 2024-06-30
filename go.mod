@@ -8,7 +8,7 @@ require (
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.2.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
-	github.com/go-shiori/go-readability v0.0.0-20240530203707-15a31cd77abf
+	github.com/go-shiori/go-readability v0.0.0-20230421032831-c66949dfc0ad
 	github.com/markusmobius/go-domdistiller v0.0.0-20230515154422-71af71939ff3
 	github.com/markusmobius/go-htmldate v1.8.1
 	github.com/matoous/go-nanoid/v2 v2.0.0
@@ -23,7 +23,6 @@ require (
 )
 
 require (
-	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/elliotchance/pie/v2 v2.8.1 // indirect
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
