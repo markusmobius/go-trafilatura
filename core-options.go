@@ -32,8 +32,13 @@ import (
 type ExtractionFocus uint8
 
 const (
+	// Balanced is the middle ground.
 	Balanced ExtractionFocus = iota
+
+	// FavorRecall makes the extractor extracts more text, even when unsure.
 	FavorRecall
+
+	// FavorPrecision makes the extractor extracts less text, but usually more precise.
 	FavorPrecision
 )
 
