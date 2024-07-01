@@ -217,10 +217,10 @@ Here is the result when compared with the original Trafilatura v1.10.0:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: |
-|              `trafilatura`              |   0.912   | 0.886  |  0.900   |  0.899  |
-|        `trafilatura` + fallback         |   0.913   | 0.903  |  0.904   |  0.902  |
-|  `trafilatura` + fallback + precision   |   0.925   | 0.879  |  0.904   |  0.902  |
-|    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.904   |  0.904  |
+|              `trafilatura`              |   0.913   | 0.886  |  0.901   |  0.899  |
+|        `trafilatura` + fallback         |   0.913   | 0.902  |  0.908   |  0.908  |
+|  `trafilatura` + fallback + precision   |   0.925   | 0.878  |  0.904   |  0.901  |
+|    `trafilatura` + fallback + recall    |   0.901   | 0.906  |  0.904   |  0.904  |
 |            `go-trafilatura`             |   0.909   | 0.886  |  0.899   |  0.897  |
 |       `go-trafilatura` + fallback       |   0.910   | 0.903  |  0.907   |  0.906  |
 | `go-trafilatura` + fallback + precision |   0.923   | 0.877  |  0.902   |  0.899  |
@@ -232,7 +232,7 @@ For the speed, here is the comparison between our port and the original Trafilat
 
 |             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
 | :---------------------------: | :------: | :------: | :------------------: | :---------------: |
-|         `trafilatura`         |  19.59   |  29.01   |        39.68         |       22.71       |
+|         `trafilatura`         |  21.44   |  31.44   |        42.92         |       24.61       |
 |       `go-trafilatura`        |  16.17   |  36.52   |        36.73         |       27.50       |
 | `go-trafilatura` + `re2_wasm` |  11.29   |  21.35   |        21.28         |       14.39       |
 | `go-trafilatura` + `re2_cgo`  |   8.17   |  18.14   |        17.83         |       12.03       |
