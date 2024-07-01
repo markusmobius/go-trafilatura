@@ -37,49 +37,6 @@ const (
 	FavorPrecision
 )
 
-// Config is advanced setting to fine tune the extraction result.
-// You can use it to specify the minimal size of the extracted content
-// and how many duplicate text allowed. However, for most of the time
-// the default config should be good enough.
-type Config struct {
-	// Deduplication config
-	CacheSize             int
-	MaxDuplicateCount     int
-	MinDuplicateCheckSize int
-
-	// Extraction size setting
-	MinExtractedSize        int
-	MinExtractedCommentSize int
-	MinOutputSize           int
-	MinOutputCommentSize    int
-}
-
-// DefaultConfig returns the default configuration value.
-func DefaultConfig() *Config {
-	return &Config{
-		CacheSize:             4096,
-		MinDuplicateCheckSize: 100,
-		MaxDuplicateCount:     2,
-
-		MinExtractedSize:        250,
-		MinExtractedCommentSize: 1,
-		MinOutputSize:           1,
-		MinOutputCommentSize:    1,
-	}
-}
-
-// FallbackCandidates allows to specify a list of fallback candidates
-// in particular: readability and domdistiller
-type FallbackConfig struct {
-	//readability
-	HasReadability      bool
-	ReadabilityFallback *html.Node
-	HasDistiller        bool
-	DistillerFallback   *html.Node
-	//other fallbacks are possible as well: if set the above four settings are ignored
-	OtherFallbacks []*html.Node
-}
-
 // Options is configuration for the extractor.
 type Options struct {
 	// Config is the advanced configuration to fine tune the
@@ -93,10 +50,16 @@ type Options struct {
 	// uses the specified language.
 	TargetLanguage string
 
-	// If FallbackCandidates is nil then no fallback will be performed`
-	// Otherwise: readability and domdistiller fallbacks will be used if precalculated
-	// OtherFallbacks!=nil will ensure that this list is used (rather than readability/distiller)
-	FallbackCandidates *FallbackConfig
+	// If EnableFallback is true, then whenever Trafilatura failed to extract a document,
+	// it will use algorithm from another package, i.e. Readability and Dom Distiller.
+	// This will make the extraction result more precise, but also a bit slower.
+	EnableFallback bool
+
+	// FallbackCandidates is user specified candidates that will be checked by Trafilatura
+	// when EnableFallback set to True. This is useful if user already use Readability
+	// and Dom Distiller before, or if user want to provide his own candidates. As mentioned
+	// before, it will only used if `EnableFallback = true`.
+	FallbackCandidates *FallbackCandidates
 
 	// Focus specify the extraction behavior of Trafilatura.
 	Focus ExtractionFocus
@@ -131,13 +94,68 @@ type Options struct {
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 
-	// HtmlDateOverride is user provided extracted date from `go-htmldate` package.
-	HtmlDateOverride *htmldate.Result
-
 	// HtmlDateOptions is user provided configuration for the external `go-htmldate`
 	// package that used to look for publish date of a web page.
 	HtmlDateOptions *htmldate.Options
 
+	// HtmlDateOverride is user provided extracted date from `go-htmldate` package.
+	// If this property specified, HtmlDate won't be run and instead will use
+	// this property as its result.
+	HtmlDateOverride *htmldate.Result
+
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
 	PruneSelector string
+}
+
+// Config is advanced setting to fine tune the extraction result.
+// You can use it to specify the minimal size of the extracted content
+// and how many duplicate text allowed. However, for most of the time
+// the default config should be good enough.
+type Config struct {
+	// Deduplication config
+	CacheSize             int
+	MaxDuplicateCount     int
+	MinDuplicateCheckSize int
+
+	// Extraction size setting
+	MinExtractedSize        int
+	MinExtractedCommentSize int
+	MinOutputSize           int
+	MinOutputCommentSize    int
+}
+
+// DefaultConfig returns the default configuration value.
+func DefaultConfig() *Config {
+	return &Config{
+		CacheSize:             4096,
+		MinDuplicateCheckSize: 100,
+		MaxDuplicateCount:     2,
+
+		MinExtractedSize:        250,
+		MinExtractedCommentSize: 1,
+		MinOutputSize:           1,
+		MinOutputCommentSize:    1,
+	}
+}
+
+// FallbackCandidates allows to specify a list of fallback candidates
+// in particular: Readability and Dom Distiller.
+type FallbackCandidates struct {
+	// Readability is the user specified extraction result from Go-Readability
+	// that will be used as fallback candidate.
+	Readability *html.Node
+
+	// Distiller is the user specified extraction result from Go-DomDistiller
+	// that will be used as fallback candidate.
+	Distiller *html.Node
+
+	// Others is list of the user specified extraction results taht will be used as
+	// candidates, that generated manually by user using another methods beside
+	// Go-Readability and Go-DomDistiller.
+	//
+	// This list will be prioritized before Readability and Distiller.
+	//
+	// Make sure to not put output of Go-Readability and Go-DomDistiller here, to
+	// prevent those two extractors running twice.
+	Others []*html.Node
 }

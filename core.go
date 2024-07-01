@@ -157,8 +157,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	postBody, tmpBodyText := extractContent(doc, cache, opts)
 
 	// Use fallback if necessary
-	if opts.FallbackCandidates != nil {
-		postBody, tmpBodyText = compareExtraction(docBackup1, postBody, opts)
+	if opts.EnableFallback {
+		postBody, tmpBodyText = compareExternalExtraction(docBackup1, postBody, opts)
 	}
 
 	// Rescue: try to use original/dirty tree

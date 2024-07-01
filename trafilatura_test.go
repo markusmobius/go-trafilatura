@@ -49,9 +49,9 @@ var (
 	}
 
 	zeroOpts = Options{
-		FallbackCandidates: &FallbackConfig{},
-		OriginalURL:        exampleURL,
-		Config:             zeroConfig,
+		EnableFallback: true,
+		OriginalURL:    exampleURL,
+		Config:         zeroConfig,
 	}
 
 	zeroConfig = &Config{
@@ -617,7 +617,7 @@ func Test_External(t *testing.T) {
 	result, _ = ExtractDocument(doc, opts)
 	assert.Empty(t, result.ContentText)
 
-	opts = Options{ExcludeTables: true, FallbackCandidates: &FallbackConfig{}, Config: zeroConfig}
+	opts = Options{ExcludeTables: true, EnableFallback: true, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
 	assert.NotEmpty(t, result.ContentText)
 	assert.NotContains(t, result.ContentText, "Uncensored Hosting")
@@ -1380,8 +1380,8 @@ func Test_PruneSelector(t *testing.T) {
 	// Variable helper
 	var result *ExtractResult
 	opts := Options{
-		Config:             zeroConfig,
-		FallbackCandidates: &FallbackConfig{},
+		Config:         zeroConfig,
+		EnableFallback: true,
 	}
 
 	// Example HTML

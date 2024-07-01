@@ -186,9 +186,8 @@ func createExtractorOptions(cmd *cobra.Command) trafilatura.Options {
 
 	flags := cmd.Flags()
 	NoFallback, _ := flags.GetBool("no-fallback")
-	if !NoFallback {
-		opts.FallbackCandidates = &trafilatura.FallbackConfig{}
-	}
+
+	opts.EnableFallback = !NoFallback
 	opts.TargetLanguage, _ = flags.GetString("language")
 	opts.ExcludeComments, _ = flags.GetBool("no-comments")
 	opts.ExcludeTables, _ = flags.GetBool("no-tables")

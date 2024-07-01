@@ -190,10 +190,12 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 		if opts.HtmlDateOptions != nil {
 			htmlDateOpts = *opts.HtmlDateOptions
 		} else {
-			if opts.FallbackCandidates == nil { // No fallback means we want it fast
-				htmlDateOpts = fastHtmlDateOpts
-			} else {
+			// If fallback is enabled, it means we want it to be extensive.
+			// Vice versa, if it's disabled, it means we want it to be fast.
+			if opts.EnableFallback {
 				htmlDateOpts = extensiveHtmlDateOpts
+			} else {
+				htmlDateOpts = fastHtmlDateOpts
 			}
 		}
 

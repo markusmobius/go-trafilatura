@@ -79,9 +79,9 @@ func extractMockFile(mockFiles map[string]string, url string, enableLink ...bool
 	}
 
 	opts := Options{
-		OriginalURL:        parsedURL,
-		FallbackCandidates: &FallbackConfig{},
-		IncludeLinks:       includeLinks}
+		OriginalURL:    parsedURL,
+		EnableFallback: true,
+		IncludeLinks:   includeLinks}
 	result, err := Extract(f, opts)
 	if err != nil {
 		log.Panic().Err(err)

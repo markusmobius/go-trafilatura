@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	"fmt"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -31,58 +32,26 @@ import (
 	"golang.org/x/net/html"
 )
 
+type _FallbackGenerator func() (string, *html.Node)
+
 var tagsToSanitize = sliceToMap(
 	"aside", "audio", "button", "fieldset", "figure", "footer", "iframe",
 	"input", "label", "link", "nav", "noindex", "noscript",
 	"object", "option", "select", "source", "svg", "time",
 )
 
-// compareExtraction decide whether to choose own or external extraction based on a series
-// of heuristics. In original Trafilatura, they use python-readability and justext, while
-// here we use go-readability and go-domdistiller. Since there are difference in
+// compareExternalExtraction decide whether to choose own or external extraction based on
+// a series of heuristics. In original Trafilatura, they use python-readability and justext,
+// while here we use go-readability and go-domdistiller. Since there are difference in
 // implementation between them, here we do it a bit differently compared to the original code.
-func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Node, string) {
+//
+// In original Trafilatura, this function is named `compare_extraction`.
+func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Options) (*html.Node, string) {
 	// Bypass for favor recall
-	originalText := trim(etree.IterText(originalExtract, " "))
-	lenOriginal := utf8.RuneCountInString(originalText)
-	if opts.Focus == FavorRecall && lenOriginal > opts.Config.MinExtractedSize*10 {
-		return originalExtract, originalText
-	}
-
-	// Clean doc to be used for Readability and Dom Distiller
-	cleanedDoc := dom.Clone(doc, true)
-	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
-
-	fallbackCandidates := []*html.Node{}
-	//if there are other fallback candidates we use those
-	if opts.FallbackCandidates.OtherFallbacks != nil && len(opts.FallbackCandidates.OtherFallbacks) > 0 {
-		fallbackCandidates = opts.FallbackCandidates.OtherFallbacks
-	} else {
-		if opts.FallbackCandidates.HasReadability {
-			if opts.FallbackCandidates.ReadabilityFallback != nil {
-				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.ReadabilityFallback)
-			}
-		} else {
-			//we run readability
-			readabilityExtract, err := tryReadability(cleanedDoc, opts)
-			if err == nil {
-				fallbackCandidates = append(fallbackCandidates, readabilityExtract)
-			} else {
-				logWarn(opts, "readability failed: %v", err)
-			}
-		}
-		//now we append domdistiller if it was alreadyrun
-		if opts.FallbackCandidates.HasDistiller {
-			if opts.FallbackCandidates.DistillerFallback != nil {
-				fallbackCandidates = append(fallbackCandidates, opts.FallbackCandidates.DistillerFallback)
-			}
-		} else {
-			// Here we append nil to fallback candidates. This nil value is used to
-			// notify Trafilatura to run Go-DomDistiller for that candidate. We do it
-			// this way to make sure that dom-distiller will only be run if readability
-			// result is still not good enough to use.
-			fallbackCandidates = append(fallbackCandidates, nil)
-		}
+	extractedText := trim(etree.IterText(extractedDoc, " "))
+	lenExtracted := utf8.RuneCountInString(extractedText)
+	if opts.Focus == FavorRecall && lenExtracted > opts.Config.MinExtractedSize*10 {
+		return extractedDoc, extractedText
 	}
 
 	// Convert url to string for logging
@@ -90,108 +59,140 @@ func compareExtraction(doc, originalExtract *html.Node, opts Options) (*html.Nod
 	if opts.OriginalURL != nil {
 		originalUrl = opts.OriginalURL.String()
 	}
+	logInfo(opts, "trying external extractor for url %q", originalUrl)
 
-	// Compare
-	for i, candidate := range fallbackCandidates {
-		// Use dom-distiller if necessary
-		if candidate == nil {
-			var err error
-			candidate, err = tryDomDistiller(cleanedDoc, opts)
-			if err != nil {
-				logWarn(opts, "dom-distiller failed: %v", err)
-				continue
-			}
+	// Prior cleaning
+	cleanedDoc := dom.Clone(originalDoc, true)
+	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+
+	// Process each candidate
+	for _, generator := range createFallbackGenerators(cleanedDoc, opts) {
+		// Generate candidate, skip if empty
+		candidateTitle, candidateDoc := generator()
+		if candidateDoc == nil {
+			continue
 		}
 
 		// Extract text from candidate
-		candidateText := trim(dom.TextContent(candidate))
+		candidateText := trim(etree.IterText(candidateDoc, " "))
 		lenCandidate := utf8.RuneCountInString(candidateText)
-		logInfo(opts, "extracted length: %d (candidate-%d) %d (original)", lenCandidate, i+1, lenOriginal)
+		logInfo(opts, "comparison for %q: candidate %d vs extracted %d",
+			candidateTitle, lenCandidate, lenExtracted)
 
-		// TODO: This part is pretty different compared to the original.
-		// Check if this candidate can be used, either because it pass length check
-		// or because we need to favor recall.
-		var candidateUsable bool
-
-		if lenCandidate == 0 || lenCandidate == lenOriginal {
-			candidateUsable = false
-		} else if lenOriginal == 0 && lenCandidate > 0 {
-			candidateUsable = true
-		} else if lenOriginal > 2*lenCandidate {
-			candidateUsable = false
-		} else if lenCandidate > 2*lenOriginal {
-			candidateUsable = true
-		} else {
-			// Borderline case
-			heads := dom.GetElementsByTagName(doc, "head")
-			tables := dom.GetElementsByTagName(doc, "table")
-			paragraphs := dom.GetElementsByTagName(doc, "p")
-			candidateHeadings := dom.QuerySelectorAll(candidate, "h2,h3,h4")
-
-			var pTextLength int
-			for _, p := range paragraphs {
-				pText := trim(etree.IterText(p, " "))
-				pTextLength += utf8.RuneCountInString(pText)
-			}
-
-			if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
-				candidateUsable = true
-			} else if len(tables) > len(paragraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
-				candidateUsable = true
-			} else if opts.Focus == FavorRecall && len(heads) == 0 &&
-				len(candidateHeadings) > 0 && lenCandidate > lenOriginal {
-				candidateUsable = true
-			} else {
-				logDebug(opts, "extraction values: %d %d for %s", lenOriginal, lenCandidate, originalUrl)
-				candidateUsable = false
-			}
+		// Check if candidate is usable
+		if candidateIsUsable(candidateDoc, extractedDoc, lenCandidate, lenExtracted, opts) {
+			extractedDoc, lenExtracted = candidateDoc, lenCandidate
+			logDebug(opts, "candidate %s is usable", candidateTitle)
 		}
 
-		mustFavorRecall := lenOriginal < opts.Config.MinExtractedSize && opts.Focus == FavorRecall
-		if candidateUsable || mustFavorRecall {
-			originalExtract = candidate
-			lenOriginal = lenCandidate
-			logDebug(opts, "candidate-%d usable: %s", i+1, originalUrl)
-		}
-
-		if lenOriginal >= opts.Config.MinExtractedSize {
-			logDebug(opts, "candidate-%d used: %s", i+1, originalUrl)
+		if lenExtracted >= opts.Config.MinExtractedSize {
+			logDebug(opts, "candidate %s is used", candidateTitle)
 			break
 		}
 	}
 
-	// Sanitize the tree
-	sanitizeTree(originalExtract, opts)
-
-	// Return data
-	finalText := trim(etree.IterText(originalExtract, " "))
-	return originalExtract, finalText
+	// Final cleaning
+	sanitizeTree(extractedDoc, opts)
+	extractedText = trim(etree.IterText(extractedDoc, " "))
+	return extractedDoc, extractedText
 }
 
-func tryReadability(doc *html.Node, opts Options) (*html.Node, error) {
-	// Extract using go-readability
-	article, err := readability.FromDocument(doc, opts.OriginalURL)
-	if err != nil {
-		return nil, err
+func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator {
+	// Initial variables
+	var generators []_FallbackGenerator
+	var customCandidates []*html.Node
+	var readabilityCandidate, distillerCandidate *html.Node
+
+	if opts.FallbackCandidates != nil {
+		customCandidates = opts.FallbackCandidates.Others
+		distillerCandidate = opts.FallbackCandidates.Distiller
+		readabilityCandidate = opts.FallbackCandidates.Readability
 	}
 
-	return article.Node, nil
+	// First is the user specified custom candidates.
+	for i, candidate := range customCandidates {
+		if candidate == nil {
+			continue
+		}
+
+		generators = append(generators, func() (string, *html.Node) {
+			return fmt.Sprintf("Candidate-%d", i), candidate
+		})
+	}
+
+	// Next is Readability
+	readabilityTitle := "Readability"
+
+	if readabilityCandidate != nil {
+		generators = append(generators, func() (string, *html.Node) {
+			return readabilityTitle, readabilityCandidate
+		})
+	} else {
+		generators = append(generators, func() (string, *html.Node) {
+			result, _ := readability.FromDocument(doc, opts.OriginalURL)
+			return readabilityTitle, result.Node
+		})
+	}
+
+	// Last is Dom Distiller
+	distillerTitle := "Dom Distiller"
+
+	if distillerCandidate != nil {
+		generators = append(generators, func() (string, *html.Node) {
+			return distillerTitle, distillerCandidate
+		})
+	} else {
+		generators = append(generators, func() (string, *html.Node) {
+			clone := dom.Clone(doc, true)
+			result, _ := distiller.Apply(clone, &distiller.Options{
+				OriginalURL:    opts.OriginalURL,
+				SkipPagination: true})
+			return distillerTitle, result.Node
+		})
+	}
+
+	return generators
 }
 
-func tryDomDistiller(doc *html.Node, opts Options) (*html.Node, error) {
-	// Extract using go-domdistiller
-	distillerOpts := &distiller.Options{
-		OriginalURL:    opts.OriginalURL,
-		SkipPagination: true,
+// candidateIsUsable check if the fallback candidate is good enough to use as extraction result.
+func candidateIsUsable(candidateDoc, extractedDoc *html.Node, lenCandidate, lenExtracted int, opts Options) bool {
+	var candidateUsable bool
+
+	if lenCandidate == 0 || lenCandidate == lenExtracted {
+		candidateUsable = false
+	} else if lenExtracted == 0 && lenCandidate > 0 {
+		candidateUsable = true
+	} else if lenExtracted > 2*lenCandidate {
+		candidateUsable = false
+	} else if lenCandidate > 2*lenExtracted {
+		candidateUsable = true
+	} else {
+		// Borderline case
+		extractedHeads := dom.GetElementsByTagName(extractedDoc, "head")
+		extractedTables := dom.GetElementsByTagName(extractedDoc, "table")
+		extractedParagraphs := dom.GetElementsByTagName(extractedDoc, "p")
+		candidateHeadings := dom.QuerySelectorAll(candidateDoc, "h2,h3,h4")
+
+		var pTextLength int
+		for _, p := range extractedParagraphs {
+			pText := trim(etree.IterText(p, " "))
+			pTextLength += utf8.RuneCountInString(pText)
+		}
+
+		if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
+			candidateUsable = true
+		} else if len(extractedTables) > len(extractedParagraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
+			candidateUsable = true
+		} else if opts.Focus == FavorRecall && len(extractedHeads) == 0 &&
+			len(candidateHeadings) > 0 && lenCandidate > lenExtracted {
+			candidateUsable = true
+		} else {
+			candidateUsable = false
+		}
 	}
 
-	doc = dom.Clone(doc, true)
-	res, err := distiller.Apply(doc, distillerOpts)
-	if err != nil {
-		return nil, err
-	}
-
-	return res.Node, nil
+	mustFavorRecall := lenExtracted < opts.Config.MinExtractedSize && opts.Focus == FavorRecall
+	return candidateUsable || mustFavorRecall
 }
 
 // sanitizeTree converts and sanitize the output from the generic

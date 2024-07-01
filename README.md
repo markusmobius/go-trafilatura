@@ -221,10 +221,10 @@ Here is the result when compared with the original Trafilatura v1.10.0:
 |        `trafilatura` + fallback         |   0.913   | 0.903  |  0.904   |  0.902  |
 |  `trafilatura` + fallback + precision   |   0.925   | 0.879  |  0.904   |  0.902  |
 |    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.904   |  0.904  |
-|            `go-trafilatura`             |   0.908   | 0.885  |  0.898   |  0.896  |
-|       `go-trafilatura` + fallback       |   0.912   | 0.902  |  0.907   |  0.906  |
-| `go-trafilatura` + fallback + precision |   0.924   | 0.876  |  0.902   |  0.899  |
-|  `go-trafilatura` + fallback + recall   |   0.899   | 0.904  |  0.901   |  0.901  |
+|            `go-trafilatura`             |   0.909   | 0.886  |  0.899   |  0.897  |
+|       `go-trafilatura` + fallback       |   0.910   | 0.903  |  0.907   |  0.906  |
+| `go-trafilatura` + fallback + precision |   0.923   | 0.877  |  0.902   |  0.899  |
+|  `go-trafilatura` + fallback + recall   |   0.897   | 0.909  |  0.902   |  0.903  |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
@@ -235,7 +235,7 @@ For the speed, here is the comparison between our port and the original Trafilat
 |         `trafilatura`         |  19.59   |  29.01   |        39.68         |       22.71       |
 |       `go-trafilatura`        |  16.17   |  36.52   |        36.73         |       27.50       |
 | `go-trafilatura` + `re2_wasm` |  11.29   |  21.35   |        21.28         |       14.39       |
-| `go-trafilatura` + `re2_cgo`  |   9.95   |  21.20   |        20.26         |       13.02       |
+| `go-trafilatura` + `re2_cgo`  |   8.17   |  18.14   |        17.83         |       12.03       |
 
 As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor from `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
 

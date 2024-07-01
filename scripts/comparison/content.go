@@ -152,13 +152,10 @@ func prepareTrafilatura(useFallback bool, focus trafilatura.ExtractionFocus) Ext
 
 		// Prepare Trafilatura options
 		opts := trafilatura.Options{
+			EnableFallback:  useFallback,
 			ExcludeComments: true,
 			ExcludeTables:   false,
 			Focus:           focus,
-		}
-
-		if useFallback {
-			opts.FallbackCandidates = &trafilatura.FallbackConfig{}
 		}
 
 		// Initiate extraction result

@@ -36,32 +36,31 @@ func main() {
 		start := time.Now()
 		doc, err := parseFile(path)
 		checkError(err)
-		parseTime += time.Now().Sub(start)
+		parseTime += time.Since(start)
 
 		// Use readability
 		start = time.Now()
 		readabilityResult, _ := readability.FromDocument(doc, nil)
-		readabilityTime += time.Now().Sub(start)
+		readabilityTime += time.Since(start)
 
 		// Use dom distiller
 		start = time.Now()
 		distillerOpts := &distiller.Options{SkipPagination: true}
 		distillerResult, _ := distiller.Apply(doc, distillerOpts)
-		domDistillerTime += time.Now().Sub(start)
+		domDistillerTime += time.Since(start)
 
 		// Use trafilatura
 		start = time.Now()
 		trafilaturaOpts := trafilatura.Options{
-			FallbackCandidates: &trafilatura.FallbackConfig{
-				HasReadability:      true,
-				ReadabilityFallback: readabilityResult.Node,
-				HasDistiller:        true,
-				DistillerFallback:   distillerResult.Node,
+			EnableFallback: true,
+			FallbackCandidates: &trafilatura.FallbackCandidates{
+				Readability: readabilityResult.Node,
+				Distiller:   distillerResult.Node,
 			},
 		}
 
 		trafilatura.ExtractDocument(doc, trafilaturaOpts)
-		trafilaturaTime += time.Now().Sub(start)
+		trafilaturaTime += time.Since(start)
 
 		// Use html date
 		start = time.Now()
@@ -73,7 +72,7 @@ func main() {
 		// Publish date
 		dateOpts.UseOriginalDate = true
 		htmldate.FromDocument(doc, dateOpts)
-		dateTime += time.Now().Sub(start)
+		dateTime += time.Since(start)
 	}
 
 	// Print message
