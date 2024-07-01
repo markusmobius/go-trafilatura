@@ -18,20 +18,36 @@
 
 package trafilatura
 
+import "fmt"
+
 func logInfo(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		log.Info().Msgf(format, args...)
+		log.Info().Msg(ellipsis(format, args...))
 	}
 }
 
 func logWarn(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		log.Warn().Msgf(format, args...)
+		log.Warn().Msg(ellipsis(format, args...))
 	}
 }
 
 func logDebug(opts Options, format string, args ...interface{}) {
 	if opts.EnableLog {
-		log.Debug().Msgf(format, args...)
+		log.Debug().Msg(ellipsis(format, args...))
 	}
+}
+
+func ellipsis(format string, args ...any) string {
+	for i, arg := range args {
+		if str, isString := arg.(string); isString {
+			str = trim(str)
+			if limit := 120; len(str) > limit {
+				str = str[:limit] + "..."
+			}
+			args[i] = trim(str)
+		}
+	}
+
+	return fmt.Sprintf(format, args...)
 }

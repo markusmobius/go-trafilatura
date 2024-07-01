@@ -277,7 +277,7 @@ func handleOtherElements(element *html.Node, potentialTags map[string]struct{}, 
 		}
 	}
 
-	logDebug(opts, "unexpected element seen: %s %s", tagName, etree.Text(element))
+	logDebug(opts, "unexpected element seen: %s %q", tagName, etree.Text(element))
 	return nil
 }
 
@@ -299,7 +299,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 		// Make sure child is potential element
 		if _, exist := potentialTags[childTag]; !exist && childTag != "done" {
-			logDebug(opts, "unexpected in p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
+			logDebug(opts, "unexpected in p: %s %q %q", childTag, etree.Text(child), etree.Tail(child))
 			unwantedChildren = append(unwantedChildren, child)
 			continue
 		}
@@ -312,7 +312,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 		switch childTag {
 		case "p": // nested <p>
-			logWarn(opts, "extra p within p: %s %s %s", childTag, etree.Text(child), etree.Tail(child))
+			logWarn(opts, "extra p within p: %s %q %q", childTag, etree.Text(child), etree.Tail(child))
 			childText := etree.Text(child)
 			parentText := etree.Text(child.Parent)
 			if parentText != "" && childText != "" {
