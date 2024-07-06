@@ -20,6 +20,7 @@ func basicCleaning(doc *html.Node) *html.Node {
 
 // baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
 func baseline(doc *html.Node) (*html.Node, string) {
+	var tmpText string
 	postBody := etree.Element("body")
 	if doc == nil {
 		return postBody, ""
@@ -73,8 +74,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 		if articleBody != "" {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, articleBody)
-			return postBody, articleBody
+			tmpText += " " + articleBody
 		}
+	}
+
+	tmpText = trim(tmpText)
+	if utf8.RuneCountInString(tmpText) > 100 {
+		return postBody, tmpText
 	}
 
 	// Basic tree cleaning
@@ -83,26 +89,32 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape from article tag
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
-		tmpText := trim(dom.TextContent(articleElement))
-		if utf8.RuneCountInString(tmpText) > 100 {
+		articleText := trim(dom.TextContent(articleElement))
+		if utf8.RuneCountInString(articleText) > 100 {
 			p := etree.SubElement(postBody, "p")
-			etree.SetText(p, tmpText)
-			return postBody, tmpText
+			etree.SetText(p, articleText)
+			tmpText += " " + articleText
 		}
+	}
+
+	if len(dom.Children(postBody)) > 0 {
+		tmpText = trim(tmpText)
+		return postBody, tmpText
 	}
 
 	// Scrape from text paragraphs
 	results := make(map[string]struct{})
 	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
-		entry := dom.TextContent(element)
+		entry := trim(dom.TextContent(element))
 		if _, exist := results[entry]; !exist {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, entry)
+			tmpText += " " + entry
 			results[entry] = struct{}{}
 		}
 	}
 
-	tmpText := trim(etree.IterText(postBody, "\n"))
+	tmpText = trim(tmpText)
 	if utf8.RuneCountInString(tmpText) > 100 {
 		return postBody, tmpText
 	}
