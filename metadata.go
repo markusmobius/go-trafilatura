@@ -89,8 +89,8 @@ var (
 		"twitter:image", "twitter:image:src")
 	// metaNameUrl   = sliceToMap("rbmainurl", "twitter:url")
 
-	fastHtmlDateOpts      = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
-	extensiveHtmlDateOpts = htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
+	fastHtmlDateOpts      = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
+	extensiveHtmlDateOpts = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
 	titleCaser            = cases.Title(language.English)
 )
 
@@ -181,28 +181,41 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	}
 
 	// Publish date
-	if opts.HtmlDateOverride != nil {
+	if opts.HtmlDateOverride != nil { // User has his own HtmlDate result
 		if opts.HtmlDateOverride.HasTime {
 			metadata.Date = opts.HtmlDateOverride.DateTime
 		}
 	} else {
-		var htmlDateOpts htmldate.Options
-		if opts.HtmlDateOptions != nil {
-			htmlDateOpts = *opts.HtmlDateOptions
-		} else {
-			// If fallback is enabled, it means we want it to be extensive.
-			// Vice versa, if it's disabled, it means we want it to be fast.
+		var optsPointer *htmldate.Options
+
+		switch {
+		case opts.HtmlDateOptions != nil: // User has his own HtmlDate options
+			optsPointer = opts.HtmlDateOptions
+
+		case opts.HtmlDateMode == Default:
 			if opts.EnableFallback {
-				htmlDateOpts = extensiveHtmlDateOpts
+				optsPointer = extensiveHtmlDateOpts
 			} else {
-				htmlDateOpts = fastHtmlDateOpts
+				optsPointer = fastHtmlDateOpts
 			}
+
+		case opts.HtmlDateMode == Fast:
+			optsPointer = fastHtmlDateOpts
+
+		case opts.HtmlDateMode == Extensive:
+			optsPointer = extensiveHtmlDateOpts
+
+		case opts.HtmlDateMode == Disabled:
+			optsPointer = nil
 		}
 
-		htmlDateOpts.URL = metadata.URL
-		publishDate, err := htmldate.FromDocument(doc, htmlDateOpts)
-		if err == nil && !publishDate.IsZero() {
-			metadata.Date = publishDate.DateTime
+		if optsPointer != nil {
+			htmlDateOpts := *optsPointer
+			htmlDateOpts.URL = metadata.URL
+			publishDate, err := htmldate.FromDocument(doc, htmlDateOpts)
+			if err == nil && !publishDate.IsZero() {
+				metadata.Date = publishDate.DateTime
+			}
 		}
 	}
 

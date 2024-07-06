@@ -10,7 +10,7 @@ import (
 	"github.com/go-shiori/dom"
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
-	"github.com/markusmobius/go-trafilatura"
+	gt "github.com/markusmobius/go-trafilatura"
 	"golang.org/x/net/html"
 )
 
@@ -55,12 +55,12 @@ func compareContentExtraction() {
 
 	// Prepare extractors
 	runners := []ExtractorRunner{
-		prepareReadability(),                                 // Readability
-		prepareDomDistiller(),                                // DOM Distiller
-		prepareTrafilatura(false, trafilatura.Balanced),      // Standard Trafilatura
-		prepareTrafilatura(true, trafilatura.Balanced),       // Trafilatura + Fallback
-		prepareTrafilatura(true, trafilatura.FavorPrecision), // Trafilatura + Precision
-		prepareTrafilatura(true, trafilatura.FavorRecall),    // Trafilatura + Recall
+		prepareReadability(),                        // Readability
+		prepareDomDistiller(),                       // DOM Distiller
+		prepareTrafilatura(false, gt.Balanced),      // Standard Trafilatura
+		prepareTrafilatura(true, gt.Balanced),       // Trafilatura + Fallback
+		prepareTrafilatura(true, gt.FavorPrecision), // Trafilatura + Precision
+		prepareTrafilatura(true, gt.FavorRecall),    // Trafilatura + Recall
 	}
 
 	// Run extractors
@@ -131,27 +131,29 @@ func prepareExtractorParameter() []ExtractorParameter {
 	return params
 }
 
-func prepareTrafilatura(useFallback bool, focus trafilatura.ExtractionFocus) ExtractorRunner {
+func prepareTrafilatura(useFallback bool, focus gt.ExtractionFocus) ExtractorRunner {
 	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
 		// Prepare title
-		titles := []string{"Trafilatura"}
+		title := "Trafilatura"
+
 		if useFallback {
-			titles = append(titles, "Fallback")
+			title += " + Fallback"
 		}
 
-		if focus == trafilatura.FavorPrecision {
-			titles = append(titles, "Precision")
-		} else if focus == trafilatura.FavorRecall {
-			titles = append(titles, "Recall")
+		switch focus {
+		case gt.Balanced:
+			title += " + Balanced"
+		case gt.FavorPrecision:
+			title += " + Favor Precision"
+		case gt.FavorRecall:
+			title += " + Favor Recall"
 		}
-
-		title := strings.Join(titles, " + ")
 
 		// Print log
 		log.Info().Msgf("running %s", title)
 
 		// Prepare Trafilatura options
-		opts := trafilatura.Options{
+		opts := gt.Options{
 			EnableFallback:  useFallback,
 			ExcludeComments: true,
 			ExcludeTables:   false,
@@ -167,7 +169,7 @@ func prepareTrafilatura(useFallback bool, focus trafilatura.ExtractionFocus) Ext
 		for _, param := range params {
 			var textResult string
 			opts.OriginalURL = param.URL
-			result, err := trafilatura.ExtractDocument(param.Document, opts)
+			result, err := gt.ExtractDocument(param.Document, opts)
 
 			if err != nil {
 				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))

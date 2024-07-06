@@ -42,6 +42,33 @@ const (
 	FavorPrecision
 )
 
+// HtmlDateMode specify the mode of publish date extractor using HtmlDate package.
+type HtmlDateMode uint8
+
+const (
+	// In Default mode, HtmlDate will be run based on whether fallback is enabled or not.
+	// If fallback is enabled, HtmlDate will be run on `Extensive` mode. If fallback is
+	// disabled, HtmlDate will be run on `Fast` mode.
+	Default HtmlDateMode = iota
+
+	// In Fast mode, publish date will be extracted from entire document by using HtmlDate,
+	// but without using external DateParser package. Thank to this the date extraction is
+	// quite fast, but it can't detect string in non English language.
+	Fast
+
+	// In Extensive mode, publish date will be extracted from entire document by using
+	// HtmlDate, utilizing the external DateParser package. Thank to this the date
+	// extraction is pretty accurate and can detect foreign language, but it use a lot
+	// of RegEx which is slow in Go.
+	Extensive
+
+	// If Disabled, publish date will only extracted from metadata and not scanned from
+	// the entire document. Thanks to this content extraction will be fast, but the
+	// publish date might be missing or inaccurate. Use it if you only care about the
+	// content and not the publish date.
+	Disabled
+)
+
 // Options is configuration for the extractor.
 type Options struct {
 	// Config is the advanced configuration to fine tune the
@@ -99,13 +126,19 @@ type Options struct {
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 
+	// HtmlDateMode specify the behaviour of the external HtmlDate package that used
+	// to extract publish date from a web page.
+	HtmlDateMode HtmlDateMode
+
 	// HtmlDateOptions is user provided configuration for the external `go-htmldate`
-	// package that used to look for publish date of a web page.
+	// package that used to look for publish date of a web page. If this property is
+	// specified, `HtmlDateMode` will be ignored.
 	HtmlDateOptions *htmldate.Options
 
 	// HtmlDateOverride is user provided extracted date from `go-htmldate` package.
 	// If this property specified, HtmlDate won't be run and instead will use
-	// this property as its result.
+	// this property as its result. In other words, `HtmlDateMode` and `HtmlDateOptions`
+	// will be ignored.
 	HtmlDateOverride *htmldate.Result
 
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
