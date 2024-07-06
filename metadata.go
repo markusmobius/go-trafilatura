@@ -265,7 +265,7 @@ func examineMeta(doc *html.Node) Metadata {
 
 	// Scan all <meta> nodes that has attribute "content"
 	var tmpSitename string
-	for _, node := range dom.QuerySelectorAll(doc, "meta[content]") {
+	for _, node := range dom.QuerySelectorAll(doc, "head meta[content]") {
 		// Make sure content is not empty
 		content := dom.GetAttribute(node, "content")
 		content = rxHtmlStripTag.ReplaceAllString(content, "")
@@ -491,19 +491,14 @@ func extractDomURL(doc *html.Node) string {
 
 	// Try canonical link first
 	linkNode := dom.QuerySelector(doc, `link[rel="canonical"][href]`)
+	if linkNode == nil {
+		// Now try default language link
+		linkNode = dom.QuerySelector(doc, `link[rel="alternate"][hreflang="x-default"]`)
+	}
+
 	if linkNode != nil {
 		if href := trim(dom.GetAttribute(linkNode, "href")); href != "" {
 			url = href
-		}
-	} else {
-		// Now try default language link
-		linkNodes := dom.QuerySelectorAll(doc, `link[rel="alternate"][hreflang]`)
-		for _, node := range linkNodes {
-			if dom.GetAttribute(node, "hreflang") == "x-default" {
-				if href := trim(dom.GetAttribute(node, "href")); href != "" {
-					url = href
-				}
-			}
 		}
 	}
 
@@ -696,6 +691,7 @@ func normalizeAuthors(authors string, input string) string {
 
 	// Clean up input string
 	input = trim(input)
+	input = html.UnescapeString(input)
 	input = gomoji.RemoveEmojis(input)
 	input = rxAuthorDigits.ReplaceAllString(input, "")
 	input = rxAuthorSocialMedia.ReplaceAllString(input, "")

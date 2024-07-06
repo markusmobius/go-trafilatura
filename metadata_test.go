@@ -71,58 +71,76 @@ func Test_Metadata(t *testing.T) {
 
 func Test_Metadata_Titles(t *testing.T) {
 	var rawHTML string
-	var metadata Metadata
+	isEqual := func(rawHTML string, expected any) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Title)
+	}
 
 	rawHTML = `<html><body><h3 class="title">T</h3><h3 id="title"></h3></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Title)
+	isEqual(rawHTML, "")
 
 	rawHTML = `<html><head><title>Test Title</title><meta property="og:title" content=" " /></head><body><h1>First</h1></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "First", metadata.Title)
+	isEqual(rawHTML, "First")
 
 	rawHTML = `<html><head><title>Test Title</title><meta name="title" content=" " /></head><body><h1>First</h1></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "First", metadata.Title)
+	isEqual(rawHTML, "First")
 
 	rawHTML = `<html><head><title>Test Title</title></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Test Title", metadata.Title)
+	isEqual(rawHTML, "Test Title")
 
 	rawHTML = `<html><body><h1>First</h1><h1>Second</h1></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "First", metadata.Title)
+	isEqual(rawHTML, "First")
 
 	rawHTML = `<html><body><h1>   </h1><div class="post-title">Test Title</div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Test Title", metadata.Title)
+	isEqual(rawHTML, "Test Title")
 
 	rawHTML = `<html><body><h2 class="block-title">Main menu</h2><h1 class="article-title">Test Title</h1></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Test Title", metadata.Title)
+	isEqual(rawHTML, "Test Title")
 
 	rawHTML = `<html><body><h2>First</h2><h1>Second</h1></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Second", metadata.Title)
+	isEqual(rawHTML, "Second")
 
 	rawHTML = `<html><body><h2>First</h2><h2>Second</h2></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "First", metadata.Title)
+	isEqual(rawHTML, "First")
 
 	rawHTML = `<html><body><title></title></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Title)
-
-	metadata = testGetMetadataFromFile("simple/metadata-title.html")
-	assert.Equal(t, "Semantic satiation", metadata.Title)
+	isEqual(rawHTML, "")
 
 	rawHTML = `<html><head><title> - Home</title></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "- Home", metadata.Title)
+	isEqual(rawHTML, "- Home")
 
 	rawHTML = `<html><head><title>My Title » My Website</title></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "My Title", metadata.Title) // TODO: and metadata.sitename == "My Website"
+	isEqual(rawHTML, "My Title") // TODO: and metadata.sitename == "My Website"
+
+	// Try from file
+	metadata := testGetMetadataFromFile("simple/metadata-title.html")
+	assert.Equal(t, "Semantic satiation", metadata.Title)
+}
+
+func Test_Metadata_normalizeAuthors(t *testing.T) {
+	// Alias for shorter test
+	na := normalizeAuthors
+	isEqual := assert.Equal
+
+	isEqual(t, "Abc", na("", "abc"))
+	isEqual(t, "Steve Steve", na("", "Steve Steve 123"))
+	isEqual(t, "Steve Steve", na("", "By Steve Steve"))
+	isEqual(t, "Seán Federico O'Murchú", na("", "Seán Federico O'Murchú"))
+	isEqual(t, "John Doe", na("", "John Doe"))
+	isEqual(t, "Alice; Bob; John Doe", na("Alice; Bob", "John Doe"))
+	isEqual(t, "Alice; Bob", na("Alice; Bob", "john.doe@example.com"))
+	isEqual(t, "Étienne", na("", "\u00e9tienne"))
+	isEqual(t, "Étienne", na("", "&#233;tienne"))
+	isEqual(t, "Alice; Bob", na("", "Alice &amp; Bob"))
+	isEqual(t, "John Doe", na("", "<b>John Doe</b>"))
+	isEqual(t, "John Doe", na("", "John 😊 Doe"))
+	isEqual(t, "John Doe", na("", "words by John Doe"))
+	isEqual(t, "John Doe", na("", "John Doe123"))
+	isEqual(t, "John Doe", na("", "John_Doe"))
+	isEqual(t, "John Doe", na("", "John Doe* "))
+	isEqual(t, "John Doe", na("", "John Doe of John Doe"))
+	isEqual(t, "John Doe", na("", "John Doe — John Doe"))
+	isEqual(t, "John Doe", na("", `John "The King" Doe`))
 }
 
 func Test_Metadata_Authors(t *testing.T) {
@@ -130,206 +148,157 @@ func Test_Metadata_Authors(t *testing.T) {
 	var rawHTML string
 	var metadata Metadata
 
-	// Normalization
-	assert.Equal(t, "Abc", normalizeAuthors("", "abc"))
-	assert.Equal(t, "Steve Steve", normalizeAuthors("", "Steve Steve 123"))
-	assert.Equal(t, "Steve Steve", normalizeAuthors("", "By Steve Steve"))
-	assert.Equal(t, "Seán Federico O'Murchú", normalizeAuthors("", "Seán Federico O'Murchú"))
+	isEqual := func(rawHTML string, expected string) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Author)
+	}
 
-	// Extraction
-	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	headHTML := func(s string) string {
+		return `<html><head>` + s + `</head><body></body></html>`
+	}
 
-	rawHTML = `<html><head><meta name="author" content="Jenny Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	bodyHTML := func(s string) string {
+		return `<html><body>` + s + `</body></html>`
+	}
 
-	rawHTML = `<html><head><meta name="author" content="Hank O&#39;Hop"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Hank O'Hop", metadata.Author)
+	// Extraction from head
+	rawHTML = headHTML(`<meta itemprop="author" content="Jenny Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><a href="" rel="author">Jenny Smith</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta itemprop="author" content="Jenny Smith"/><meta itemprop="author" content="John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><a href="" rel="author">Jenny "The Author" Smith</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta itemprop="author" content="Jenny Smith und John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><span class="author">Jenny Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="author" content="Jenny Smith"/><meta name="author" content="John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><h4 class="author">Jenny Smith</h4></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="author" content="Jenny Smith and John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><h4 class="author">Jenny Smith — Trafilatura</h4></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="author" content="Jenny Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><span class="wrapper--detail__writer">Jenny Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="author" content="Hank O&#39;Hop"/>`)
+	isEqual(rawHTML, "Hank O'Hop")
 
-	rawHTML = `<html><body><span id="author-name">Jenny Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="author" content="Jenny Smith ❤️"/>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><figure data-component="Figure"><div class="author">Jenny Smith</div></figure></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Author)
+	rawHTML = headHTML(`<meta name="citation_author" content="Jenny Smith and John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><div class="sidebar"><div class="author">Jenny Smith</div></figure></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Author)
+	rawHTML = headHTML(`<meta property="author" content="Jenny Smith"/><meta property="author" content="John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body>
-		<div class="quote">
-			<p>My quote here</p>
-			<p class="quote-author"><span>—</span> Jenny Smith</p>
-		</div>
-	</body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Author)
+	rawHTML = headHTML(`<meta itemprop="author" content="Jenny Smith and John Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><a class="author">Jenny Smith</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = headHTML(`<meta name="article:author" content="Jenny Smith"/>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><a class="author">Jenny Smith <div class="title">Editor</div></a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	// Extraction from body
+	rawHTML = bodyHTML(`<a href="" rel="author">Jenny Smith</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><a class="author">Jenny Smith from Trafilatura</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<a href="" rel="author">Jenny "The Author" Smith</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><a class="username">Jenny Smith</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span class="author">Jenny Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div class="submitted-by"><a>Jenny Smith</a></div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<h4 class="author">Jenny Smith</h4>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div class="byline-content"><div class="byline"><a>Jenny Smith</a></div><time>July 12, 2021 08:05</time></div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<h4 class="author">Jenny Smith — Trafilatura</h4>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><h3 itemprop="author">Jenny Smith</h3></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span class="wrapper--detail__writer">Jenny Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body>
-		<div class="article-meta article-meta-byline article-meta-with-photo article-meta-author-and-reviewer" itemprop="author" itemscope="" itemtype="http://schema.org/Person">
-			<span class="article-meta-photo-wrap">
-				<img src="" alt="Jenny Smith" itemprop="image" class="article-meta-photo">
-			</span>
-			<span class="article-meta-contents">
-				<span class="article-meta-author">By <a href="" itemprop="url"><span itemprop="name">Jenny Smith</span></a></span>
-				<span class="article-meta-date">May 18 2022</span>
-				<span class="article-meta-reviewer">Reviewed by <a href="">Robert Smith</a></span>
-			</span>
-		</div>
-	</body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span id="author-name">Jenny Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div data-component="Byline">Jenny Smith</div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<figure data-component="Figure"><div class="author">Jenny Smith</div></figure>`)
+	isEqual(rawHTML, "")
 
-	rawHTML = `<html><body><span id="author">Jenny Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<div class="sidebar"><div class="author">Jenny Smith</div></figure>`)
+	isEqual(rawHTML, "")
 
-	rawHTML = `<html><body><span id="author">Jenny Smith – The Moon</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<div class="quote"><p>My quote here</p><p class="quote-author"><span>—</span> Jenny Smith</p></div>`)
+	isEqual(rawHTML, "")
 
-	rawHTML = `<html><body><span id="author">Jenny_Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span class="author">Jenny Smith and John Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith; John Smith")
 
-	rawHTML = `<html><body><address class="author">Jenny Smith</address></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<a class="author">Jenny Smith</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><author>Jenny Smith</author></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<a class="author">Jenny Smith <div class="title">Editor</div></a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><head><meta data-rh="true" property="og:author" content="By &lt;a href=&quot;/profiles/amir-vera&quot;&gt;Amir Vera&lt;/a&gt;, Seán Federico O&#x27;Murchú, &lt;a href=&quot;/profiles/tara-subramaniam&quot;&gt;Tara Subramaniam&lt;/a&gt; and Adam Renton, CNN"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Amir Vera; Seán Federico O'Murchú; Tara Subramaniam; Adam Renton; CNN", metadata.Author)
+	rawHTML = bodyHTML(`<a class="author">Jenny Smith from Trafilatura</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div class="author"><span class="profile__name"> Jenny Smith </span> <a href="https://twitter.com/jenny_smith" class="profile__social" target="_blank"> @jenny_smith </a> <span class="profile__extra lg:hidden"> 11:57AM </span> </div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<meta itemprop="author" content="Fake Author"/><a class="author">Jenny Smith from Trafilatura</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><p class="author-section byline-plain">By <a class="author" rel="nofollow">Jenny Smith For Daily Mail Australia</a></p></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<a class="username">Jenny Smith</a>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div class="o-Attribution__a-Author"><span class="o-Attribution__a-Author--Label">By:</span><span class="o-Attribution__a-Author--Prefix"><span class="o-Attribution__a-Name"><a href="//web.archive.org/web/20210707074846/https://www.discovery.com/profiles/ian-shive">Ian Shive</a></span></span></div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Ian Shive", metadata.Author)
+	rawHTML = bodyHTML(`<div class="submitted-by"><a>Jenny Smith</a></div>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div class="ArticlePage-authors"><div class="ArticlePage-authorName" itemprop="name"><span class="ArticlePage-authorBy">By&nbsp;</span><a aria-label="Ben Coxworth" href="https://newatlas.com/author/ben-coxworth/"><span>Ben Coxworth</span></a></div></div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Ben Coxworth", metadata.Author)
+	rawHTML = bodyHTML(`<div class="byline-content"><div class="byline"><a>Jenny Smith</a></div><time>July 12, 2021 08:05</time></div>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><div><strong><a class="d1dba0c3091a3c30ebd6" data-testid="AuthorURL" href="/by/p535y1">AUTHOR NAME</a></strong></div></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "AUTHOR NAME", metadata.Author)
+	rawHTML = bodyHTML(`<h3 itemprop="author">Jenny Smith</h3>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	// No emoji
-	rawHTML = `<html><head><meta name="author" content="Jenny Smith ❤️"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
+	rawHTML = bodyHTML(`<div class="article-meta article-meta-byline article-meta-with-photo article-meta-author-and-reviewer" itemprop="author" itemscope="" itemtype="http://schema.org/Person"><span class="article-meta-photo-wrap"><img src="" alt="Jenny Smith" itemprop="image" class="article-meta-photo"></span><span class="article-meta-contents"><span class="article-meta-author">By <a href="" itemprop="url"><span itemprop="name">Jenny Smith</span></a></span><span class="article-meta-date">May 18 2022</span><span class="article-meta-reviewer">Reviewed by <a href="">Robert Smith</a></span></span></div>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	// Multi authors
-	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/><meta itemprop="author" content="John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<div data-component="Byline">Jenny Smith</div>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith und John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span id="author">Jenny Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><head><meta name="author" content="Jenny Smith"/><meta name="author" content="John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span id="author">Jenny Smith – The Moon</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><head><meta name="author" content="Jenny Smith and John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span id="author">Jenny_Smith</span>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><head><meta property="author" content="Jenny Smith"/><meta property="author" content="John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<span itemprop="author name">Shannon Deery, Mitch Clarke, Susie O’Brien, Laura Placella, Kara Irving, Jordy Atkinson, Suzan Delibasic</span>`)
+	isEqual(rawHTML, "Shannon Deery; Mitch Clarke; Susie O’Brien; Laura Placella; Kara Irving; Jordy Atkinson; Suzan Delibasic")
 
-	rawHTML = `<html><body><span class="author">Jenny Smith and John Smith</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<address class="author">Jenny Smith</address>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	rawHTML = `<html><body><span itemprop="author name">Shannon Deery, Mitch Clarke, Susie O’Brien, Laura Placella, Kara Irving, Jordy Atkinson, Suzan Delibasic</span></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Shannon Deery; Mitch Clarke; Susie O’Brien; Laura Placella; Kara Irving; Jordy Atkinson; Suzan Delibasic", metadata.Author)
+	rawHTML = bodyHTML(`<author>Jenny Smith</author>`)
+	isEqual(rawHTML, "Jenny Smith")
 
-	// Google Scholar citation
-	rawHTML = `<html><head><meta name="citation_author" content="Jenny Smith and John Smith"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "Jenny Smith; John Smith", metadata.Author)
+	rawHTML = bodyHTML(`<div class="author"><span class="profile__name"> Jenny Smith </span> <a href="https://twitter.com/jenny_smith" class="profile__social" target="_blank"> @jenny_smith </a> <span class="profile__extra lg:hidden"> 11:57AM </span> </div>`)
+	isEqual(rawHTML, "Jenny Smith")
+
+	rawHTML = bodyHTML(`<p class="author-section byline-plain">By <a class="author" rel="nofollow">Jenny Smith For Daily Mail Australia</a></p>`)
+	isEqual(rawHTML, "Jenny Smith")
+
+	rawHTML = bodyHTML(`<div class="o-Attribution__a-Author"><span class="o-Attribution__a-Author--Label">By:</span><span class="o-Attribution__a-Author--Prefix"><span class="o-Attribution__a-Name"><a href="//web.archive.org/web/20210707074846/https://www.discovery.com/profiles/ian-shive">Ian Shive</a></span></span></div>`)
+	isEqual(rawHTML, "Ian Shive")
+
+	rawHTML = bodyHTML(`<div class="ArticlePage-authors"><div class="ArticlePage-authorName" itemprop="name"><span class="ArticlePage-authorBy">By&nbsp;</span><a aria-label="Ben Coxworth" href="https://newatlas.com/author/ben-coxworth/"><span>Ben Coxworth</span></a></div></div>`)
+	isEqual(rawHTML, "Ben Coxworth")
+
+	rawHTML = bodyHTML(`<div><strong><a class="d1dba0c3091a3c30ebd6" data-testid="AuthorURL" href="/by/p535y1">AUTHOR NAME</a></strong></div`)
+	isEqual(rawHTML, "AUTHOR NAME")
+
+	rawHTML = `<html><head><meta data-rh="true" property="og:author" content="By &lt;a href=&quot;/profiles/amir-vera&quot;&gt;Amir Vera&lt;/a&gt;, Seán Federico O&#x27;Murchú, &lt;a href=&quot;/profiles/tara-subramaniam&quot;&gt;Tara Subramaniam&lt;/a&gt; and Adam Renton, CNN"/></head><body>f{end}`
+	isEqual(rawHTML, "Amir Vera; Seán Federico O'Murchú; Tara Subramaniam; Adam Renton; CNN")
 
 	// Blacklist
-	opts = Options{BlacklistedAuthors: []string{"Fake Author"}}
-	rawHTML = `<html><body><meta itemprop="author" content="Fake Author"/><a class="author">Jenny Smith from Trafilatura</a></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML, opts)
-	assert.Equal(t, "Jenny Smith", metadata.Author)
-
 	opts = Options{BlacklistedAuthors: []string{"Jenny Smith"}}
 	rawHTML = `<html><head><meta itemprop="author" content="Jenny Smith"/></head><body></body></html>`
 	metadata = testGetMetadataFromHTML(rawHTML, opts)
@@ -342,24 +311,25 @@ func Test_Metadata_Authors(t *testing.T) {
 
 func Test_Metadata_URLs(t *testing.T) {
 	var rawHTML string
-	var metadata Metadata
+	expected := "https://example.org"
+	isEqual := func(rawHTML string, expected string, customOpts ...Options) {
+		metadata := testGetMetadataFromHTML(rawHTML, customOpts...)
+		assert.Equal(t, expected, metadata.URL)
+	}
 
 	rawHTML = `<html><head><meta property="og:url" content="https://example.org"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org", metadata.URL)
+	isEqual(rawHTML, expected)
 
 	rawHTML = `<html><head><link rel="canonical" href="https://example.org"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org", metadata.URL)
+	isEqual(rawHTML, expected)
 
 	rawHTML = `<html><head><meta name="twitter:url" content="https://example.org"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org", metadata.URL)
+	isEqual(rawHTML, expected)
 
 	rawHTML = `<html><head><link rel="alternate" hreflang="x-default" href="https://example.org"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org", metadata.URL)
+	isEqual(rawHTML, expected)
 
+	// Test on partial URLs
 	rawHTML = `<html><head><link rel="canonical" href="/article/medical-record"/><meta name="twitter:url" content="https://example.org"/></head><body></body></html>`
 	assert.Equal(t, "https://example.org/article/medical-record", extractDomURL(docFromStr(rawHTML)))
 }
@@ -375,88 +345,88 @@ func Test_Metadata_Descriptions(t *testing.T) {
 }
 
 func Test_Metadata_Dates(t *testing.T) {
-	rawHTML := `<html><head><meta property="og:published_time" content="2017-09-01"/></head><body></body></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+	var rawHTML string
+	isEqual := func(rawHTML string, expected string, customOpts ...Options) {
+		metadata := testGetMetadataFromHTML(rawHTML, customOpts...)
+		assert.Equal(t, expected, metadata.Date.Format("2006-01-02"))
+	}
+
+	rawHTML = `<html><head><meta property="og:published_time" content="2017-09-01"/></head><body></body></html>`
+	isEqual(rawHTML, "2017-09-01")
 
 	rawHTML = `<html><head><meta property="og:url" content="https://example.org/2017/09/01/content.html"/></head><body></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+	isEqual(rawHTML, "2017-09-01")
 
 	// Compare extensive mode
 	opts := defaultOpts
 	rawHTML = `<html><body><p>Veröffentlicht am 1.9.17</p></body></html>`
 
 	opts.EnableFallback = false // fast mode
-	metadata = testGetMetadataFromHTML(rawHTML, opts)
-	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+	isEqual(rawHTML, "2017-09-01", opts)
 
 	opts.EnableFallback = true // extensive mode
-	metadata = testGetMetadataFromHTML(rawHTML, opts)
-	assert.Equal(t, "2017-09-01", metadata.Date.Format("2006-01-02"))
+	isEqual(rawHTML, "2017-09-01", opts)
 
 }
 
 func Test_Metadata_Categories(t *testing.T) {
 	var rawHTML string
-	var metadata Metadata
-	var expected []string
+	isEqual := func(rawHTML string, expected ...string) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Categories)
+	}
 
 	rawHTML = `<html><body>
 		<p class="entry-categories">
 			<a href="https://example.org/category/cat1/">Cat1</a>,
 			<a href="https://example.org/category/cat2/">Cat2</a>
 		</p></body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	expected = []string{"Cat1", "Cat2"}
-	assert.Equal(t, expected, metadata.Categories)
+	isEqual(rawHTML, "Cat1", "Cat2")
 
 	rawHTML = `<html><body>
 		<div class="postmeta"><a href="https://example.org/category/cat1/">Cat1</a></div>
 	</body></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	expected = []string{"Cat1"}
-	assert.Equal(t, expected, metadata.Categories)
-
-	rawHTML = `<html><head>
-		<meta name="keywords" content="sodium, salt, paracetamol, blood, pressure, high, heart, &amp;quot, intake, warning, study, &amp;quot, medicine, dissolvable, cardiovascular" />
-	</head></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	expected = []string{"sodium", "salt", "paracetamol", "blood", "pressure", "high", "heart", "intake", "warning", "study", "medicine", "dissolvable", "cardiovascular"}
-	assert.Equal(t, expected, metadata.Tags)
+	isEqual(rawHTML, "Cat1")
 }
 
 func Test_Metadata_Tags(t *testing.T) {
-	rawHTML := `<html><body>
+	var rawHTML string
+	isEqual := func(rawHTML string, expected ...string) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Tags)
+	}
+
+	rawHTML = `<html><body>
 		<p class="entry-tags">
 			<a href="https://example.org/tags/tag1/">Tag1</a>,
 			<a href="https://example.org/tags/tag2/">Tag2</a>
 		</p></body></html>`
-	metadata := testGetMetadataFromHTML(rawHTML)
-	expected := []string{"Tag1", "Tag2"}
-	assert.Equal(t, expected, metadata.Tags)
+	isEqual(rawHTML, "Tag1", "Tag2")
+
+	rawHTML = `<html><head>
+		<meta name="keywords" content="sodium, salt, paracetamol, blood, pressure, high, heart, &amp;quot, intake, warning, study, &amp;quot, medicine, dissolvable, cardiovascular" />
+	</head></html>`
+	isEqual(rawHTML, "sodium", "salt", "paracetamol", "blood", "pressure", "high", "heart", "intake", "warning", "study", "medicine", "dissolvable", "cardiovascular")
 }
 
 func Test_Metadata_Sitename(t *testing.T) {
 	var rawHTML string
-	var metadata Metadata
-
-	rawHTML = `<html><head><meta name="article:publisher" content="The Newspaper"/></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "The Newspaper", metadata.Sitename)
-
-	rawHTML = `<html><head><meta property="article:publisher" content="The Newspaper"/></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "The Newspaper", metadata.Sitename)
-
-	rawHTML = `<html><head><title>sitemaps.org - Home</title></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "sitemaps.org", metadata.Sitename)
-	assert.Equal(t, "Home", metadata.Title)
+	isEqual := func(rawHTML string, expected string) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Sitename)
+	}
 
 	rawHTML = `<html><head><meta name="article:publisher" content="@"/></head><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Sitename)
+	isEqual(rawHTML, "")
+
+	rawHTML = `<html><head><meta name="article:publisher" content="The Newspaper"/></head><body/></html>`
+	isEqual(rawHTML, "The Newspaper")
+
+	rawHTML = `<html><head><meta property="article:publisher" content="The Newspaper"/></head><body/></html>`
+	isEqual(rawHTML, "The Newspaper")
+
+	rawHTML = `<html><head><title>sitemaps.org - Home</title></head><body/></html>`
+	isEqual(rawHTML, "sitemaps.org")
 }
 
 func Test_Metadata_License(t *testing.T) {
@@ -503,25 +473,24 @@ func Test_Metadata_License(t *testing.T) {
 
 func Test_Metadata_MetaImages(t *testing.T) {
 	var rawHTML string
-	var metadata Metadata
+	isEqual := func(rawHTML string, expected string) {
+		metadata := testGetMetadataFromHTML(rawHTML)
+		assert.Equal(t, expected, metadata.Image)
+	}
 
 	// Image extraction from meta SEO tags
 	rawHTML = `<html><head><meta property="image" content="https://example.org/example.jpg"></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org/example.jpg", metadata.Image)
+	isEqual(rawHTML, "https://example.org/example.jpg")
 
 	rawHTML = `<html><head><meta property="og:image" content="https://example.org/example-opengraph.jpg" /><body/></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org/example-opengraph.jpg", metadata.Image)
+	isEqual(rawHTML, "https://example.org/example-opengraph.jpg")
 
 	rawHTML = `<html><head><meta property="twitter:image" content="https://example.org/example-twitter.jpg"></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Equal(t, "https://example.org/example-twitter.jpg", metadata.Image)
+	isEqual(rawHTML, "https://example.org/example-twitter.jpg")
 
 	// Without image
 	rawHTML = `<html><head><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /></html>`
-	metadata = testGetMetadataFromHTML(rawHTML)
-	assert.Empty(t, metadata.Image)
+	isEqual(rawHTML, "")
 }
 
 func Test_Metadata_MetaTags(t *testing.T) {
