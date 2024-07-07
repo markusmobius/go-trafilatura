@@ -21,7 +21,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura [v1.10.0][last-version] (commit [b36b6fa][last-commit]).
+This package is stable enough for use and up to date with the original Trafilatura [v1.11.0][last-version] (commit [60647e5][last-commit]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -267,8 +267,8 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.10.0
-[last-commit]: https://github.com/adbar/trafilatura/commit/b36b6fa
+[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.11.0
+[last-commit]: https://github.com/adbar/trafilatura/commit/60647e5
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
