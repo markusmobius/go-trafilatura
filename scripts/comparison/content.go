@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	nurl "net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -12,6 +14,7 @@ import (
 	distiller "github.com/markusmobius/go-domdistiller"
 	gt "github.com/markusmobius/go-trafilatura"
 	"golang.org/x/net/html"
+	"golang.org/x/sync/semaphore"
 )
 
 type ExtractorRunner func([]ExtractorParameter) (ExtractionPerformance, []error)
@@ -38,7 +41,7 @@ type ExtractionPerformance struct {
 	FScore    float64
 }
 
-func compareContentExtraction() {
+func compareContentExtraction(nWorker int) {
 	// Prepare table
 	tab := NewTable()
 	tab.AddHeaders(
@@ -55,12 +58,12 @@ func compareContentExtraction() {
 
 	// Prepare extractors
 	runners := []ExtractorRunner{
-		prepareReadability(),                        // Readability
-		prepareDomDistiller(),                       // DOM Distiller
-		prepareTrafilatura(false, gt.Balanced),      // Standard Trafilatura
-		prepareTrafilatura(true, gt.Balanced),       // Trafilatura + Fallback
-		prepareTrafilatura(true, gt.FavorPrecision), // Trafilatura + Precision
-		prepareTrafilatura(true, gt.FavorRecall),    // Trafilatura + Recall
+		prepareReadability(nWorker),                          // Readability
+		prepareDomDistiller(nWorker),                         // DOM Distiller
+		prepareTrafilatura(nWorker, false, gt.Balanced),      // Standard Trafilatura
+		prepareTrafilatura(nWorker, true, gt.Balanced),       // Trafilatura + Fallback
+		prepareTrafilatura(nWorker, true, gt.FavorPrecision), // Trafilatura + Precision
+		prepareTrafilatura(nWorker, true, gt.FavorRecall),    // Trafilatura + Recall
 	}
 
 	// Run extractors
@@ -131,7 +134,7 @@ func prepareExtractorParameter() []ExtractorParameter {
 	return params
 }
 
-func prepareTrafilatura(useFallback bool, focus gt.ExtractionFocus) ExtractorRunner {
+func prepareTrafilatura(nWorker int, useFallback bool, focus gt.ExtractionFocus) ExtractorRunner {
 	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
 		// Prepare title
 		title := "Trafilatura"
@@ -152,92 +155,185 @@ func prepareTrafilatura(useFallback bool, focus gt.ExtractionFocus) ExtractorRun
 		// Print log
 		log.Info().Msgf("running %s", title)
 
-		// Prepare Trafilatura options
-		opts := gt.Options{
-			EnableFallback:  useFallback,
-			ExcludeComments: true,
-			ExcludeTables:   false,
-			Focus:           focus,
-		}
-
 		// Initiate extraction result
-		start := time.Now()
+		var mu sync.Mutex
 		var errors []error
 		var evaluation EvaluationResult
 
+		// Prepare wait group
+		var wg sync.WaitGroup
+		ctx := context.TODO()
+		sem := semaphore.NewWeighted(int64(nWorker))
+
 		// Process each parameter
+		start := time.Now()
 		for _, param := range params {
-			var textResult string
-			opts.OriginalURL = param.URL
-			result, err := gt.ExtractDocument(param.Document, opts)
-
-			if err != nil {
-				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			} else {
-				textResult = result.ContentText
+			// Acquire semaphore and wait group
+			if err := sem.Acquire(ctx, 1); err != nil {
+				log.Fatal().Msgf("failed to acquire semaphore: %v", err)
 			}
+			wg.Add(1)
 
-			evaluation = evaluateResult(evaluation, textResult, param.Entry)
+			go func(param ExtractorParameter) {
+				// Make sure to release
+				defer func() {
+					wg.Done()
+					sem.Release(1)
+				}()
+
+				// Extract document
+				result, err := gt.ExtractDocument(param.Document, gt.Options{
+					EnableFallback:  useFallback,
+					ExcludeComments: true,
+					ExcludeTables:   false,
+					Focus:           focus,
+					OriginalURL:     param.URL,
+				})
+
+				// Evaluate the result
+				var ev EvaluationResult
+				if err == nil {
+					ev = evaluateEntry(param.Entry, result.ContentText)
+				}
+
+				// Temporarily lock resource
+				mu.Lock()
+				defer mu.Unlock()
+
+				evaluation = applyEvaluation(evaluation, ev)
+				if err != nil {
+					errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+				}
+			}(param)
 		}
 
 		// Return the performance
+		wg.Wait()
 		perf := calculatePerformance(title, time.Since(start), evaluation)
 		return perf, errors
 	}
 }
 
-func prepareReadability() ExtractorRunner {
+func prepareReadability(nWorker int) ExtractorRunner {
 	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
-		start := time.Now()
 		title := "Readability"
 		log.Info().Msgf("running %s", title)
 
+		// Initiate extraction result
+		var mu sync.Mutex
 		var errors []error
 		var evaluation EvaluationResult
-		for _, param := range params {
-			article, err := readability.FromDocument(param.Document, param.URL)
-			if err != nil {
-				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			}
 
-			evaluation = evaluateResult(evaluation, article.TextContent, param.Entry)
+		// Prepare wait group
+		var wg sync.WaitGroup
+		ctx := context.TODO()
+		sem := semaphore.NewWeighted(int64(nWorker))
+
+		// Process each parameter
+		start := time.Now()
+		for _, param := range params {
+			// Acquire semaphore and wait group
+			if err := sem.Acquire(ctx, 1); err != nil {
+				log.Fatal().Msgf("failed to acquire semaphore: %v", err)
+			}
+			wg.Add(1)
+
+			go func(param ExtractorParameter) {
+				// Make sure to release
+				defer func() {
+					wg.Done()
+					sem.Release(1)
+				}()
+
+				// Extract document
+				article, err := readability.FromDocument(param.Document, param.URL)
+
+				// Evaluate the result
+				var ev EvaluationResult
+				if err == nil {
+					ev = evaluateEntry(param.Entry, article.TextContent)
+				}
+
+				// Temporarily lock resource
+				mu.Lock()
+				defer mu.Unlock()
+
+				evaluation = applyEvaluation(evaluation, ev)
+				if err != nil {
+					errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+				}
+			}(param)
 		}
 
+		// Return the performance
+		wg.Wait()
 		perf := calculatePerformance(title, time.Since(start), evaluation)
 		return perf, errors
 	}
 }
 
-func prepareDomDistiller() ExtractorRunner {
+func prepareDomDistiller(nWorker int) ExtractorRunner {
 	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
-		start := time.Now()
 		title := "Dom Distiller"
 		log.Info().Msgf("running %s", title)
 
+		// Initiate extraction result
+		var mu sync.Mutex
 		var errors []error
 		var evaluation EvaluationResult
+
+		// Prepare wait group
+		var wg sync.WaitGroup
+		ctx := context.TODO()
+		sem := semaphore.NewWeighted(int64(nWorker))
+
+		// Process each parameter
+		start := time.Now()
 		for _, param := range params {
-			var textResult string
-			res, err := distiller.Apply(param.Document, &distiller.Options{
-				OriginalURL:    param.URL,
-				SkipPagination: true,
-			})
-
-			if err != nil {
-				errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
-			} else {
-				textResult = res.Text
+			// Acquire semaphore and wait group
+			if err := sem.Acquire(ctx, 1); err != nil {
+				log.Fatal().Msgf("failed to acquire semaphore: %v", err)
 			}
+			wg.Add(1)
 
-			evaluation = evaluateResult(evaluation, textResult, param.Entry)
+			go func(param ExtractorParameter) {
+				// Make sure to release
+				defer func() {
+					wg.Done()
+					sem.Release(1)
+				}()
+
+				// Extract document
+				res, err := distiller.Apply(param.Document, &distiller.Options{
+					OriginalURL:    param.URL,
+					SkipPagination: true,
+				})
+
+				// Evaluate the result
+				var ev EvaluationResult
+				if err == nil {
+					ev = evaluateEntry(param.Entry, res.Text)
+				}
+
+				// Temporarily lock resource
+				mu.Lock()
+				defer mu.Unlock()
+
+				evaluation = applyEvaluation(evaluation, ev)
+				if err != nil {
+					errors = append(errors, fmt.Errorf("%s error for %q: %v", title, param.URL, err))
+				}
+			}(param)
 		}
 
+		// Return the performance
+		wg.Wait()
 		perf := calculatePerformance(title, time.Since(start), evaluation)
 		return perf, errors
 	}
 }
 
-func evaluateResult(ev EvaluationResult, result string, entry ComparisonEntry) EvaluationResult {
+func evaluateEntry(entry ComparisonEntry, result string) EvaluationResult {
 	// Report problematic entry
 	if nWith := len(entry.With); nWith == 0 || nWith > 6 {
 		log.Warn().Msgf("entry %s has %d with", entry.File, nWith)
@@ -248,6 +344,8 @@ func evaluateResult(ev EvaluationResult, result string, entry ComparisonEntry) E
 	}
 
 	// If result empty, return early
+	var ev EvaluationResult
+
 	if result == "" {
 		ev.FalseNegatives += len(entry.With)
 		ev.TrueNegatives += len(entry.Without)
@@ -273,6 +371,14 @@ func evaluateResult(ev EvaluationResult, result string, entry ComparisonEntry) E
 	}
 
 	return ev
+}
+
+func applyEvaluation(current, new EvaluationResult) EvaluationResult {
+	current.TruePositives += new.TruePositives
+	current.FalseNegatives += new.FalseNegatives
+	current.FalsePositives += new.FalsePositives
+	current.TrueNegatives += new.TrueNegatives
+	return current
 }
 
 func calculatePerformance(title string, duration time.Duration, ev EvaluationResult) ExtractionPerformance {
