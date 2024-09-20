@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.5
 
 require (
-	github.com/abadojack/whatlanggo v1.0.1
+	github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc
 	github.com/andybalholm/cascadia v1.3.2
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.2.0
