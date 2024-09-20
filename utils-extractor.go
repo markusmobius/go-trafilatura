@@ -29,16 +29,13 @@ import (
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
+	"github.com/markusmobius/go-trafilatura/internal/re2go"
 	"github.com/markusmobius/go-trafilatura/internal/regexp"
 	"golang.org/x/net/html"
 )
 
 var (
-	rxHtmlLang   = regexp.MustCompile(`(?i)[a-z]{2}`)
-	rxTextFilter = regexp.MustCompile(`(?i)` +
-		`[^\pL\pM\pN_]*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|` +
-		`Linkedin|Mail|PDF|Pinterest|Pocket|Print|QQ|Reddit|Twitter|` +
-		`WeChat|WeiBo|Whatsapp|Xing|Mehr zum Thema:?|More on this.{,8}$)$`)
+	rxHtmlLang = regexp.MustCompile(`(?i)[a-z]{2}`)
 )
 
 // checkHtmlLanguage checks HTML meta-elements for language information and
@@ -125,7 +122,7 @@ func textFilter(n *html.Node) bool {
 	}
 
 	for _, line := range strings.Split(testText, "\n") {
-		if rxTextFilter.MatchString(line) {
+		if re2go.IsTextFilter(line) {
 			return true
 		}
 	}
