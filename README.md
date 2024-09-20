@@ -12,8 +12,6 @@ The structure of this package is arranged following the structure of original Py
 - [Usage as Go package](#usage-as-go-package)
 - [Usage as CLI Application](#usage-as-cli-application)
 - [Performance](#performance)
-  - [Compiling with cgo under Linux](#compiling-with-cgo-under-linux)
-  - [Compiling with cgo under Windows](#compiling-with-cgo-under-windows)
 - [Comparison with Other Go Packages](#comparison-with-other-go-packages)
 - [Comparison with Original Trafilatura](#comparison-with-original-trafilatura)
 - [Acknowledgements](#acknowledgements)
@@ -144,54 +142,12 @@ Here are some example of common usage
 
 ## Performance
 
-This package and its dependencies heavily use regular expression for various purposes. Unfortunately, as commonly known, Go's regular expression is pretty slow, even compared to Python. This is because:
+This package and its dependencies heavily use regular expression for various purposes. Unfortunately, as commonly known, Go's regular expression is pretty [slow][go-regex-slow]. This is because:
 
 - The regex engine in other language usually implemented in C, while in Go it's implemented from scratch in Go language. As expected, C implementation is still faster than Go's.
 - Since Go is usually used for web service, its regex is designed to finish in time linear to the length of the input, which useful for protecting server from ReDoS attack. However, this comes with performance cost.
 
-If you want to parse a huge amount of data, it would be preferrable to have a better performance. So, this package provides C++ [`re2`][re2] as an alternative regex engine using binding from [go-re2]. To activate it, make sure you have `re2` libraries installed on your system:
-
-- Arch: `sudo pacman -S re2`
-- Ubuntu: `sudo apt install libre2-dev`
-
-After `re2` available in your system, you can build your app using tag `re2_wasm` or `re2_cgo`, for example:
-
-```
-go build -tags re2_cgo .
-```
-
-More detailed instructions in how to prepare your system for compiling with cgo are provided below.
-
-When using `re2_wasm` tag, it will make your app uses `re2` that packaged as WebAssembly module so it should be runnable even without cgo. However, if your input is too small, it might be even slower than using Go's standard regex engine.
-
-When using `re2_cgo` tag, it will make your app uses `re2` library that wrapped using cgo. In most case it's a lot faster than Go's standard regex and `re2_wasm`, however to use it cgo must be available and `re2` should be installed in your system.
-
-Do note that this alternative regex engine is experimental, so use on your own risk.
-
-### Compiling with cgo under Linux
-
-On Ubuntu install the gcc tool chain and the re2 library as follows:
-
-```bash
-sudo apt install build-essential
-sudo apt-get install -y libre2-dev
-```
-
-### Compiling with cgo under Windows
-
-On Windows start by installing [MSYS2][msys2]. Then open the MINGW64 terminal and install the gcc toolchain and re2 via pacman:
-
-```bash
-pacman -S mingw-w64-x86_64-gcc
-pacman -S mingw-w64-x86_64-re2
-pacman -S mingw-w64-x86_64-pkg-config
-```
-
-If you want to run the resulting exe program outside the MINGW64 terminal you need to add a path to the MinGW-w64 libraries to the PATH environmental variable (adjust as needed for your system):
-
-```cmd
-SET PATH=C:\msys64\mingw64\bin;%PATH%
-```
+To solve this issue, we compile several important regexes into Go code using [re2go]. Thanks to this we are able to get a great speed without using cgo or external regex packages.
 
 ## Comparison with Other Go Packages
 
@@ -201,44 +157,48 @@ Here we compare the extraction result between `go-trafilatura`, `go-readability`
 go run scripts/comparison/*.go content
 ```
 
-For the test, we use 976 documents taken from various sources (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+For the test, we use 983 documents taken from various sources (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
-|            Package             | Precision | Recall | Accuracy | F-Score | Speed (s) |
-| :----------------------------: | :-------: | :----: | :------: | :-----: | :-------: |
-|        `go-readability`        |   0.870   | 0.882  |  0.875   |  0.876  |  11.731   |
-|       `go-domdistiller`        |   0.871   | 0.865  |  0.869   |  0.868  |  11.829   |
-|        `go-trafilatura`        |   0.908   | 0.885  |  0.898   |  0.896  |  16.167   |
-| `go-trafilatura` with fallback |   0.912   | 0.902  |  0.907   |  0.906  |  36.524   |
+|            Package             | Precision | Recall | Accuracy | F-Score | Time (s) |
+| :----------------------------: | :-------: | :----: | :------: | :-----: | :------: |
+|        `go-readability`        |   0.870   | 0.881  |  0.875   |  0.875  |  4.078   |
+|       `go-domdistiller`        |   0.871   | 0.864  |  0.868   |  0.867  |  3.669   |
+|        `go-trafilatura`        |   0.909   | 0.886  |  0.899   |  0.897  |  6.332   |
+| `go-trafilatura` with fallback |   0.911   | 0.902  |  0.907   |  0.906  |  12.508  |
 
-As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For instance, the image extraction in `go-trafilatura` is still not as good as the other.
+As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For example, its speed is slower than the other extractors. Other than that, image extraction in `go-trafilatura` is also not as good as the other.
 
 ## Comparison with Original Trafilatura
 
-Here is the result when compared with the original Trafilatura v1.10.0:
+Here is the result when compared with the original Trafilatura v1.11.0:
 
-|                 Package                 | Precision | Recall | Accuracy | F-Score |
-| :-------------------------------------: | :-------: | :----: | :------: | :-----: |
-|              `trafilatura`              |   0.913   | 0.886  |  0.901   |  0.899  |
-|        `trafilatura` + fallback         |   0.913   | 0.902  |  0.908   |  0.908  |
-|  `trafilatura` + fallback + precision   |   0.925   | 0.878  |  0.904   |  0.901  |
-|    `trafilatura` + fallback + recall    |   0.901   | 0.906  |  0.904   |  0.904  |
-|            `go-trafilatura`             |   0.909   | 0.886  |  0.899   |  0.897  |
-|       `go-trafilatura` + fallback       |   0.910   | 0.903  |  0.907   |  0.906  |
-| `go-trafilatura` + fallback + precision |   0.923   | 0.877  |  0.902   |  0.899  |
-|  `go-trafilatura` + fallback + recall   |   0.897   | 0.909  |  0.902   |  0.903  |
+|                 Package                 | Precision | Recall | Accuracy | F-Score | Time (s) |
+| :-------------------------------------: | :-------: | :----: | :------: | :-----: | :------: |
+|              `trafilatura`              |   0.912   | 0.886  |  0.901   |  0.899  |  18.79   |
+|        `trafilatura` + fallback         |   0.913   | 0.902  |  0.908   |  0.907  |  26.98   |
+|  `trafilatura` + fallback + precision   |   0.925   | 0.878  |  0.904   |  0.901  |  36.12   |
+|    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.903   |  0.903  |  20.61   |
+|            `go-trafilatura`             |   0.909   | 0.886  |  0.899   |  0.897  |   6.33   |
+|       `go-trafilatura` + fallback       |   0.911   | 0.902  |  0.907   |  0.906  |  12.51   |
+| `go-trafilatura` + fallback + precision |   0.923   | 0.875  |  0.901   |  0.899  |  12.70   |
+|  `go-trafilatura` + fallback + recall   |   0.897   | 0.910  |  0.903   |  0.904  |   9.80   |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
-For the speed, here is the comparison between our port and the original Trafilatura (all units in seconds):
+For the speed, our Go port is far faster than the original. This is mainly thanks to re2go that compiles several important regex ahead of time into Go code, so we don't get performance hit from using Go's regex.
 
-|             Name              | Standard | Fallback | Fallback + Precision | Fallback + Recall |
-| :---------------------------: | :------: | :------: | :------------------: | :---------------: |
-|         `trafilatura`         |  21.44   |  31.44   |        42.92         |       24.61       |
-|       `go-trafilatura`        |  16.17   |  36.52   |        36.73         |       27.50       |
-| `go-trafilatura` + `re2_wasm` |  11.29   |  21.35   |        21.28         |       14.39       |
-| `go-trafilatura` + `re2_cgo`  |   8.17   |  18.14   |        17.83         |       12.03       |
+By the way, this package is thread-safe (as far as we test it anyway) so depending on your use case you might want to use it concurrently for additional speed. As example, here is the result on my PC when the comparison script run concurrently in all thread:
 
-As you can see, our Go port is faster when running in standard mode (without fallback), but become slower when fallback extractors is enabled. This is mainly because of date extractor from `go-htmldate` running in extensive mode when fallback enabled, which lead to heavy use of regex, which lead to slow speed. Fortunately, when `re2` is enabled our port become a lot faster in every scenarios.
+```
+go run scripts/comparison/*.go content -j -1
+```
+
+|                 Package                 | Time (s) |
+| :-------------------------------------: | :------: |
+|            `go-trafilatura`             |  2.069   |
+|       `go-trafilatura` + fallback       |  4.374   |
+| `go-trafilatura` + fallback + precision |  5.189   |
+|  `go-trafilatura` + fallback + recall   |  4.524   |
 
 ## Acknowledgements
 
@@ -275,6 +235,5 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
 [wac-x]: https://www.sigwac.org.uk/wiki/WAC-X
 [k-web]: https://www.dwds.de/d/k-web
-[re2]: https://github.com/google/re2
-[go-re2]: https://github.com/wasilibs/go-re2
-[msys2]: https://www.msys2.org/
+[go-regex-slow]: https://github.com/golang/go/issues/26623
+[re2go]: https://re2c.org/manual/manual_go.html
