@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"runtime"
 
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -35,14 +36,25 @@ func main() {
 }
 
 func cmdContent() *cobra.Command {
-	return &cobra.Command{
+	maxNWorker := runtime.GOMAXPROCS(0)
+	cmd := &cobra.Command{
 		Use:   "content",
 		Short: "compare accuracy for content extraction",
 		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
-			compareContentExtraction()
+			// Get number of worker
+			nWorker, _ := cmd.Flags().GetInt("worker")
+			if nWorker <= 0 || nWorker > maxNWorker {
+				nWorker = maxNWorker
+			}
+
+			// Run comparison
+			compareContentExtraction(nWorker)
 		},
 	}
+
+	cmd.Flags().IntP("worker", "j", 1, "number of concurrent worker")
+	return cmd
 }
 
 func cmdAuthor() *cobra.Command {
