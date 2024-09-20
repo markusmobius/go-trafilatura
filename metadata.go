@@ -91,7 +91,6 @@ var (
 
 	fastHtmlDateOpts      = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
-	titleCaser            = cases.Title(language.English)
 )
 
 // Metadata is the metadata of the page.
@@ -231,7 +230,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 		// Capitalize
 		firstRune := getRune(metadata.Sitename, 0)
 		if !strings.Contains(metadata.Sitename, ".") && !unicode.IsUpper(firstRune) {
-			metadata.Sitename = titleCaser.String(metadata.Sitename)
+			metadata.Sitename = cases.Title(language.English).String(metadata.Sitename)
 		}
 	} else if metadata.URL != "" {
 		matches := rxSitenameFinder.FindStringSubmatch(metadata.URL)
@@ -747,7 +746,7 @@ func normalizeAuthors(authors string, input string) string {
 
 		// If necessary, convert to title
 		if !unicode.IsUpper(getRune(a, 0)) || strings.ToLower(a) == a {
-			a = titleCaser.String(a)
+			a = cases.Title(language.English).String(a)
 		}
 
 		// Save to list
