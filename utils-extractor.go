@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -30,7 +31,6 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/re2go"
-	"github.com/markusmobius/go-trafilatura/internal/regexp"
 	"golang.org/x/net/html"
 )
 

@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 	"unicode"
@@ -32,7 +33,6 @@ import (
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
-	"github.com/markusmobius/go-trafilatura/internal/regexp"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 	"golang.org/x/text/cases"
