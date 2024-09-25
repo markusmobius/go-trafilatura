@@ -151,6 +151,43 @@ To solve this issue, we compile several important regexes into Go code using [re
 
 ## Comparison with Other Go Packages
 
+As far as we know, currently there are three content extractors built for Go:
+
+- [Go-DomDistiller][dom-distiller]
+- [Go-Readability][readability]
+- Go-Trafilatura
+
+Since every extractors use its own algorithms, their results are a bit different. In general they give satisfactory results, however we found out that there are some cases where DOM Distiller is better and vice versa. Here is the short summary of pros and cons for each extractor:
+
+Dom Distiller:
+
+- Very fast.
+- Good at extracting images from article.
+- Able to find next page in sites that separated its article to several partial pages.
+- Since the original library was embedded in Chromium browser, its tests are pretty thorough.
+- CON: has a huge codebase, mostly because it mimics the original Java code.
+- CON: the original library is not maintained anymore and has been archived.
+
+Readability:
+
+- Fast, although not as fast as Dom Distiller.
+- Better than DOM Distiller at extracting wiki and documentation pages.
+- The original library in Readability.js is still actively used and maintained by Firefox.
+- The codebase is pretty small.
+- CON: the unit tests are not as thorough as the other extractors.
+
+Trafilatura:
+
+- Has the best accuracy compared to other extractors.
+- Better at extracting web page's metadata, including its language and publish date.
+- Its unit tests are thorough and focused on removing noise while making sure the real contents are still captured.
+- Designed to be used in academic domain e.g. natural language processing.
+- Actively maintained with new release almost every month.
+- CON: slower than the other extractors, mostly because it also looks for language and publish date.
+- CON: doesn't really good at extracting images.
+
+The benchmark that compares these extractors is available in [this repository][benchmark]. It uses each extractor to process 983 web pages in single thread. Here is its benchmark result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+
 Here we compare the extraction result between `go-trafilatura`, `go-readability` and `go-domdistiller`. To reproduce this test, clone this repository then run:
 
 ```
@@ -159,14 +196,23 @@ go run scripts/comparison/*.go content
 
 For the test, we use 983 documents taken from various sources (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
-|            Package             | Precision | Recall | Accuracy | F-Score | Time (s) |
-| :----------------------------: | :-------: | :----: | :------: | :-----: | :------: |
-|        `go-readability`        |   0.870   | 0.881  |  0.875   |  0.875  |  4.078   |
-|       `go-domdistiller`        |   0.871   | 0.864  |  0.868   |  0.867  |  3.669   |
-|        `go-trafilatura`        |   0.909   | 0.886  |  0.899   |  0.897  |  6.332   |
-| `go-trafilatura` with fallback |   0.911   | 0.902  |  0.907   |  0.906  |  12.508  |
+|       Extractor       | Time (ms) | Memory (MB) | Mem Allocation (allocs) |
+| :-------------------: | :-------: | :---------: | :---------------------: |
+|      Readability      |   4,212   |    4,412    |       15,261,650        |
+|     DomDistiller      |   3,794   |    4,144    |       13,552,246        |
+|      Trafilatura      |   6,609   |    3,585    |       33,628,972        |
+| Trafilatura+Fallback  |  12,934   |    8,781    |       55,338,023        |
+| Trafilatura+Precision |  13,644   |    8,763    |       57,549,026        |
+|  Trafilatura+Recall   |  10,083   |    5,454    |       43,626,869        |
 
-As you can see, in our benchmark `go-trafilatura` leads the way. However, it does have a weakness. For example, its speed is slower than the other extractors. Other than that, image extraction in `go-trafilatura` is also not as good as the other.
+And here is its performance comparison result:
+
+|            Package             | Precision | Recall | Accuracy | F-Score |
+| :----------------------------: | :-------: | :----: | :------: | :-----: |
+|        `go-readability`        |   0.870   | 0.881  |  0.875   |  0.875  |
+|       `go-domdistiller`        |   0.871   | 0.864  |  0.868   |  0.867  |
+|        `go-trafilatura`        |   0.909   | 0.886  |  0.899   |  0.897  |
+| `go-trafilatura` with fallback |   0.911   | 0.902  |  0.907   |  0.906  |
 
 ## Comparison with Original Trafilatura
 
@@ -237,3 +283,6 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [k-web]: https://www.dwds.de/d/k-web
 [go-regex-slow]: https://github.com/golang/go/issues/26623
 [re2go]: https://re2c.org/manual/manual_go.html
+[dom-distiller]: https://github.com/markusmobius/go-domdistiller/
+[readability]: https://github.com/go-shiori/go-readability
+[benchmark]: github.com/markusmobius/content-extractor-benchmark
