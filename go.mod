@@ -10,8 +10,8 @@ require (
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.2.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
-	github.com/go-shiori/go-readability v0.0.0-20240918022404-329379868667
-	github.com/markusmobius/go-domdistiller v0.0.0-20240919112519-fcf0d4556b87
+	github.com/go-shiori/go-readability v0.0.0-20240923125239-59a7bd165825
+	github.com/markusmobius/go-domdistiller v0.0.0-20240925231525-5f409da376c8
 	github.com/markusmobius/go-htmldate v1.8.2
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/rs/zerolog v1.33.0

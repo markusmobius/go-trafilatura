@@ -17,8 +17,8 @@ github.com/forPelevin/gomoji v1.2.0 h1:9k4WVSSkE1ARO/BWywxgEUBvR/jMnao6EZzrql5nx
 github.com/forPelevin/gomoji v1.2.0/go.mod h1:8+Z3KNGkdslmeGZBC3tCrwMrcPy5GRzAD+gL9NAwMXg=
 github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c h1:wpkoddUomPfHiOziHZixGO5ZBS73cKqVzZipfrLmO1w=
 github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c/go.mod h1:oVDCh3qjJMLVUSILBRwrm+Bc6RNXGZYtoh9xdvf1ffM=
-github.com/go-shiori/go-readability v0.0.0-20240918022404-329379868667 h1:KKCNShqwwlntW5jwDyiT73Zx6cktdANs4IZMhuNUiFY=
-github.com/go-shiori/go-readability v0.0.0-20240918022404-329379868667/go.mod h1:YWa00ashoPZMAOElrSn4E1cJErhDVU6PWAll4Hxzn+w=
+github.com/go-shiori/go-readability v0.0.0-20240923125239-59a7bd165825 h1:CpSi7xiWqGaAqVn/2MsbRoDmPwXMvvQUu3hLjX1QrOM=
+github.com/go-shiori/go-readability v0.0.0-20240923125239-59a7bd165825/go.mod h1:YWa00ashoPZMAOElrSn4E1cJErhDVU6PWAll4Hxzn+w=
 github.com/godbus/dbus/v5 v5.0.4/go.mod h1:xhWf0FNVPg57R7Z0UbKHbJfkEywrmjJnf7w5xrFpKfA=
 github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f h1:3BSP1Tbs2djlpprl7wCLuiqMaUh5SJkkzI2gDs+FgLs=
 github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f/go.mod h1:Pcatq5tYkCW2Q6yrR2VRHlbHpZ/R4/7qyL1TCF7vl14=
@@ -36,8 +36,8 @@ github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a h1:tdPcGgyiH0K+Sb
 github.com/magefile/mage v1.15.1-0.20230912152418-9f54e0f83e2a/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
 github.com/markusmobius/go-dateparser v1.2.3 h1:TvrsIvr5uk+3v6poDjaicnAFJ5IgtFHgLiuMY2Eb7Nw=
 github.com/markusmobius/go-dateparser v1.2.3/go.mod h1:cMwQRrBUQlK1UI5TIFHEcvpsMbkWrQLXuaPNMFzuYLk=
-github.com/markusmobius/go-domdistiller v0.0.0-20240919112519-fcf0d4556b87 h1:TEUCVl5bTwi5Tm7+Af8mTDPa2T9pEGtzzciuDi8mmAo=
-github.com/markusmobius/go-domdistiller v0.0.0-20240919112519-fcf0d4556b87/go.mod h1:E7PoeC3nd4GqtxP1A64v7JDBxpAbpTSnhlq9/DHmQ28=
+github.com/markusmobius/go-domdistiller v0.0.0-20240925231525-5f409da376c8 h1:yQyaqTg3RRJkW/cIXPRhtGBdm7FpCgzjKNV4wPbjZhI=
+github.com/markusmobius/go-domdistiller v0.0.0-20240925231525-5f409da376c8/go.mod h1:E7PoeC3nd4GqtxP1A64v7JDBxpAbpTSnhlq9/DHmQ28=
 github.com/markusmobius/go-htmldate v1.8.2 h1:1mXvVIaiI4asldieoZ+ITBg0a5U3AB8hBM+moN/6BDs=
 github.com/markusmobius/go-htmldate v1.8.2/go.mod h1:fLls4rjQDxYR+Pxhf0YR6Ht8dEeHd4SxK/NPaVqhMa8=
 github.com/matoous/go-nanoid v1.5.0/go.mod h1:zyD2a71IubI24efhpvkJz+ZwfwagzgSO6UNiFsZKN7U=
