@@ -58,12 +58,14 @@ func compareContentExtraction(nWorker int) {
 
 	// Prepare extractors
 	runners := []ExtractorRunner{
-		prepareReadability(nWorker),                          // Readability
-		prepareDomDistiller(nWorker),                         // DOM Distiller
-		prepareTrafilatura(nWorker, false, gt.Balanced),      // Standard Trafilatura
-		prepareTrafilatura(nWorker, true, gt.Balanced),       // Trafilatura + Fallback
-		prepareTrafilatura(nWorker, true, gt.FavorPrecision), // Trafilatura + Precision
-		prepareTrafilatura(nWorker, true, gt.FavorRecall),    // Trafilatura + Recall
+		prepareReadability(nWorker),                             // Readability
+		prepareDomDistiller(nWorker, -1),                        // DOM Distiller
+		prepareDomDistiller(nWorker, int(distiller.PrevNext)),   // DOM Distiller + Pagination PrevNext
+		prepareDomDistiller(nWorker, int(distiller.PageNumber)), // DOM Distiller + Pagination PageNumber
+		prepareTrafilatura(nWorker, false, gt.Balanced),         // Standard Trafilatura
+		prepareTrafilatura(nWorker, true, gt.Balanced),          // Trafilatura + Fallback
+		prepareTrafilatura(nWorker, true, gt.FavorPrecision),    // Trafilatura + Precision
+		prepareTrafilatura(nWorker, true, gt.FavorRecall),       // Trafilatura + Recall
 	}
 
 	// Run extractors
@@ -272,9 +274,15 @@ func prepareReadability(nWorker int) ExtractorRunner {
 	}
 }
 
-func prepareDomDistiller(nWorker int) ExtractorRunner {
+func prepareDomDistiller(nWorker int, paginationAlgo int) ExtractorRunner {
 	return func(params []ExtractorParameter) (ExtractionPerformance, []error) {
 		title := "Dom Distiller"
+		if paginationAlgo == int(distiller.PrevNext) {
+			title += " + Pagination PrevNext"
+		} else if paginationAlgo == int(distiller.PageNumber) {
+			title += " + Pagination PageNumber"
+		}
+
 		log.Info().Msgf("running %s", title)
 
 		// Initiate extraction result
@@ -306,7 +314,8 @@ func prepareDomDistiller(nWorker int) ExtractorRunner {
 				// Extract document
 				res, err := distiller.Apply(param.Document, &distiller.Options{
 					OriginalURL:    param.URL,
-					SkipPagination: true,
+					SkipPagination: paginationAlgo < 0,
+					PaginationAlgo: distiller.PaginationAlgo(paginationAlgo),
 				})
 
 				// Evaluate the result
