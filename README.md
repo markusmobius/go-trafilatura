@@ -285,4 +285,4 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [re2go]: https://re2c.org/manual/manual_go.html
 [dom-distiller]: https://github.com/markusmobius/go-domdistiller/
 [readability]: https://github.com/go-shiori/go-readability
-[benchmark]: github.com/markusmobius/content-extractor-benchmark
+[benchmark]: https://github.com/markusmobius/content-extractor-benchmark
