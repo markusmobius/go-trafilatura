@@ -150,6 +150,9 @@ func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator
 			result, _ := distiller.Apply(clone, &distiller.Options{
 				OriginalURL:    opts.OriginalURL,
 				SkipPagination: true})
+			if result == nil {
+				return "", nil
+			}
 			return distillerTitle, result.Node
 		})
 	}
