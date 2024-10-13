@@ -25,7 +25,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	nurl "net/url"
 	"os"
 	"path/filepath"
@@ -329,6 +328,12 @@ func Test_Formatting(t *testing.T) {
 	result, _ = Extract(r, zeroOpts)
 	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold font.</b></p>")
 
+	// Title
+	r = strings.NewReader("<html><body><article><h3>Title</h3><p><b>This here is in bold font.</b></p></article></body></html>")
+	result, _ = Extract(r, zeroOpts)
+	assert.Contains(t, fnHtml(result), "<h3>Title</h3>")
+	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold font.</b></p>")
+
 	// Nested
 	r = strings.NewReader("<html><body><p><b>This here is in bold and <i>italic</i> font.</b></p></body></html>")
 	result, _ = Extract(r, zeroOpts)
@@ -619,7 +624,7 @@ func Test_Images(t *testing.T) {
 
 	// From file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
-	bt, _ := ioutil.ReadAll(f)
+	bt, _ := io.ReadAll(f)
 
 	opts := defaultOpts
 	result, _ := Extract(bytes.NewReader(bt), opts)
@@ -694,7 +699,7 @@ func Test_Links(t *testing.T) {
 
 	// Extracting document with links, from file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
-	bt, _ := ioutil.ReadAll(f)
+	bt, _ := io.ReadAll(f)
 
 	result, _ = Extract(bytes.NewReader(bt), zeroOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
