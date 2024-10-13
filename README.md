@@ -19,7 +19,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura [v1.11.0][last-version] (commit [60647e5][last-commit]).
+This package is stable enough for use and up to date with the original Trafilatura [v1.12.2][last-version] (commit [f57ef0b][last-commit]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -211,12 +211,12 @@ And here is its performance comparison result:
 | :----------------------------: | :-------: | :----: | :------: | :-----: |
 |        `go-readability`        |   0.870   | 0.881  |  0.875   |  0.875  |
 |       `go-domdistiller`        |   0.871   | 0.864  |  0.868   |  0.867  |
-|        `go-trafilatura`        |   0.909   | 0.886  |  0.899   |  0.897  |
-| `go-trafilatura` with fallback |   0.911   | 0.902  |  0.907   |  0.906  |
+|        `go-trafilatura`        |   0.912   | 0.890  |  0.902   |  0.901  |
+| `go-trafilatura` with fallback |   0.908   | 0.912  |  0.910   |  0.910  |
 
 ## Comparison with Original Trafilatura
 
-Here is the result when compared with the original Trafilatura v1.12.0:
+Here is the result when compared with the original Trafilatura v1.12.2:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score | Time (s) |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: | :------: |
@@ -274,8 +274,8 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.11.0
-[last-commit]: https://github.com/adbar/trafilatura/commit/60647e5
+[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.12.2
+[last-commit]: https://github.com/adbar/trafilatura/commit/f57ef0b
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
