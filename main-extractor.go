@@ -87,6 +87,7 @@ func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.
 	return processedElement
 }
 
+// addSubElement adds a sub-element to an existing child element.
 func addSubElement(newChildElement, subElement, processedSubChild *html.Node) *html.Node {
 	subChildElement := etree.SubElement(newChildElement, dom.TagName(processedSubChild))
 	etree.SetText(subChildElement, etree.Text(processedSubChild))
@@ -95,6 +96,7 @@ func addSubElement(newChildElement, subElement, processedSubChild *html.Node) *h
 	return subChildElement
 }
 
+// processNestedElement iterates through an element child and rewire its descendants.
 func processNestedElement(child, newChildElement *html.Node, cache *lru.Cache, opts Options) {
 	etree.SetText(newChildElement, etree.Text(child))
 	for _, subElement := range etree.IterDescendants(child) {
@@ -113,10 +115,12 @@ func processNestedElement(child, newChildElement *html.Node, cache *lru.Cache, o
 	}
 }
 
+// isTextElement checks if the element contains text.
 func isTextElement(element *html.Node) bool {
 	return element != nil && textCharsTest(etree.IterText(element, ""))
 }
 
+// defineNewElement creates a new sub-element if necessary.
 func defineNewElement(processedElement, originalElement *html.Node) {
 	if processedElement != nil {
 		childElement := etree.SubElement(originalElement, dom.TagName(processedElement))
@@ -632,7 +636,7 @@ func pruneUnwantedSections(subTree *html.Node, potentialTags map[string]struct{}
 		children := dom.Children(subTree)
 		for i := len(children) - 1; i >= 0; i-- {
 			if inMap(dom.TagName(children[i]), mapXmlHeadTags) {
-				children[i].Parent.RemoveChild(children[i])
+				etree.Remove(children[i])
 				continue
 			}
 			break

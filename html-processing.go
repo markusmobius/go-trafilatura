@@ -92,7 +92,7 @@ func docCleaning(doc *html.Node, opts Options) {
 
 	// Remove HTML comment
 	removeHtmlCommentNode(doc)
-	pruneHTML(doc)
+	pruneHTML(doc, opts)
 }
 
 // removeHtmlCommentNode removes all `html.CommentNode` in document.
@@ -119,8 +119,9 @@ func removeHtmlCommentNode(doc *html.Node) {
 	dom.RemoveNodes(commentNodes, nil)
 }
 
-// pruneHTML deletes selected empty elements
-func pruneHTML(doc *html.Node) {
+// pruneHTML deletes selected empty elements to save space and processing time.
+func pruneHTML(doc *html.Node, opts Options) {
+	keepTail := opts.Focus != FavorPrecision
 	allElements := dom.GetElementsByTagName(doc, "*")
 	for i := len(allElements) - 1; i >= 0; i-- {
 		subElement := allElements[i]
@@ -130,7 +131,7 @@ func pruneHTML(doc *html.Node) {
 		}
 
 		if len(dom.ChildNodes(subElement)) == 0 {
-			subElement.Parent.RemoveChild(subElement)
+			etree.Remove(subElement, keepTail)
 		}
 	}
 }

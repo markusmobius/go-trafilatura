@@ -144,7 +144,7 @@ func Test_ExoticTags(t *testing.T) {
 			<!-- strong can be changed to b, em, i, u, or kbd -->
 			<strong><a></a></strong>
 			<h2>Aliquam eget interdum elit, id posuere ipsum.</h2>
-			<p>Phasellus lectus erat, hendrerit sed tortor ac, dignissim vehicula metus.</p>
+			<p>Phasellus lectus erat, hendrerit sed tortor ac, dignissim vehicula metus.<br/></p>
 		</div>
 	</body>
 	</html>`
@@ -167,13 +167,19 @@ func Test_ExoticTags(t *testing.T) {
 			<em>
 				<p>em improperly wrapping p here</p>
 			</em>
-			<p>Text here</p>
+			<p>Text here<br/></p>
+			<h3>More articles</h3>
 		</div>
 	</body>
 	</html>`
+
 	opts = Options{IncludeLinks: true, IncludeImages: true}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.NotEmpty(t, result.ContentText)
+	for _, focus := range []ExtractionFocus{Balanced, FavorRecall, FavorPrecision} {
+		opts.Focus = focus
+		result, _ = Extract(strings.NewReader(htmlString), opts)
+		assert.Contains(t, result.ContentText, "em improperly wrapping p here")
+		assert.True(t, strings.HasSuffix(result.ContentText, "Text here"))
+	}
 }
 
 func Test_HtmlProcessing(t *testing.T) {
