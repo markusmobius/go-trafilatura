@@ -52,16 +52,6 @@ func strIn(s string, args ...string) bool {
 	return false
 }
 
-func getRune(s string, idx int) rune {
-	for i, r := range s {
-		if i == idx {
-			return r
-		}
-	}
-
-	return -1
-}
-
 func isImageFile(imageSrc string) bool {
 	if imageSrc == "" {
 		return false
