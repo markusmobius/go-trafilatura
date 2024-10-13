@@ -32,7 +32,7 @@ import (
 )
 
 // docCleaning cleans the document by discarding unwanted elements.
-// In iriginal it's named `tree_cleaning`.
+// In original it's named `tree_cleaning`.
 func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy
 	cleaningList := duplicateMap(tagsToClean)
@@ -81,7 +81,7 @@ func docCleaning(doc *html.Node, opts Options) {
 
 		// If paragraphs is removed, revert to backup
 		if len(dom.GetElementsByTagName(doc, "p")) == 0 {
-			doc = docBackup
+			*doc = *docBackup
 		}
 	} else {
 		// Remove nodes in cleaning list including its children
