@@ -95,28 +95,6 @@ func docCleaning(doc *html.Node, opts Options) {
 	pruneHTML(doc)
 }
 
-// Simplify relevant HTML tags for faster processing.
-func simplifyTags(doc *html.Node, opts Options) {
-	if !opts.IncludeLinks {
-		links := dom.GetElementsByTagName(doc, "a")
-		for i := len(links) - 1; i >= 0; i-- {
-			link := links[i]
-			linkParent := link.Parent
-
-			// Check its parent
-			if linkParent != nil {
-				if ancestorIs(link, "div") || ancestorIs(link, "ul") ||
-					(!opts.ExcludeTables && ancestorIs(link, "table")) {
-					continue
-				}
-			}
-
-			// Strip the link
-			etree.Strip(link)
-		}
-	}
-}
-
 // removeHtmlCommentNode removes all `html.CommentNode` in document.
 func removeHtmlCommentNode(doc *html.Node) {
 	// Find all comment nodes
@@ -261,45 +239,59 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	// Fetch links in node
 	links := dom.GetElementsByTagName(element, "a")
-	if len(links) == 0 {
+	nLinks := len(links)
+	if nLinks == 0 {
 		return nil, false
 	}
 
-	// Prepare limit and threshold
-	var limitLength int
-	var threshold float64
+	// Get element text
+	text := trim(dom.TextContent(element))
+	textLength := utf8.RuneCountInString(text)
 
+	// Shortcut
+	if nLinks == 1 {
+		var threshold float64 = 100
+		if opts.Focus == FavorPrecision {
+			threshold = 10
+		}
+
+		linkText := trim(dom.TextContent(links[0]))
+		linkTextLength := utf8.RuneCountInString(linkText)
+		if linkTextLength > int(threshold) && float64(linkTextLength) > float64(textLength)*0.9 {
+			return nil, true
+		}
+	}
+
+	// Prepare limit
+	var limitLength int
 	if dom.TagName(element) == "p" {
-		if opts.Focus != FavorPrecision {
-			if dom.NextElementSibling(element) == nil {
-				limitLength, threshold = 60, 0.8
-			} else {
-				limitLength, threshold = 30, 0.8
-			}
+		if dom.NextElementSibling(element) == nil {
+			limitLength = 60
 		} else {
-			limitLength, threshold = 200, 0.8
+			limitLength = 30
 		}
 	} else {
 		if dom.NextElementSibling(element) == nil {
-			limitLength, threshold = 300, 0.8
+			limitLength = 300
 		} else {
-			limitLength, threshold = 100, 0.8
+			limitLength = 100
 		}
 	}
 
 	// Check if text of this node is within limit
-	text := trim(dom.TextContent(element))
-	textLength := utf8.RuneCountInString(text)
 	if textLength < limitLength {
 		// Collect link info
-		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links, opts)
+		linkLength, nShortLinks, nonEmptyLinks := collectLinkInfo(links)
 		nNonEmptyLinks := len(nonEmptyLinks)
 		if nNonEmptyLinks == 0 {
 			return nonEmptyLinks, true
 		}
 
 		// Check if links data surpass threshold
-		if float64(linkLength) > threshold*float64(textLength) ||
+		logDebug(opts, "list link text/total: %d/%d", linkLength, textLength)
+		logDebug(opts, "short elems/total: %d/%d", nShortLinks, nNonEmptyLinks)
+
+		if float64(linkLength) > float64(textLength)*0.8 ||
 			(nNonEmptyLinks > 1 && float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8) {
 			return nonEmptyLinks, true
 		}
@@ -320,37 +312,28 @@ func linkDensityTestTables(table *html.Node, opts Options) bool {
 	// Check text length
 	text := trim(dom.TextContent(table))
 	textLength := utf8.RuneCountInString(text)
-	if textLength > 250 {
-		// Collect link info
-		linkLength, _, nonEmptyLinks := collectLinkInfo(links, opts)
-		nNonEmptyLinks := len(nonEmptyLinks)
-		if nNonEmptyLinks == 0 {
-			return true
-		}
-
-		if textLength < 1000 {
-			return float64(linkLength) > float64(textLength)*0.8
-		} else {
-			return float64(linkLength) > float64(textLength)*0.5
-		}
-
-		// TODO: it seems to does more harm than good
-		// if float64(nShortLinks) > float64(len(links))*0.66 {
-		// 	return true
-		// }
+	if textLength < 200 {
+		return false
 	}
 
-	return false
+	// Check link info
+	linkLength, _, nonEmptyLinks := collectLinkInfo(links)
+	nNonEmptyLinks := len(nonEmptyLinks)
+	if nNonEmptyLinks == 0 {
+		return true
+	}
+
+	logDebug(opts, "table link text: %d / total: %d", linkLength, textLength)
+
+	if textLength < 1000 {
+		return float64(linkLength) > float64(textLength)*0.8
+	} else {
+		return float64(linkLength) > float64(textLength)*0.5
+	}
 }
 
 // collectLinkInfo collects heuristics on link text.
-func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
-	// Longer strings impact recall in favor of precision
-	threshold := 10
-	if opts.Focus == FavorPrecision {
-		threshold = 50
-	}
-
+func collectLinkInfo(links []*html.Node) (linkLength, nShortLinks int, nonEmptyLinks []*html.Node) {
 	for _, link := range links {
 		text := trim(dom.TextContent(link))
 		textLength := utf8.RuneCountInString(text)
@@ -359,7 +342,7 @@ func collectLinkInfo(links []*html.Node, opts Options) (linkLength, nShortLinks 
 		}
 
 		linkLength += textLength
-		if textLength < threshold {
+		if textLength < 10 {
 			nShortLinks++
 		}
 
@@ -463,8 +446,10 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 	var nodesToDelete []*html.Node
 
 	threshold := 100
+	nChildLimit := 3
 	if opts.Focus == FavorPrecision {
 		threshold = 200
+		nChildLimit = 1
 	}
 
 	for _, elem := range etree.Iter(subTree, tagNames...) {
@@ -475,7 +460,7 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 		} else if backtracking && len(nonEmptyLinks) > 0 {
 			text := trim(dom.TextContent(elem))
 			textLength := utf8.RuneCountInString(text)
-			if textLength > 0 && textLength < threshold && len(dom.Children(elem)) >= 3 {
+			if textLength > 0 && textLength < threshold && len(dom.Children(elem)) >= nChildLimit {
 				nodesToDelete = append(nodesToDelete, elem)
 			}
 		}
@@ -486,17 +471,6 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 	}
 }
 
-// ancestorIs checks if a given node has one of its ancestor tag name matching the provided one.
-func ancestorIs(node *html.Node, tag string) bool {
-	for node.Parent != nil {
-		if dom.TagName(node.Parent) == tag {
-			return true
-		}
-		node = node.Parent
-	}
-	return false
-}
-
 // Simplify HTML markup.
 // Here in original Trafilatura we are supposed to convert HTML tags
 // into the one that suitable for XML. However, since we prefer the results
@@ -505,7 +479,7 @@ func convertTags(tree *html.Node, opts Options) {
 	// Delete links for faster processing
 	if !opts.IncludeLinks {
 		// Prepare selector
-		cssSelector := "div a, ul a, ol a" // "p a" ?
+		cssSelector := "div a, ul a, ol a, dl a, p a"
 		if !opts.ExcludeTables {
 			cssSelector += ", table a"
 		}

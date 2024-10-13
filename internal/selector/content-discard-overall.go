@@ -32,6 +32,7 @@ var OverallDiscardedContent = []Rule{
 }
 
 // navigation + footers, news outlets related posts, sharing, jp-post-flair jp-relatedposts
+// paywalls
 // `.//*[self::div or self::item or self::ol or self::ul or self::dl or self::p or self::section or self::span][
 // contains(translate(@id, "F","f"), "footer") or contains(translate(@class, "F","f"), "footer")
 // or contains(@id, "related") or contains(@class, "elated") or
@@ -69,14 +70,16 @@ var OverallDiscardedContent = []Rule{
 // or contains(@class, "criteo") or contains(@class, "options") or contains(@class, "expand")
 // or contains(@class, "consent") or contains(@class, "modal-content")
 // or contains(@class, " ad ") or contains(@class, "permission")
-// or contains(@class, "next-") or contains(@class, "side-stories")
-// or contains(@class, "related-stories") or contains(@class, "most-popular")
-// or contains(@class, "mol-factbox") or starts-with(@class, "ZendeskForm")
-// or contains(@class, "message-container") or contains(@id, "message_container")
+// or contains(@class, "next-") or contains(@class, "-stories")
+// or contains(@class, "most-popular") or contains(@class, "mol-factbox")
+// or starts-with(@class, "ZendeskForm") or contains(@id|@class, "message-container")
 // or contains(@class, "yin") or contains(@class, "zlylin")
 // or contains(@class, "xg1") or contains(@id, "bmdh")
 // or contains(@class, "slide") or contains(@class, "viewport")
-// or @data-lp-replacement-content]`,
+// or @data-lp-replacement-content
+// or contains(@id, "premium") or contains(@class, "overlay")
+// or contains(@class, "paid-content") or contains(@class, "paidcontent")
+// or contains(@class, "obfuscated") or contains(@class, "blurred")]`,
 func overallDiscardedContentRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
@@ -151,20 +154,24 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 		contains(class, " ad "),
 		contains(class, "permission"),
 		contains(class, "next-"),
-		contains(class, "side-stories"),
-		contains(class, "related-stories"),
+		contains(class, "-stories"),
 		contains(class, "most-popular"),
 		contains(class, "mol-factbox"),
 		startsWith(class, "ZendeskForm"),
-		contains(class, "message-container"),
-		contains(id, "message_container"),
+		contains(idClass, "message-container"),
 		contains(class, "yin"),
 		contains(class, "zlylin"),
 		contains(class, "xg1"),
 		contains(id, "bmdh"),
 		contains(class, "slide"),
 		contains(class, "viewport"),
-		dom.HasAttribute(n, "data-lp-replacement-content"):
+		dom.HasAttribute(n, "data-lp-replacement-content"),
+		contains(id, "premium"),
+		contains(class, "overlay"),
+		contains(class, "paid-content"),
+		contains(class, "paidcontent"),
+		contains(class, "obfuscated"),
+		contains(class, "blurred"):
 	default:
 		return false
 	}

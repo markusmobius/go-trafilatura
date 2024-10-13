@@ -29,6 +29,7 @@ import (
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
 
@@ -64,7 +65,7 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 	// Prior cleaning
 	cleanedDoc := dom.Clone(originalDoc, true)
 	if opts.Focus == FavorPrecision {
-		cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+		cleanedDoc = pruneUnwantedNodes(cleanedDoc, selector.OverallDiscardedContent)
 	}
 
 	// Process each candidate

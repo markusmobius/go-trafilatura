@@ -134,11 +134,8 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	docBackup1 := dom.Clone(doc, true)
 	docBackup2 := dom.Clone(doc, true)
 
-	// Clean document
+	// Clean and convert HTML tags
 	docCleaning(doc, opts)
-	simplifyTags(doc, opts)
-
-	// Convert HTML tags
 	convertTags(doc, opts)
 
 	// Extract comments first, then remove

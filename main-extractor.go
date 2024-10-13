@@ -570,7 +570,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	}
 
 	// Prune
-	searchDoc := pruneUnwantedSections(doc, opts)
+	searchDoc := pruneUnwantedSections(doc, potentialTags, opts)
 
 	// Decide if links are preserved
 	if _, exist := potentialTags["a"]; !exist {
@@ -592,10 +592,9 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 }
 
 // pruneUnwantedSections is rule-based deletion of targeted document sections.
-func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
+func pruneUnwantedSections(subTree *html.Node, potentialTags map[string]struct{}, opts Options) *html.Node {
 	// Prune the rest
 	subTree = pruneUnwantedNodes(subTree, selector.OverallDiscardedContent, true)
-	subTree = pruneUnwantedNodes(subTree, selector.DiscardedPaywall)
 
 	// Prune images
 	if !opts.IncludeImages {
@@ -610,10 +609,22 @@ func pruneUnwantedSections(subTree *html.Node, opts Options) *html.Node {
 		}
 	}
 
-	// Remove elements by link density
-	deleteByLinkDensity(subTree, opts, true, "div")
-	deleteByLinkDensity(subTree, opts, true, listXmlListTags...)
-	deleteByLinkDensity(subTree, opts, false, "p")
+	// Remove elements by link density, several passes
+	for i := 0; i < 2; i++ {
+		deleteByLinkDensity(subTree, opts, true, "div")
+		deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
+		deleteByLinkDensity(subTree, opts, false, "p")
+	}
+
+	// Remove tables by link density
+	if _, potential := potentialTags["table"]; potential || opts.Focus == FavorPrecision {
+		tables := etree.Iter(subTree, "table")
+		for i := len(tables) - 1; i >= 0; i-- {
+			if linkDensityTestTables(tables[i], opts) {
+				etree.Remove(tables[i])
+			}
+		}
+	}
 
 	// Also filter fw/head, table and quote elements?
 	if opts.Focus == FavorPrecision {
@@ -669,20 +680,9 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Prune the subtree
-		subTree = pruneUnwantedSections(subTree, opts)
+		subTree = pruneUnwantedSections(subTree, potentialTags, opts)
 		// TODO: second pass?
 		// deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
-
-		// Define iteration strategy
-		_, tableIsPotentialTag := potentialTags["table"]
-		if tableIsPotentialTag || opts.Focus == FavorPrecision {
-			tables := etree.Iter(subTree, "table")
-			for i := len(tables) - 1; i >= 0; i-- {
-				if linkDensityTestTables(tables[i], opts) {
-					etree.Remove(tables[i])
-				}
-			}
-		}
 
 		// If sub tree now empty, try other selector
 		if len(dom.Children(subTree)) == 0 {

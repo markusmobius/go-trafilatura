@@ -189,7 +189,7 @@ func Test_HtmlProcessing(t *testing.T) {
 
 	// Paywalls
 	opts = Options{Config: zeroConfig}
-	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
+	htmlString = `<html><body><main><p>1</p><p id="premium">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
 
@@ -711,6 +711,18 @@ func Test_Links(t *testing.T) {
 	htmlStr = `<html><body><p>Test text under <a rel="license" href="">CC BY-SA license</a>.</p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<a>CC BY-SA license</a>")
+
+	// Link in p, length threshold
+	// var opts Options
+	htmlStr = `<html><body><article><p><a>` + strings.Repeat("abcd", 20) + `</a></p></article></body></html>`
+
+	opts := Options{Config: zeroConfig, Focus: Balanced}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, dom.TextContent(result.ContentNode), "abcd")
+
+	opts = Options{Config: zeroConfig, Focus: FavorPrecision}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Empty(t, dom.TextContent(result.ContentNode))
 }
 
 func Test_ExtractionOptions(t *testing.T) {
