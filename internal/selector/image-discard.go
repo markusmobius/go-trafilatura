@@ -30,8 +30,7 @@ var DiscardedImage = []Rule{
 	discardedImageRule1,
 }
 
-// `.//*[(self::div or self::dd or self::dt or self::li or self::ol or self::ul or
-// self::p or self::section or self::span)][
+// `.//*[self::div or self::dd or self::dt or self::li or self::ol or self::ul or self::p or self::section or self::span][
 // contains(@id, "caption") or contains(@class, "caption")]`,
 func discardedImageRule1(n *html.Node) bool {
 	id := dom.ID(n)

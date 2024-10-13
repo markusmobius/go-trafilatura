@@ -31,7 +31,7 @@ var MetaAuthorDiscard = []Rule{
 	metaAuthorDiscardRule2,
 }
 
-// `.//*[(self::a or self::div or self::section or self::span)][@id='comments' or @class='comments' or @class='title' or @class='date' or
+// `.//*[self::a or self::div or self::section or self::span][@id='comments' or @class='comments' or @class='title' or @class='date' or
 // contains(@id, 'commentlist') or contains(@class, 'commentlist') or contains(@class, 'sidebar') or contains(@class, 'is-hidden') or contains(@class, 'quote')
 // or contains(@id, 'comment-list') or contains(@class, 'comments-list') or contains(@class, 'embedly-instagram') or contains(@id, 'ProductReviews') or
 // starts-with(@id, 'comments') or contains(@data-component, "Figure") or contains(@class, "article-share") or contains(@class, "article-support") or contains(@class, "print") or contains(@class, "category") or contains(@class, "meta-date") or contains(@class, "meta-reviewer")

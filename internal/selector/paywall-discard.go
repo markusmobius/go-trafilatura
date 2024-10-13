@@ -30,7 +30,7 @@ var DiscardedPaywall = []Rule{
 	discardedPaywallRule1,
 }
 
-// `.//*[(self::div or self::p)][
+// `.//*[self::div or self::p][
 // contains(@id, "paywall") or contains(@id, "premium") or
 // contains(@class, "paid-content") or contains(@class, "paidcontent") or
 // contains(@class, "obfuscated") or contains(@class, "blurred") or
