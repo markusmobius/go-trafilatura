@@ -53,7 +53,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 				case string:
 					v = trim(v)
 					if strings.ToLower(key) == "articlebody" && v != "" {
-						articleBody = v
+						if strings.Contains(v, "<p>") {
+							tmp := dom.CreateElement("div")
+							dom.SetInnerHTML(tmp, v)
+							articleBody = trim(dom.TextContent(tmp))
+						} else {
+							articleBody = v
+						}
 						return
 					}
 
