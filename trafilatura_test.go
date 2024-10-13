@@ -803,6 +803,56 @@ func Test_PrecisionRecall(t *testing.T) {
 	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
+
+	// Only found when favor recall
+	htmlStr = `<html><body>
+		<div class="article-body">
+			<p>content</p>
+			<p class="link">Test</p>
+		</div>
+	</body></html>`
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, result.ContentText, "content")
+	assert.Contains(t, result.ContentText, "Test")
+
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, result.ContentText, "content")
+	assert.NotContains(t, result.ContentText, "Test")
+
+	htmlStr = `<html><body><article>
+		<aside><p>Here is the text.</p></aside>
+	</article></body></html>`
+
+	opts = Options{Focus: Balanced, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotEqual(t, "Here is the text.", result.ContentText)
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Equal(t, "Here is the text.", result.ContentText)
+
+	htmlStr = `<html><body><div>
+		<h2>Title</h2>
+		<small>Text.</small>
+	</div></body></html>`
+	opts = Options{Focus: FavorRecall, Config: zeroConfig, EnableFallback: true}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotEmpty(t, result.ContentText)
+
+	htmlStr = `<html><body><div>
+		<span>Text.</span>
+	</div></body></html>`
+
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Empty(t, result.ContentText)
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Equal(t, "Text.", result.ContentText)
 }
 
 func Test_TableProcessing(t *testing.T) {

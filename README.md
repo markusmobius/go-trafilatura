@@ -224,10 +224,10 @@ Here is the result when compared with the original Trafilatura v1.11.0:
 |        `trafilatura` + fallback         |   0.913   | 0.902  |  0.908   |  0.907  |  26.98   |
 |  `trafilatura` + fallback + precision   |   0.925   | 0.878  |  0.904   |  0.901  |  36.12   |
 |    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.903   |  0.903  |  20.61   |
-|            `go-trafilatura`             |   0.909   | 0.886  |  0.899   |  0.897  |   6.33   |
-|       `go-trafilatura` + fallback       |   0.911   | 0.902  |  0.907   |  0.906  |  12.51   |
-| `go-trafilatura` + fallback + precision |   0.923   | 0.875  |  0.901   |  0.899  |  12.70   |
-|  `go-trafilatura` + fallback + recall   |   0.897   | 0.910  |  0.903   |  0.904  |   9.80   |
+|            `go-trafilatura`             |   0.909   | 0.887  |  0.899   |  0.898  |   6.29   |
+|       `go-trafilatura` + fallback       |   0.906   | 0.912  |  0.909   |  0.909  |  12.46   |
+| `go-trafilatura` + fallback + precision |   0.928   | 0.883  |  0.907   |  0.905  |  13.35   |
+|  `go-trafilatura` + fallback + recall   |   0.890   | 0.918  |  0.902   |  0.904  |  10.07   |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 

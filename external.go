@@ -63,7 +63,9 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 
 	// Prior cleaning
 	cleanedDoc := dom.Clone(originalDoc, true)
-	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+	if opts.Focus == FavorPrecision {
+		cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+	}
 
 	// Process each candidate
 	for _, generator := range createFallbackGenerators(cleanedDoc, opts) {
