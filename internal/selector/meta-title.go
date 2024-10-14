@@ -32,7 +32,7 @@ var MetaTitle = []Rule{
 	metaTitleRule3,
 }
 
-// `//*[(self::h1 or self::h2)][contains(@class, "post-title") or contains(@class, "entry-title") or contains(@class, "headline") or contains(@id, "headline") or contains(@itemprop, "headline") or contains(@class, "post__title") or contains(@class, "article-title")]`,
+// `//*[self::h1 or self::h2][contains(@class, "post-title") or contains(@class, "entry-title") or contains(@class, "headline") or contains(@id, "headline") or contains(@itemprop, "headline") or contains(@class, "post__title") or contains(@class, "article-title")]`,
 func metaTitleRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
@@ -70,7 +70,7 @@ func metaTitleRule2(n *html.Node) bool {
 	}
 }
 
-// `//*[(self::h1 or self::h2 or self::h3)][contains(@class, "title") or contains(@id, "title")]`,
+// `//*[self::h1 or self::h2 or self::h3][contains(@class, "title") or contains(@id, "title")]`,
 func metaTitleRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)

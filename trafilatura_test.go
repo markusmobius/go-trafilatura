@@ -25,7 +25,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	nurl "net/url"
 	"os"
 	"path/filepath"
@@ -145,7 +144,7 @@ func Test_ExoticTags(t *testing.T) {
 			<!-- strong can be changed to b, em, i, u, or kbd -->
 			<strong><a></a></strong>
 			<h2>Aliquam eget interdum elit, id posuere ipsum.</h2>
-			<p>Phasellus lectus erat, hendrerit sed tortor ac, dignissim vehicula metus.</p>
+			<p>Phasellus lectus erat, hendrerit sed tortor ac, dignissim vehicula metus.<br/></p>
 		</div>
 	</body>
 	</html>`
@@ -168,13 +167,19 @@ func Test_ExoticTags(t *testing.T) {
 			<em>
 				<p>em improperly wrapping p here</p>
 			</em>
-			<p>Text here</p>
+			<p>Text here<br/></p>
+			<h3>More articles</h3>
 		</div>
 	</body>
 	</html>`
+
 	opts = Options{IncludeLinks: true, IncludeImages: true}
-	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.NotEmpty(t, result.ContentText)
+	for _, focus := range []ExtractionFocus{Balanced, FavorRecall, FavorPrecision} {
+		opts.Focus = focus
+		result, _ = Extract(strings.NewReader(htmlString), opts)
+		assert.Contains(t, result.ContentText, "em improperly wrapping p here")
+		assert.True(t, strings.HasSuffix(result.ContentText, "Text here"))
+	}
 }
 
 func Test_HtmlProcessing(t *testing.T) {
@@ -190,7 +195,7 @@ func Test_HtmlProcessing(t *testing.T) {
 
 	// Paywalls
 	opts = Options{Config: zeroConfig}
-	htmlString = `<html><body><main><p>1</p><p id="paywall">2</p><p>3</p></main></body></html>`
+	htmlString = `<html><body><main><p>1</p><p id="premium">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
 	assert.Equal(t, "1 3", result.ContentText)
 
@@ -327,6 +332,12 @@ func Test_Formatting(t *testing.T) {
 	// Simple
 	r = strings.NewReader("<html><body><p><b>This here is in bold font.</b></p></body></html>")
 	result, _ = Extract(r, zeroOpts)
+	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold font.</b></p>")
+
+	// Title
+	r = strings.NewReader("<html><body><article><h3>Title</h3><p><b>This here is in bold font.</b></p></article></body></html>")
+	result, _ = Extract(r, zeroOpts)
+	assert.Contains(t, fnHtml(result), "<h3>Title</h3>")
 	assert.Contains(t, fnHtml(result), "<p><b>This here is in bold font.</b></p>")
 
 	// Nested
@@ -619,7 +630,7 @@ func Test_Images(t *testing.T) {
 
 	// From file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
-	bt, _ := ioutil.ReadAll(f)
+	bt, _ := io.ReadAll(f)
 
 	opts := defaultOpts
 	result, _ := Extract(bytes.NewReader(bt), opts)
@@ -694,7 +705,7 @@ func Test_Links(t *testing.T) {
 
 	// Extracting document with links, from file
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
-	bt, _ := ioutil.ReadAll(f)
+	bt, _ := io.ReadAll(f)
 
 	result, _ = Extract(bytes.NewReader(bt), zeroOpts)
 	assert.NotContains(t, dom.OuterHTML(result.ContentNode), "testlink.html")
@@ -706,6 +717,18 @@ func Test_Links(t *testing.T) {
 	htmlStr = `<html><body><p>Test text under <a rel="license" href="">CC BY-SA license</a>.</p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlStr), linkOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<a>CC BY-SA license</a>")
+
+	// Link in p, length threshold
+	// var opts Options
+	htmlStr = `<html><body><article><p><a>` + strings.Repeat("abcd", 20) + `</a></p></article></body></html>`
+
+	opts := Options{Config: zeroConfig, Focus: Balanced}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, dom.TextContent(result.ContentNode), "abcd")
+
+	opts = Options{Config: zeroConfig, Focus: FavorPrecision}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Empty(t, dom.TextContent(result.ContentNode))
 }
 
 func Test_ExtractionOptions(t *testing.T) {
@@ -803,6 +826,56 @@ func Test_PrecisionRecall(t *testing.T) {
 	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
 	result, _ = Extract(strings.NewReader(htmlStr), opts)
 	assert.NotContains(t, result.ContentText, "1")
+
+	// Only found when favor recall
+	htmlStr = `<html><body>
+		<div class="article-body">
+			<p>content</p>
+			<p class="link">Test</p>
+		</div>
+	</body></html>`
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, result.ContentText, "content")
+	assert.Contains(t, result.ContentText, "Test")
+
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Contains(t, result.ContentText, "content")
+	assert.NotContains(t, result.ContentText, "Test")
+
+	htmlStr = `<html><body><article>
+		<aside><p>Here is the text.</p></aside>
+	</article></body></html>`
+
+	opts = Options{Focus: Balanced, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotEqual(t, "Here is the text.", result.ContentText)
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Equal(t, "Here is the text.", result.ContentText)
+
+	htmlStr = `<html><body><div>
+		<h2>Title</h2>
+		<small>Text.</small>
+	</div></body></html>`
+	opts = Options{Focus: FavorRecall, Config: zeroConfig, EnableFallback: true}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.NotEmpty(t, result.ContentText)
+
+	htmlStr = `<html><body><div>
+		<span>Text.</span>
+	</div></body></html>`
+
+	opts = Options{Focus: FavorPrecision, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Empty(t, result.ContentText)
+
+	opts = Options{Focus: FavorRecall, Config: zeroConfig}
+	result, _ = Extract(strings.NewReader(htmlStr), opts)
+	assert.Equal(t, "Text.", result.ContentText)
 }
 
 func Test_TableProcessing(t *testing.T) {

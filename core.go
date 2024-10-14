@@ -129,16 +129,13 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		}
 	}
 
-	// Clone and backup document to make sure the original kept untouched
+	// Backup document to make sure the original kept untouched
 	doc = dom.Clone(doc, true)
 	docBackup1 := dom.Clone(doc, true)
 	docBackup2 := dom.Clone(doc, true)
 
-	// Clean document
+	// Clean and convert HTML tags
 	docCleaning(doc, opts)
-	simplifyTags(doc, opts)
-
-	// Convert HTML tags
 	convertTags(doc, opts)
 
 	// Extract comments first, then remove
@@ -163,7 +160,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	// Rescue: try to use original/dirty tree
 	lenText := utf8.RuneCountInString(tmpBodyText)
-	if lenText < opts.Config.MinExtractedSize {
+	if lenText < opts.Config.MinExtractedSize && opts.Focus != FavorPrecision {
 		postBody, tmpBodyText = baseline(docBackup2)
 	}
 

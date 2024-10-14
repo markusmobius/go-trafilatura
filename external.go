@@ -29,6 +29,7 @@ import (
 	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
 
@@ -63,7 +64,9 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 
 	// Prior cleaning
 	cleanedDoc := dom.Clone(originalDoc, true)
-	cleanedDoc = pruneUnwantedSections(cleanedDoc, opts)
+	if opts.Focus == FavorPrecision {
+		cleanedDoc = pruneUnwantedNodes(cleanedDoc, selector.OverallDiscardedContent)
+	}
 
 	// Process each candidate
 	for _, generator := range createFallbackGenerators(cleanedDoc, opts) {
@@ -147,6 +150,9 @@ func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator
 			result, _ := distiller.Apply(clone, &distiller.Options{
 				OriginalURL:    opts.OriginalURL,
 				SkipPagination: true})
+			if result == nil {
+				return "", nil
+			}
 			return distillerTitle, result.Node
 		})
 	}

@@ -10,8 +10,17 @@ import (
 	"golang.org/x/net/html"
 )
 
+var basicCleaningSelector = strings.Join([]string{
+	`aside`,
+	`footer`,
+	`div[id*="footer"]`,
+	`div[class*="footer"]`,
+	`script`,
+	`style`,
+}, ", ")
+
 func basicCleaning(doc *html.Node) *html.Node {
-	discardedElements := dom.QuerySelectorAll(doc, "aside,footer,script,style")
+	discardedElements := dom.QuerySelectorAll(doc, basicCleaningSelector)
 	for i := len(discardedElements) - 1; i >= 0; i-- {
 		discardedElements[i].Parent.RemoveChild(discardedElements[i])
 	}
@@ -53,7 +62,13 @@ func baseline(doc *html.Node) (*html.Node, string) {
 				case string:
 					v = trim(v)
 					if strings.ToLower(key) == "articlebody" && v != "" {
-						articleBody = v
+						if strings.Contains(v, "<p>") {
+							tmp := dom.CreateElement("div")
+							dom.SetInnerHTML(tmp, v)
+							articleBody = trim(dom.TextContent(tmp))
+						} else {
+							articleBody = v
+						}
 						return
 					}
 

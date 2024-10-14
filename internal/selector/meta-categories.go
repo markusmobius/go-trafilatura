@@ -121,7 +121,7 @@ func metaCategoriesRule3(n *html.Node) bool {
 	return false
 }
 
-// `//*[(self::li or self::span)][@class="post-category" or @class="postcategory" or @class="entry-category" or contains(@class, "cat-links")]//a[@href]`,
+// `//*[self::li or self::span][@class="post-category" or @class="postcategory" or @class="entry-category" or contains(@class, "cat-links")]//a[@href]`,
 func metaCategoriesRule4(n *html.Node) bool {
 	if dom.TagName(n) != "a" || !dom.HasAttribute(n, "href") {
 		return false

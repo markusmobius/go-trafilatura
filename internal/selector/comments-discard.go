@@ -32,7 +32,7 @@ var DiscardedComments = []Rule{
 	discardedCommentsRule3,
 }
 
-// `.//*[(self::div or self::section)][starts-with(@id, "respond")]`,
+// `.//*[self::div or self::section][starts-with(@id, "respond")]`,
 func discardedCommentsRule1(n *html.Node) bool {
 	id := dom.ID(n)
 	tagName := dom.TagName(n)
@@ -59,26 +59,25 @@ func discardedCommentsRule2(n *html.Node) bool {
 }
 
 // `.//*[@class="comments-title" or contains(@class, "comments-title") or
-// contains(@class, "nocomments") or starts-with(@id, "reply-") or
-// starts-with(@class, "reply-") or contains(@class, "-reply-") or contains(@class, "message")
+// contains(@class, "nocomments") or starts-with(@id|@class, "reply-") or
+// contains(@class, "-reply-") or contains(@class, "message")
 // or contains(@class, "signin") or
-// contains(@id, "akismet") or contains(@class, "akismet") or contains(@style, "display:none")]`,
+// contains(@id|@class, "akismet") or contains(@style, "display:none")]`,
 func discardedCommentsRule3(n *html.Node) bool {
 	id := dom.ID(n)
 	class := dom.ClassName(n)
 	style := dom.GetAttribute(n, "style")
+	idClass := id + class
 
 	switch {
 	case class == "comments-title",
 		contains(class, "comments-title"),
 		contains(class, "nocomments"),
-		startsWith(id, "reply-"),
-		startsWith(class, "reply-"),
+		startsWith(idClass, "reply-"),
 		contains(class, "-reply-"),
 		contains(class, "message"),
 		contains(class, "signin"),
-		contains(id, "akismet"),
-		contains(class, "akismet"),
+		contains(idClass, "akismet"),
 		contains(style, "display:none"):
 	default:
 		return false
