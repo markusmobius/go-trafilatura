@@ -164,11 +164,6 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 		metadata.Hostname = getDomainURL(metadata.URL)
 	}
 
-	// Image
-	if metadata.Image == "" {
-		metadata.Image = extractDomImage(doc)
-	}
-
 	// Validate image URL, it must be absolute. If not absolute, just remove it.
 	if metadata.Image != "" {
 		validURL, isAbs := validateURL(metadata.Image, opts.OriginalURL)
@@ -228,7 +223,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 		metadata.Sitename = strings.TrimPrefix(metadata.Sitename, "@")
 
 		// Capitalize
-		firstRune := getRune(metadata.Sitename, 0)
+		firstRune, _ := utf8.DecodeRuneInString(metadata.Sitename)
 		if !strings.Contains(metadata.Sitename, ".") && !unicode.IsUpper(firstRune) {
 			metadata.Sitename = cases.Title(language.English).String(metadata.Sitename)
 		}
@@ -427,12 +422,13 @@ func validateMetadataName(name string) string {
 func examineTitleElement(doc *html.Node) (title, first, second string) {
 	titleNode := dom.QuerySelector(doc, "head > title")
 	if titleNode != nil {
-		title = dom.TextContent(titleNode)
-		title = trim(title)
+		title = trim(dom.TextContent(titleNode))
 
-		matches := rxTitleCleaner.FindStringSubmatch(title)
-		if len(matches) > 0 {
-			first, second = matches[1], matches[2]
+		if title != "" {
+			matches := rxTitleCleaner.FindStringSubmatch(title)
+			if len(matches) > 0 {
+				first, second = matches[1], matches[2]
+			}
 		}
 	}
 
@@ -611,19 +607,6 @@ func extractDomTags(doc *html.Node) []string {
 	return uniquifyLists(tags...)
 }
 
-// extractDomImage returns the hero image of the document using Twitter meta tags.
-func extractDomImage(doc *html.Node) string {
-	for _, node := range dom.QuerySelectorAll(doc, `meta[property^="twitter:"]`) {
-		content := trim(dom.GetAttribute(node, "content"))
-		property := trim(dom.GetAttribute(node, "property"))
-		if (property == "twitter:image" || property == "twitter:image:src") && content != "" {
-			return content
-		}
-	}
-
-	return ""
-}
-
 func cleanCatTags(catTags []string) []string {
 	cleanedEntries := []string{}
 	for _, entry := range catTags {
@@ -745,7 +728,8 @@ func normalizeAuthors(authors string, input string) string {
 		}
 
 		// If necessary, convert to title
-		if !unicode.IsUpper(getRune(a, 0)) || strings.ToLower(a) == a {
+		firstRune, _ := utf8.DecodeRuneInString(a)
+		if !unicode.IsUpper(firstRune) || strings.ToLower(a) == a {
 			a = cases.Title(language.English).String(a)
 		}
 

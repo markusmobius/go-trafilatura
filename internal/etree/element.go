@@ -98,16 +98,16 @@ func Text(element *html.Node) string {
 		return ""
 	}
 
-	buffer := bytes.NewBuffer(nil)
+	var sb strings.Builder
 	for child := element.FirstChild; child != nil; child = child.NextSibling {
 		if child.Type == html.ElementNode {
 			break
 		} else if child.Type == html.TextNode {
-			buffer.WriteString(child.Data)
+			sb.WriteString(child.Data)
 		}
 	}
 
-	return buffer.String()
+	return sb.String()
 }
 
 // SetText sets the value for element's text.
@@ -140,12 +140,12 @@ func Tail(element *html.Node) string {
 		return ""
 	}
 
-	buffer := bytes.NewBuffer(nil)
+	var sb strings.Builder
 	for _, tailNode := range TailNodes(element) {
-		buffer.WriteString(tailNode.Data)
+		sb.WriteString(tailNode.Data)
 	}
 
-	return buffer.String()
+	return sb.String()
 }
 
 // SetTail sets the value for element's tail.

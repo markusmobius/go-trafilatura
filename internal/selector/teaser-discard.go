@@ -30,7 +30,7 @@ var DiscardedTeaser = []Rule{
 	discardedTeaserRule1,
 }
 
-// `.//*[(self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span)]
+// `.//*[self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span]
 // [contains(translate(@id, "T", "t"), "teaser") or contains(translate(@class, "T", "t"), "teaser")]`,
 func discardedTeaserRule1(n *html.Node) bool {
 	id := dom.ID(n)

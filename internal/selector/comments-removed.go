@@ -30,7 +30,7 @@ var RemovedComments = []Rule{
 	removedCommentsRule1,
 }
 
-// `.//*[(self::div or self::ol or self::ul or self::dl or self::section)][
+// `.//*[self::div or self::ol or self::ul or self::dl or self::section][
 // starts-with(translate(@id, "C","c"), 'comment') or
 // starts-with(translate(@class, "C","c"), 'comment') or
 // contains(@class, 'article-comments') or contains(@class, 'post-comments')

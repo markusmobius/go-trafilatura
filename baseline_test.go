@@ -63,11 +63,37 @@ func Test_Baseline(t *testing.T) {
 	doc = docFromStr(`
 		<html><body>
 			<script type="application/ld+json">
-				{"articleBody": "This is the article body"  # invalid JSON
+				{"articleBody": "This is the article body, it has to be long enough to fool the length threshold which is set at len 100."  # invalid JSON
 			</script>
 		</body></html>`)
 	_, result = baseline(doc)
 	assert.Empty(t, result)
+
+	// JSON OK
+	doc = docFromStr(`
+		<html><body>
+			<script type="application/ld+json">
+				{
+					"@type": "Article",
+					"articleBody": "This is the article body, it has to be long enough to fool the length threshold which is set at len 100."
+				}
+			</script>
+		</body></html>`)
+	_, result = baseline(doc)
+	assert.Equal(t, "This is the article body, it has to be long enough to fool the length threshold which is set at len 100.", result)
+
+	// JSON malformed
+	doc = docFromStr(`
+		<html><body>
+			<script type="application/ld+json">
+				{
+					"@type": "Article",
+					"articleBody": "<p>This is the article body, it has to be long enough to fool the length threshold which is set at len 100.</p>"
+				}
+			</script>
+		</body></html>`)
+	_, result = baseline(doc)
+	assert.Equal(t, "This is the article body, it has to be long enough to fool the length threshold which is set at len 100.", result)
 
 	// Real-world examples
 	doc = docFromStr(`<html>

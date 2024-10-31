@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -403,6 +404,13 @@ func Test_Metadata_Tags(t *testing.T) {
 		</p></body></html>`
 	isEqual(rawHTML, "Tag1", "Tag2")
 
+	rawHTML = `<html><body>
+		<p class="entry-tags">
+			<a href="https://example.org/tags/tag1/">    Tag1   </a>,
+			<a href="https://example.org/tags/tag2/"> 1 &amp; 2 </a>
+		</p></body></html>`
+	isEqual(rawHTML, "Tag1", "1 & 2")
+
 	rawHTML = `<html><head>
 		<meta name="keywords" content="sodium, salt, paracetamol, blood, pressure, high, heart, &amp;quot, intake, warning, study, &amp;quot, medicine, dissolvable, cardiovascular" />
 	</head></html>`
@@ -473,8 +481,12 @@ func Test_Metadata_License(t *testing.T) {
 
 func Test_Metadata_MetaImages(t *testing.T) {
 	var rawHTML string
+	exampleURL, _ := url.ParseRequestURI("http://example.org")
 	isEqual := func(rawHTML string, expected string) {
-		metadata := testGetMetadataFromHTML(rawHTML)
+		metadata := testGetMetadataFromHTML(rawHTML, Options{
+			Config:      DefaultConfig(),
+			OriginalURL: exampleURL,
+		})
 		assert.Equal(t, expected, metadata.Image)
 	}
 
@@ -482,11 +494,17 @@ func Test_Metadata_MetaImages(t *testing.T) {
 	rawHTML = `<html><head><meta property="image" content="https://example.org/example.jpg"></html>`
 	isEqual(rawHTML, "https://example.org/example.jpg")
 
+	rawHTML = `<html><head><meta property="og:image:url" content="example.jpg"></html>`
+	isEqual(rawHTML, "http://example.org/example.jpg")
+
 	rawHTML = `<html><head><meta property="og:image" content="https://example.org/example-opengraph.jpg" /><body/></html>`
 	isEqual(rawHTML, "https://example.org/example-opengraph.jpg")
 
 	rawHTML = `<html><head><meta property="twitter:image" content="https://example.org/example-twitter.jpg"></html>`
 	isEqual(rawHTML, "https://example.org/example-twitter.jpg")
+
+	rawHTML = `<html><head><meta property="twitter:image:src" content="example-twitter.jpg"></html>`
+	isEqual(rawHTML, "http://example.org/example-twitter.jpg")
 
 	// Without image
 	rawHTML = `<html><head><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /></html>`
