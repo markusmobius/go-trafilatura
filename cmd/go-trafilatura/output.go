@@ -19,10 +19,10 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-trafilatura"
@@ -56,17 +56,21 @@ func writeOutput(w io.Writer, result *trafilatura.ExtractResult, cmd *cobra.Comm
 }
 
 func writeText(w io.Writer, result *trafilatura.ExtractResult) error {
-	buffer := bytes.NewBuffer(nil)
-	buffer.WriteString(result.ContentText)
+	var sb strings.Builder
+	sb.WriteString(result.ContentText)
 
 	if result.CommentsText != "" {
-		if buffer.Len() > 0 {
-			buffer.WriteString(" ")
+		if sb.Len() > 0 {
+			sb.WriteString(" ")
 		}
-		buffer.WriteString(result.ContentText)
+		sb.WriteString(result.ContentText)
 	}
 
-	_, err := io.Copy(w, buffer)
+	if sb.Len() > 0 {
+		sb.WriteString("\n")
+	}
+
+	_, err := w.Write([]byte(sb.String()))
 	return err
 }
 
@@ -77,7 +81,7 @@ func writeJSON(w io.Writer, result *trafilatura.ExtractResult) error {
 
 func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
 	doc := trafilatura.CreateReadableDocument(result)
-	_, err := fmt.Fprint(w, dom.OuterHTML(doc))
+	_, err := fmt.Fprintln(w, dom.OuterHTML(doc))
 	return err
 }
 
