@@ -89,6 +89,12 @@ var (
 		"twitter:image", "twitter:image:src")
 	// metaNameUrl   = sliceToMap("rbmainurl", "twitter:url")
 
+	urlSelectors = []string{
+		`head link[rel="canonical"]`,
+		`head base`,
+		`head link[rel="alternate"][hreflang="x-default"]`,
+	}
+
 	fastHtmlDateOpts      = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: true}
 	extensiveHtmlDateOpts = &htmldate.Options{UseOriginalDate: true, SkipExtensiveSearch: false}
 )
@@ -496,21 +502,19 @@ func extractDomAuthor(doc *html.Node) string {
 // extractDomURL extracts the document URL from the canonical <link>.
 func extractDomURL(doc *html.Node) string {
 	var url string
+	for _, urlSelector := range urlSelectors {
+		element := dom.QuerySelector(doc, urlSelector)
+		if element == nil {
+			continue
+		}
 
-	// Try canonical link first
-	linkNode := dom.QuerySelector(doc, `link[rel="canonical"][href]`)
-	if linkNode == nil {
-		// Now try default language link
-		linkNode = dom.QuerySelector(doc, `link[rel="alternate"][hreflang="x-default"]`)
-	}
-
-	if linkNode != nil {
-		if href := trim(dom.GetAttribute(linkNode, "href")); href != "" {
+		if href := trim(dom.GetAttribute(element, "href")); href != "" {
 			url = href
+			break
 		}
 	}
 
-	// Add domain name if it's missing
+	// Fix relative URLs, add domain name if it's missing
 	if url != "" && strings.HasPrefix(url, "/") {
 		for _, node := range dom.QuerySelectorAll(doc, "head meta[content]") {
 			nodeName := trim(dom.GetAttribute(node, "name"))

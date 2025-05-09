@@ -333,6 +333,9 @@ func Test_Metadata_URLs(t *testing.T) {
 	// Test on partial URLs
 	rawHTML = `<html><head><link rel="canonical" href="/article/medical-record"/><meta name="twitter:url" content="https://example.org"/></head><body></body></html>`
 	assert.Equal(t, "https://example.org/article/medical-record", extractDomURL(docFromStr(rawHTML)))
+
+	rawHTML = `<html><head><base href="https://example.org" target="_blank"/></head><body></body></html>`
+	isEqual(rawHTML, expected)
 }
 
 func Test_Metadata_Descriptions(t *testing.T) {
