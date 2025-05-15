@@ -612,7 +612,10 @@ func Test_Images(t *testing.T) {
 	assert.False(t, isImageFile("test.txt"))
 
 	// Image handler
-	img := handleImage(etree.FromString(`<img src="test.jpg"/>`))
+	img := handleImage(nil)
+	assert.Nil(t, img)
+
+	img = handleImage(etree.FromString(`<img src="test.jpg"/>`))
 	assert.NotNil(t, img)
 
 	img = handleImage(etree.FromString(`<img data-src="test.jpg" alt="text" title="a title"/>`))
@@ -632,7 +635,10 @@ func Test_Images(t *testing.T) {
 	f, _ := os.Open(filepath.Join("test-files", "simple", "http_sample.html"))
 	bt, _ := io.ReadAll(f)
 
+	// Comparing between includeImages = true and false
 	opts := defaultOpts
+	opts.Config = zeroConfig
+
 	result, _ := Extract(bytes.NewReader(bt), opts)
 	contentHtml := dom.OuterHTML(result.ContentNode)
 	assert.NotContains(t, contentHtml, `<img src="test.jpg" title="Example image"/>`)
@@ -641,6 +647,33 @@ func Test_Images(t *testing.T) {
 	result, _ = Extract(bytes.NewReader(bt), opts)
 	contentHtml = dom.OuterHTML(result.ContentNode)
 	assert.Contains(t, contentHtml, `<img src="test.jpg" title="Example image"/>`)
+
+	// From string
+	var str string
+	str = `<html><body><article><p><img data-src="test.jpg" alt="text" title="a title"/></p></article></body></html>`
+	result, _ = Extract(strings.NewReader(str), opts)
+	contentHtml = dom.OuterHTML(result.ContentNode)
+	assert.Contains(t, contentHtml, `<img src="test.jpg" alt="text" title="a title"/>`)
+
+	str = `<html><body><article><p><img other="test.jpg" alt="text" title="a title"/></p></article></body></html>`
+	result, _ = Extract(strings.NewReader(str), opts)
+	contentHtml = dom.OuterHTML(result.ContentNode)
+	assert.Equal(t, `<body></body>`, contentHtml)
+
+	str = `<html><body><article><div><p><img data-src="test.jpg" alt="text" title="a title"/></p></div></article></body></html>`
+	result, _ = Extract(strings.NewReader(str), opts)
+	contentHtml = dom.OuterHTML(result.ContentNode)
+	assert.Contains(t, contentHtml, `<img src="test.jpg" alt="text" title="a title"/>`)
+
+	str = `<html><body><article><div><p><img data-src-small="test.jpg" alt="text" title="a title"/></p></div></article></body></html>`
+	result, _ = Extract(strings.NewReader(str), opts)
+	contentHtml = dom.OuterHTML(result.ContentNode)
+	assert.Contains(t, contentHtml, `<img src="test.jpg" alt="text" title="a title"/>`)
+
+	str = `<img src="data:image/jpeg;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==" alt="text"></img>`
+	result, _ = Extract(strings.NewReader(str), opts)
+	contentHtml = dom.OuterHTML(result.ContentNode)
+	assert.Equal(t, `<body></body>`, contentHtml)
 
 	// CNN example
 	f, _ = os.Open(filepath.Join("test-files", "simple", "cnn-image.html"))

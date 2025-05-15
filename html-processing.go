@@ -188,10 +188,15 @@ func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...
 
 // handleTextNode converts, formats and probes potential text elements.
 func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpaces bool, opts Options) *html.Node {
+	// Image element bypass
+	tagName := dom.TagName(node)
+	if inMap(tagName, mapXmlGraphicTags) && isImageElement(node) {
+		return node
+	}
+
 	// Make sure text is not empty
 	text := etree.Text(node)
 	tail := etree.Tail(node)
-	tagName := dom.TagName(node)
 	children := dom.Children(node)
 	if tagName == "done" || (len(children) == 0 && text == "" && tail == "") {
 		return nil

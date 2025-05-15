@@ -295,7 +295,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 		return processNode(element, cache, opts)
 	}
 
-	// Handle with children
+	// Handle paragraph with children
 	var unwantedChildren []*html.Node
 	processedElements := make(map[*html.Node]struct{})
 	for _, child := range dom.GetElementsByTagName(element, "*") {
@@ -308,14 +308,16 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 			continue
 		}
 
-		// If necessary remove duplicate child
-		if opts.Deduplicate && cache != nil && duplicateTest(child, cache, opts) {
-			unwantedChildren = append(unwantedChildren, child)
+		processedChild := handleTextNode(child, cache, false, true, opts)
+		if processedChild == nil {
+			child.Data = "done"
 			continue
+		} else {
+			child = processedChild
 		}
 
-		switch childTag {
-		case "p": // nested <p>
+		switch {
+		case childTag == "p": // nested <p>
 			logWarn(opts, "extra p within p: %s %q %q", childTag, etree.Text(child), etree.Tail(child))
 			childText := etree.Text(child)
 			parentText := etree.Text(child.Parent)
@@ -324,7 +326,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 			}
 			etree.Strip(child)
 
-		case "a": // links
+		case inMap(childTag, mapXmlRefTags): // links
 			childHref := trim(dom.GetAttribute(child, "href"))
 			childTarget := trim(dom.GetAttribute(child, "target"))
 			child.Attr = nil
@@ -335,6 +337,11 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 
 			if childTarget != "" {
 				dom.SetAttribute(child, "target", childTarget)
+			}
+
+		case inMap(childTag, mapXmlGraphicTags): // image
+			if imageElem := handleImage(child); imageElem != nil {
+				child, _ = dom.ReplaceChild(child.Parent, imageElem, child)
 			}
 		}
 
@@ -472,6 +479,10 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 
 // handleImage process image element and their relevant attributes.
 func handleImage(element *html.Node) *html.Node {
+	if element == nil {
+		return nil
+	}
+
 	processedElement := etree.Element(dom.TagName(element))
 
 	// Handle image source

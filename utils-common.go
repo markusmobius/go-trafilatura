@@ -22,6 +22,8 @@ import (
 	"mime"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 // trim removes unnecessary spaces within a text string.
@@ -49,6 +51,19 @@ func strIn(s string, args ...string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+// isImageElement checks if an element is a valid img element.
+func isImageElement(element *html.Node) bool {
+	for _, attr := range element.Attr {
+		if attr.Key == "src" || strings.HasPrefix(attr.Key, "data-src") {
+			if isImageFile(attr.Val) {
+				return true
+			}
+		}
+	}
+
 	return false
 }
 
