@@ -22,6 +22,7 @@
 package trafilatura
 
 import (
+	"maps"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -35,8 +36,8 @@ import (
 // In original it's named `tree_cleaning`.
 func docCleaning(doc *html.Node, opts Options) {
 	// Determine cleaning strategy
-	cleaningList := duplicateMap(tagsToClean)
-	strippingList := duplicateMap(tagsToStrip)
+	cleaningList := maps.Clone(tagsToClean)
+	strippingList := maps.Clone(tagsToStrip)
 
 	if opts.ExcludeTables {
 		cleaningList["table"] = struct{}{}

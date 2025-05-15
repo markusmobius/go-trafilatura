@@ -89,7 +89,7 @@ type jsonExtractResult trafilatura.ExtractResult
 
 func (r jsonExtractResult) MarshalJSON() ([]byte, error) {
 	// Convert metadata to map first
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"title":       r.Metadata.Title,
 		"author":      r.Metadata.Author,
 		"url":         r.Metadata.URL,
@@ -103,7 +103,7 @@ func (r jsonExtractResult) MarshalJSON() ([]byte, error) {
 	}
 
 	// Convert result to map
-	result := map[string]interface{}{
+	result := map[string]any{
 		"contentHTML": dom.OuterHTML(r.ContentNode),
 		"contentText": r.ContentText,
 		"metadata":    metadata,

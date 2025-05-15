@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -20,7 +21,7 @@ func (t *Table) AddHeaders(columns ...string) {
 }
 
 func (t *Table) AddRow(columns ...string) {
-	cells := append([]string{}, columns...)
+	cells := slices.Clone(columns)
 	t.Rows = append(t.Rows, cells)
 }
 
@@ -49,7 +50,7 @@ func (t *Table) getRowWidth(widths []int, columns []string) []int {
 
 	// If width size is smaller than column, increase its size to columns count
 	if nWidth < nColumn {
-		for i := 0; i < nColumn-nWidth; i++ {
+		for range nColumn - nWidth {
 			widths = append(widths, 0)
 		}
 	}

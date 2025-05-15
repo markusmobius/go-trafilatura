@@ -20,19 +20,19 @@ package trafilatura
 
 import "fmt"
 
-func logInfo(opts Options, format string, args ...interface{}) {
+func logInfo(opts Options, format string, args ...any) {
 	if opts.EnableLog {
 		log.Info().Msg(ellipsis(format, args...))
 	}
 }
 
-func logWarn(opts Options, format string, args ...interface{}) {
+func logWarn(opts Options, format string, args ...any) {
 	if opts.EnableLog {
 		log.Warn().Msg(ellipsis(format, args...))
 	}
 }
 
-func logDebug(opts Options, format string, args ...interface{}) {
+func logDebug(opts Options, format string, args ...any) {
 	if opts.EnableLog {
 		log.Debug().Msg(ellipsis(format, args...))
 	}

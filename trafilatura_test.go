@@ -25,6 +25,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	nurl "net/url"
 	"os"
 	"path/filepath"
@@ -96,7 +97,7 @@ func Test_ExoticTags(t *testing.T) {
 	assert.Contains(t, result.ContentText, "ABC")
 
 	// Quotes
-	potentialTags := duplicateMap(tagCatalog)
+	potentialTags := maps.Clone(tagCatalog)
 	assert.Nil(t, handleQuotes(etree.Element("blockquote"), nil, zeroOpts))
 	assert.Nil(t, handleTable(etree.Element("table"), potentialTags, nil, zeroOpts))
 
@@ -915,7 +916,7 @@ func Test_TableProcessing(t *testing.T) {
 	var opts Options
 	var processedTable *html.Node
 	var nodeValues []string
-	potentialTags := duplicateMap(tagCatalog)
+	potentialTags := maps.Clone(tagCatalog)
 	iterNodeValues := func(root *html.Node) []string {
 		var nodeValues []string
 		for _, node := range etree.Iter(root) {

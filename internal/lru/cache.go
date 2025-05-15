@@ -18,6 +18,8 @@
 
 package lru
 
+import "slices"
+
 // Cache is a simple implementation for the Least Recently Used (LRU) cache.
 type Cache struct {
 	maxSize int
@@ -50,7 +52,7 @@ func (c *Cache) Remove(key string) {
 
 	// Find that key in list of keys
 	var keyIdx int
-	for i := 0; i < len(c.keys); i++ {
+	for i := range c.keys {
 		if c.keys[i] == key {
 			keyIdx = i
 			break
@@ -58,7 +60,7 @@ func (c *Cache) Remove(key string) {
 	}
 
 	// Remove that key in slice and map
-	c.keys = append(c.keys[:keyIdx], c.keys[keyIdx+1:]...)
+	c.keys = slices.Delete(c.keys, keyIdx, keyIdx+1)
 	delete(c.data, key)
 }
 

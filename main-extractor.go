@@ -1,6 +1,7 @@
 package trafilatura
 
 import (
+	"maps"
 	"strings"
 	"unicode/utf8"
 
@@ -399,7 +400,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 	newRow := etree.Element("tr")
 
 	// Prepare potential tags with div
-	potentialTagsWithDiv := duplicateMap(potentialTags)
+	potentialTagsWithDiv := maps.Clone(potentialTags)
 	potentialTagsWithDiv["div"] = struct{}{}
 
 	// TODO: we are supposed to strip structural elements here, but I'm not so sure.
@@ -573,7 +574,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	selectorList = append(selectorList, "code", "p", "table", `div[class*="w3-code"]`)
 
 	if opts.Focus == FavorRecall {
-		potentialTags = duplicateMap(potentialTags)
+		potentialTags = maps.Clone(potentialTags)
 		potentialTags["div"] = struct{}{}
 		for _, t := range listXmlLbTags {
 			potentialTags[t] = struct{}{}
@@ -625,7 +626,7 @@ func pruneUnwantedSections(subTree *html.Node, potentialTags map[string]struct{}
 	}
 
 	// Remove elements by link density, several passes
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		deleteByLinkDensity(subTree, opts, true, "div")
 		deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
 		deleteByLinkDensity(subTree, opts, false, "p")
@@ -667,7 +668,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	resultBody := dom.CreateElement("body")
 
 	// Prepare potential tags
-	potentialTags := duplicateMap(tagCatalog)
+	potentialTags := maps.Clone(tagCatalog)
 
 	if !opts.ExcludeTables {
 		potentialTags["table"] = struct{}{}
@@ -809,7 +810,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 	commentsBody := etree.Element("body")
 
 	// Prepare potential tags
-	potentialTags := duplicateMap(tagCatalog)
+	potentialTags := maps.Clone(tagCatalog)
 
 	// Process each selector rules
 	for _, query := range selector.Comments {

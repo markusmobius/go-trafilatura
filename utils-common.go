@@ -21,6 +21,7 @@ package trafilatura
 import (
 	"mime"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -37,7 +38,7 @@ func strWordCount(s string) int {
 }
 
 func strOr(args ...string) string {
-	for i := 0; i < len(args); i++ {
+	for i := range args {
 		if args[i] != "" {
 			return args[i]
 		}
@@ -46,12 +47,7 @@ func strOr(args ...string) string {
 }
 
 func strIn(s string, args ...string) bool {
-	for i := 0; i < len(args); i++ {
-		if args[i] == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(args, s)
 }
 
 // isImageElement checks if an element is a valid img element.
@@ -87,7 +83,7 @@ func uniquifyLists(currents ...string) []string {
 			separator = ";"
 		}
 
-		for _, entry := range strings.Split(current, separator) {
+		for entry := range strings.SplitSeq(current, separator) {
 			entry = trim(entry)
 			entry = strings.ReplaceAll(entry, `"`, "")
 			entry = strings.ReplaceAll(entry, `'`, "")

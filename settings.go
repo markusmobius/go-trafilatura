@@ -123,14 +123,6 @@ func sliceToMap(strings ...string) map[string]struct{} {
 	return result
 }
 
-func duplicateMap(original map[string]struct{}) map[string]struct{} {
-	duplicate := make(map[string]struct{})
-	for key, val := range original {
-		duplicate[key] = val
-	}
-	return duplicate
-}
-
 func inMap(key string, maps map[string]struct{}) bool {
 	_, exist := maps[key]
 	return exist

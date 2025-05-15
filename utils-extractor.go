@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -121,13 +122,8 @@ func textFilter(n *html.Node) bool {
 		return true
 	}
 
-	for _, line := range strings.Split(testText, "\n") {
-		if re2go.IsTextFilter(line) {
-			return true
-		}
-	}
-
-	return false
+	lines := strings.Split(testText, "\n")
+	return slices.ContainsFunc(lines, re2go.IsTextFilter)
 }
 
 // textCharsTest determine if a string is only composed of spaces and/or control characters.
