@@ -19,7 +19,7 @@ The structure of this package is arranged following the structure of original Py
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura [v1.12.2][last-version] (commit [f57ef0b][last-commit]).
+This package is stable enough for use and up to date with the original Trafilatura [v2.0.0][last-version] (commit [c6e8340][last-commit]).
 
 There are some difference between this port and the original Trafilatura:
 
@@ -194,25 +194,14 @@ Here we compare the extraction result between `go-trafilatura`, `go-readability`
 go run scripts/comparison/*.go content
 ```
 
-For the test, we use 983 documents taken from various sources (2024-06-30). Here is the result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+For the test, we use 960 documents taken from various sources (2025-05-01). Here is the result when tested in my PC (AMD Ryzen 5 7535HS @ 4.6GHz, RAM 16 GB):
 
-|       Extractor       | Time (ms) | Memory (MB) | Mem Allocation (allocs) |
-| :-------------------: | :-------: | :---------: | :---------------------: |
-|      Readability      |   4,212   |    4,412    |       15,261,650        |
-|     DomDistiller      |   3,794   |    4,144    |       13,552,246        |
-|      Trafilatura      |   6,609   |    3,585    |       33,628,972        |
-| Trafilatura+Fallback  |  12,934   |    8,781    |       55,338,023        |
-| Trafilatura+Precision |  13,644   |    8,763    |       57,549,026        |
-|  Trafilatura+Recall   |  10,083   |    5,454    |       43,626,869        |
-
-And here is its performance comparison result:
-
-|            Package             | Precision | Recall | Accuracy | F-Score |
-| :----------------------------: | :-------: | :----: | :------: | :-----: |
-|        `go-readability`        |   0.870   | 0.881  |  0.875   |  0.875  |
-|       `go-domdistiller`        |   0.871   | 0.864  |  0.868   |  0.867  |
-|        `go-trafilatura`        |   0.912   | 0.890  |  0.902   |  0.901  |
-| `go-trafilatura` with fallback |   0.908   | 0.912  |  0.910   |  0.910  |
+|            Package             | Precision | Recall | Accuracy | F-Score | Time (s) |
+| :----------------------------: | :-------: | :----: | :------: | :-----: | :------: |
+|        `go-readability`        |   0.871   | 0.891  |  0.880   |  0.881  |   2.87   |
+|       `go-domdistiller`        |   0.873   | 0.872  |  0.873   |  0.872  |   2.66   |
+|        `go-trafilatura`        |   0.912   | 0.897  |  0.906   |  0.904  |   4.25   |
+| `go-trafilatura` with fallback |   0.909   | 0.921  |  0.914   |  0.915  |   8.39   |
 
 ## Comparison with Original Trafilatura
 
@@ -220,14 +209,14 @@ Here is the result when compared with the original Trafilatura v1.12.2:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score | Time (s) |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: | :------: |
-|              `trafilatura`              |   0.912   | 0.886  |  0.901   |  0.899  |  18.79   |
-|        `trafilatura` + fallback         |   0.913   | 0.902  |  0.908   |  0.907  |  26.98   |
-|  `trafilatura` + fallback + precision   |   0.925   | 0.878  |  0.904   |  0.901  |  36.12   |
-|    `trafilatura` + fallback + recall    |   0.900   | 0.907  |  0.903   |  0.903  |  20.61   |
-|            `go-trafilatura`             |   0.912   | 0.890  |  0.902   |  0.901  |   6.75   |
-|       `go-trafilatura` + fallback       |   0.908   | 0.912  |  0.910   |  0.910  |  13.72   |
-| `go-trafilatura` + fallback + precision |   0.920   | 0.898  |  0.910   |  0.909  |  13.35   |
-|  `go-trafilatura` + fallback + recall   |   0.892   | 0.918  |  0.904   |  0.905  |  10.07   |
+|              `trafilatura`              |   0.918   | 0.898  |  0.909   |  0.908  |  10.38   |
+|        `trafilatura` + fallback         |   0.919   | 0.915  |  0.917   |  0.917  |  14.53   |
+|  `trafilatura` + fallback + precision   |   0.932   | 0.889  |  0.912   |  0.910  |  19.34   |
+|    `trafilatura` + fallback + recall    |   0.907   | 0.919  |  0.913   |  0.913  |  11.63   |
+|            `go-trafilatura`             |   0.912   | 0.897  |  0.906   |  0.904  |   4.25   |
+|       `go-trafilatura` + fallback       |   0.909   | 0.921  |  0.914   |  0.915  |   8.39   |
+| `go-trafilatura` + fallback + precision |   0.921   | 0.900  |  0.912   |  0.910  |   7.68   |
+|  `go-trafilatura` + fallback + recall   |   0.893   | 0.927  |  0.908   |  0.910  |   6.43   |
 
 From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
 
@@ -241,10 +230,10 @@ go run scripts/comparison/*.go content -j -1
 
 |                 Package                 | Time (s) |
 | :-------------------------------------: | :------: |
-|            `go-trafilatura`             |  2.069   |
-|       `go-trafilatura` + fallback       |  4.374   |
-| `go-trafilatura` + fallback + precision |  5.189   |
-|  `go-trafilatura` + fallback + recall   |  4.524   |
+|            `go-trafilatura`             |  0.931   |
+|       `go-trafilatura` + fallback       |  1.976   |
+| `go-trafilatura` + fallback + precision |  1.856   |
+|  `go-trafilatura` + fallback + recall   |  1.599   |
 
 ## Acknowledgements
 
@@ -274,8 +263,8 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[last-version]: https://github.com/adbar/trafilatura/releases/tag/v1.12.2
-[last-commit]: https://github.com/adbar/trafilatura/commit/f57ef0b
+[last-version]: https://github.com/adbar/trafilatura/releases/tag/v2.0.0
+[last-commit]: https://github.com/adbar/trafilatura/commit/c6e8340
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document
