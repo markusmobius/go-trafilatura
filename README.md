@@ -42,7 +42,7 @@ Next, include it in your application :
 import "github.com/markusmobius/go-trafilatura"
 ```
 
-Now you can use Trafilatura to extract content of a web page. For basic usage you can check the [example](examples/from-url.go).
+Now you can use Trafilatura to extract content of a web page. For basic usage you can check the [examples](examples).
 
 ## Usage as CLI Application
 
