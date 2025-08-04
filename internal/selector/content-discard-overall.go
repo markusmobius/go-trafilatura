@@ -29,6 +29,7 @@ import (
 var OverallDiscardedContent = []Rule{
 	overallDiscardedContentRule1,
 	overallDiscardedContentRule2,
+	discardedLegalRules,
 }
 
 // navigation + footers, news outlets related posts, sharing, jp-post-flair jp-relatedposts
@@ -224,4 +225,58 @@ func overallDiscardedContentRule2(n *html.Node) bool {
 
 	return true
 
+}
+
+// discardedLegalRules filters out cookie-consent banners, privacy footers
+// and similar legal boiler-plate.
+//
+// It returns true when the node (or its attributes) match any of the
+// heuristics; selector.PruneUnwantedSections will then remove the node.
+func discardedLegalRules(n *html.Node) bool {
+	tag := dom.TagName(n)
+	id := dom.ID(n)
+	class := dom.ClassName(n)
+	src := dom.GetAttribute(n, "src")
+	idClass := id + class
+	idClassLower := lower(idClass) // helper already defined in selector utils
+
+	// ------------------------------------------------------------------
+	// 1. Script tags that load cookielaw / consent libraries
+	// ------------------------------------------------------------------
+	if tag == "script" && contains(lower(src), "cookielaw") {
+		return true
+	}
+
+	// ------------------------------------------------------------------
+	// 2. Plain footer element (very often just legal text)
+	// ------------------------------------------------------------------
+	if tag == "footer" {
+		return true
+	}
+
+	// ------------------------------------------------------------------
+	// 3. Known cookie / consent SDK containers
+	// ------------------------------------------------------------------
+	if id == "onetrust-consent-sdk" || startsWith(id, "ot-sdk") {
+		return true
+	}
+
+	// ------------------------------------------------------------------
+	// 4. Heuristic keywords in id / class
+	// ------------------------------------------------------------------
+	switch {
+	case contains(idClassLower, "cookie"),
+		contains(idClassLower, "consent"),
+		contains(idClassLower, "privacy"),
+		contains(idClassLower, "gdpr"),
+		contains(idClassLower, "legal"),
+		contains(idClassLower, "optanon"),
+		contains(idClassLower, "cmp"), // IAB / TCF CMPs
+		contains(idClassLower, "truste"),
+		contains(idClassLower, "evidon"),
+		contains(idClassLower, "onetrust"):
+		return true
+	}
+
+	return false
 }

@@ -257,6 +257,22 @@ func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 func handleOtherElements(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	// Handle W3Schools Code
 	tagName := dom.TagName(element)
+
+	// Custom-element names always contain a dash (“web-components” spec).
+	// If such a node has printable text, convert it to a clean <p>.
+	if strings.Contains(tagName, "-") {
+		txt := strings.TrimSpace(etree.Text(element))
+
+		if txt != "" {
+			p := etree.Element("p")
+			etree.SetText(p, txt)
+			if tail := strings.TrimSpace(etree.Tail(element)); tail != "" {
+				etree.SetTail(p, tail)
+			}
+			return p
+		}
+	}
+
 	if tagName == "div" && strings.Contains(dom.ClassName(element), "w3-code") {
 		return handleCodeBlocks(element)
 	}
@@ -784,7 +800,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		needWildPass := missingRatio >= 0.25
 
 		if len(dom.Children(resultBody)) == 0 || needWildPass {
-			resultBody = dom.CreateElement("body")
 			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
 			tmpText = trim(etree.IterText(resultBody, " "))
 		}
@@ -799,7 +814,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	// Filter output
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
-
 	return resultBody, tmpText
 }
 
