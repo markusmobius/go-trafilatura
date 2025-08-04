@@ -22,6 +22,8 @@
 package selector
 
 import (
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -258,6 +260,10 @@ func discardedLegalRules(n *html.Node) bool {
 	// 3. Known cookie / consent SDK containers
 	// ------------------------------------------------------------------
 	if id == "onetrust-consent-sdk" || startsWith(id, "ot-sdk") {
+		return true
+	}
+	// inner OneTrust containers – catch them even if outer div was stripped
+	if strings.HasPrefix(id, "ot-") || strings.Contains(class, "ot-") {
 		return true
 	}
 

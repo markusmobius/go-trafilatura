@@ -614,6 +614,11 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	var processedElems []*html.Node
 	selectors := strings.Join(selectorList, ", ")
 	for _, element := range dom.QuerySelectorAll(searchDoc, selectors) {
+
+		if hasOTAncestor(element) {
+			continue // ignore everything that lives under ot-/onetrust
+		}
+
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
@@ -814,6 +819,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	// Filter output
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
+
 	return resultBody, tmpText
 }
 
