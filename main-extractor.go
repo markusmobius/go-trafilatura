@@ -685,6 +685,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		potentialTags["a"] = struct{}{}
 	}
 
+	var paraLen int
+
 	// Iterate each selector rule
 	for _, query := range selector.Content {
 		// Capture first node that matched with the rule
@@ -716,8 +718,10 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			factor = 1
 		}
 
+		paraLen = utf8.RuneCountInString(paragraphText)
+
 		if paragraphText == "" ||
-			utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
+			paraLen < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
@@ -772,12 +776,24 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 	// Try parsing wild <p> elements if nothing found or text too short
 	tmpText := trim(etree.IterText(resultBody, " "))
-	tmpTextLength := utf8.RuneCountInString(tmpText)
+	tmpLen := utf8.RuneCountInString(tmpText)
 
-	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
-		resultBody = dom.CreateElement("body")
-		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-		tmpText = trim(etree.IterText(resultBody, " "))
+	if opts.DynamicHeuristicNeedWildPass {
+		missingRatio := float64(paraLen-tmpLen) / float64(paraLen)
+		// e.g. recover if we lost >= 25 % of the original <p> text
+		needWildPass := missingRatio >= 0.25
+
+		if len(dom.Children(resultBody)) == 0 || needWildPass {
+			resultBody = dom.CreateElement("body")
+			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
+			tmpText = trim(etree.IterText(resultBody, " "))
+		}
+	} else {
+		if len(dom.Children(resultBody)) == 0 || tmpLen < opts.Config.MinExtractedSize {
+			resultBody = dom.CreateElement("body")
+			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
+			tmpText = trim(etree.IterText(resultBody, " "))
+		}
 	}
 
 	// Filter output

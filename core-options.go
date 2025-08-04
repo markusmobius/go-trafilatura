@@ -143,6 +143,12 @@ type Options struct {
 
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
 	PruneSelector string
+
+	// Whether to use the dynamic heuristic to extract wild content
+	// if set to true, it will compare the length of the text in all paragraphs
+	// with the length of the text recovered from the original document and if it has
+	// lost more than 25% of the text, it will run the recoverWildText function
+	DynamicHeuristicNeedWildPass bool
 }
 
 // Config is advanced setting to fine tune the extraction result.
