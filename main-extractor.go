@@ -3,6 +3,7 @@ package trafilatura
 import (
 	"maps"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -11,6 +12,21 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"golang.org/x/net/html"
 )
+
+func safeAppend(parent, child *html.Node) {
+	if last := parent.LastChild; last != nil {
+		lastTxt := etree.IterText(last, "")
+		firstTxt := etree.IterText(child, "")
+
+		if lastTxt != "" && firstTxt != "" {
+			r, _ := utf8.DecodeLastRuneInString(lastTxt)
+			if !unicode.IsSpace(r) { // ← no whitespace at end
+				etree.SetTail(last, etree.Tail(last)+" ")
+			}
+		}
+	}
+	dom.AppendChild(parent, child)
+}
 
 // handleTitles process head elements (titles).
 func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
@@ -41,16 +57,16 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 			processedChild := handleTextNode(clonedChild, cache, false, false, opts)
 
 			if processedChild != nil {
-				dom.AppendChild(title, processedChild)
+				safeAppend(title, processedChild)
 			} else {
-				dom.AppendChild(title, clonedChild)
+				safeAppend(title, clonedChild)
 			}
 
 			child.Data = "done"
 		}
 	}
 
-	if title != nil && textCharsTest(etree.IterText(title, "")) {
+	if title != nil && textCharsTest(etree.IterText(title, " ")) {
 		return title
 	}
 
@@ -118,7 +134,7 @@ func processNestedElement(child, newChildElement *html.Node, cache *lru.Cache, o
 
 // isTextElement checks if the element contains text.
 func isTextElement(element *html.Node) bool {
-	return element != nil && textCharsTest(etree.IterText(element, ""))
+	return element != nil && textCharsTest(etree.IterText(element, " "))
 }
 
 // defineNewElement creates a new sub-element if necessary.
