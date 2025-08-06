@@ -12,21 +12,6 @@ import (
 	"golang.org/x/net/html"
 )
 
-func safeAppend(parent, child *html.Node) {
-	if last := parent.LastChild; last != nil && child != nil {
-		lastTail := strings.TrimRight(etree.Tail(last), " ")
-		firstText := strings.TrimLeft(etree.Text(child), " ")
-
-		// Check if last ends with non-whitespace AND child starts with non-whitespace
-		if lastTail != "" && firstText != "" {
-			if !strings.HasSuffix(lastTail, " ") && !strings.HasPrefix(firstText, " ") {
-				etree.SetTail(last, etree.Tail(last)+" ")
-			}
-		}
-	}
-	dom.AppendChild(parent, child)
-}
-
 // handleTitles process head elements (titles).
 func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
 	// In original trafilatura, summary is treated as heading.
@@ -56,9 +41,9 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 			processedChild := handleTextNode(clonedChild, cache, false, false, opts)
 
 			if processedChild != nil {
-				safeAppend(title, processedChild)
+				dom.AppendChild(title, processedChild)
 			} else {
-				safeAppend(title, clonedChild)
+				dom.AppendChild(title, clonedChild)
 			}
 
 			child.Data = "done"
@@ -811,7 +796,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Try parsing wild <p> elements if nothing found or text too short
-	tmpText := trim(etree.IterText(resultBody, " "))
+	tmpText := trim(etree.IterTextWithSpacing(resultBody))
 	tmpLen := utf8.RuneCountInString(tmpText)
 
 	if opts.DynamicHeuristicNeedWildPass {
@@ -821,13 +806,13 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		if len(dom.Children(resultBody)) == 0 || needWildPass {
 			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-			tmpText = trim(etree.IterText(resultBody, " "))
+			tmpText = trim(etree.IterTextWithSpacing(resultBody))
 		}
 	} else {
 		if len(dom.Children(resultBody)) == 0 || tmpLen < opts.Config.MinExtractedSize {
 			resultBody = dom.CreateElement("body")
 			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-			tmpText = trim(etree.IterText(resultBody, " "))
+			tmpText = trim(etree.IterTextWithSpacing(resultBody))
 		}
 	}
 

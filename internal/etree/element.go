@@ -21,6 +21,8 @@ package etree
 import (
 	"bytes"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
@@ -246,4 +248,40 @@ func IterText(node *html.Node, separator string) string {
 	finder(node, 0)
 	result := buffer.String()
 	return strings.TrimSpace(result)
+}
+
+func IterTextWithSpacing(n *html.Node) string {
+	var b strings.Builder
+
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		for c := node.FirstChild; c != nil; c = c.NextSibling {
+			if c.Type == html.TextNode {
+				text := strings.TrimSpace(c.Data)
+				if b.Len() > 0 && needsSpace(b.String(), text) {
+					b.WriteString(" ")
+				}
+				b.WriteString(text)
+			} else {
+				walk(c)
+			}
+			if tail := strings.TrimSpace(c.Data); tail != "" {
+				b.WriteString(" ")
+			}
+		}
+	}
+
+	walk(n)
+	return strings.TrimSpace(b.String())
+}
+
+func needsSpace(prev, next string) bool {
+	if prev == "" || next == "" {
+		return false
+	}
+	r1, _ := utf8.DecodeLastRuneInString(prev)
+	r2, _ := utf8.DecodeRuneInString(next)
+
+	// Insert space only if both are alphanumeric (i.e., words)
+	return unicode.IsLetter(r1) && unicode.IsLetter(r2)
 }
