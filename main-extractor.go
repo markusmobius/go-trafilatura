@@ -3,7 +3,6 @@ package trafilatura
 import (
 	"maps"
 	"strings"
-	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -14,13 +13,13 @@ import (
 )
 
 func safeAppend(parent, child *html.Node) {
-	if last := parent.LastChild; last != nil {
-		lastTxt := etree.IterText(last, "")
-		firstTxt := etree.IterText(child, "")
+	if last := parent.LastChild; last != nil && child != nil {
+		lastTail := strings.TrimRight(etree.Tail(last), " ")
+		firstText := strings.TrimLeft(etree.Text(child), " ")
 
-		if lastTxt != "" && firstTxt != "" {
-			r, _ := utf8.DecodeLastRuneInString(lastTxt)
-			if !unicode.IsSpace(r) { // ← no whitespace at end
+		// Check if last ends with non-whitespace AND child starts with non-whitespace
+		if lastTail != "" && firstText != "" {
+			if !strings.HasSuffix(lastTail, " ") && !strings.HasPrefix(firstText, " ") {
 				etree.SetTail(last, etree.Tail(last)+" ")
 			}
 		}
