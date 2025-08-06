@@ -31,7 +31,7 @@ import (
 var OverallDiscardedContent = []Rule{
 	overallDiscardedContentRule1,
 	overallDiscardedContentRule2,
-	discardedLegalRules,
+	discardedLegalRule,
 }
 
 // navigation + footers, news outlets related posts, sharing, jp-post-flair jp-relatedposts
@@ -229,12 +229,12 @@ func overallDiscardedContentRule2(n *html.Node) bool {
 
 }
 
-// discardedLegalRules filters out cookie-consent banners, privacy footers
+// discardedLegalRule filters out cookie-consent banners, privacy footers
 // and similar legal boiler-plate.
 //
 // It returns true when the node (or its attributes) match any of the
 // heuristics; selector.PruneUnwantedSections will then remove the node.
-func discardedLegalRules(n *html.Node) bool {
+func discardedLegalRule(n *html.Node) bool {
 	tag := dom.TagName(n)
 	id := dom.ID(n)
 	class := dom.ClassName(n)
