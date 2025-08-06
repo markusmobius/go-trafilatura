@@ -260,6 +260,11 @@ func handleOtherElements(element *html.Node, potentialTags map[string]struct{}, 
 
 	// Custom-element names always contain a dash (“web-components” spec).
 	// If such a node has printable text, convert it to a clean <p>.
+	//
+	// Spec: // https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name
+	// Exact wording from the spec:
+	// A valid custom element name is a sequence of characters that matches the CustomElementName production.
+	// It must contain a hyphen. For example, my-element is valid, but myelement is not.
 	if strings.Contains(tagName, "-") {
 		txt := strings.TrimSpace(etree.Text(element))
 
@@ -706,7 +711,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		potentialTags["a"] = struct{}{}
 	}
 
-	var paraLen int
+	var paragraphLength int
 
 	// Iterate each selector rule
 	for _, query := range selector.Content {
@@ -739,10 +744,10 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			factor = 1
 		}
 
-		paraLen = utf8.RuneCountInString(paragraphText)
+		paragraphLength += utf8.RuneCountInString(paragraphText)
 
 		if paragraphText == "" ||
-			paraLen < opts.Config.MinExtractedSize*factor {
+			paragraphLength < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
@@ -797,10 +802,10 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 	// Try parsing wild <p> elements if nothing found or text too short
 	tmpText := trim(etree.IterTextWithSpacing(resultBody))
-	tmpLen := utf8.RuneCountInString(tmpText)
+	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if opts.DynamicHeuristicNeedWildPass {
-		missingRatio := float64(paraLen-tmpLen) / float64(paraLen)
+		missingRatio := float64(paragraphLength-tmpTextLength) / float64(paragraphLength)
 		// e.g. recover if we lost >= 25 % of the original <p> text
 		needWildPass := missingRatio >= 0.25
 
@@ -809,7 +814,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			tmpText = trim(etree.IterTextWithSpacing(resultBody))
 		}
 	} else {
-		if len(dom.Children(resultBody)) == 0 || tmpLen < opts.Config.MinExtractedSize {
+		if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
 			resultBody = dom.CreateElement("body")
 			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
 			tmpText = trim(etree.IterTextWithSpacing(resultBody))
