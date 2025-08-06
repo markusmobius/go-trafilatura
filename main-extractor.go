@@ -804,21 +804,21 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	tmpText := trim(etree.IterTextWithSpacing(resultBody))
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
-	if opts.DynamicHeuristicNeedWildPass {
-		missingRatio := float64(paragraphLength-tmpTextLength) / float64(paragraphLength)
-		// e.g. recover if we lost >= 25 % of the original <p> text
-		needWildPass := missingRatio >= 0.25
+	// e.g. recover if we lost >= MinExtractedParagraphPercent % of the original <p> text
+	missingRatio := float64(paragraphLength-tmpTextLength) / float64(paragraphLength)
 
-		if len(dom.Children(resultBody)) == 0 || needWildPass {
-			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-			tmpText = trim(etree.IterTextWithSpacing(resultBody))
-		}
-	} else {
-		if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
+	if (opts.Config.MinExtractedParagraphPercent > 0 &&
+		missingRatio > float64(opts.Config.MinExtractedParagraphPercent)) ||
+		len(dom.Children(resultBody)) == 0 ||
+		tmpTextLength < opts.Config.MinExtractedSize {
+
+		// we want to throw away the result body in the case we're recovering wild
+		// text because it's been too short so far, but we haven't missed too much paragraphs
+		if missingRatio < float64(opts.Config.MinExtractedParagraphPercent) {
 			resultBody = dom.CreateElement("body")
-			recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-			tmpText = trim(etree.IterTextWithSpacing(resultBody))
 		}
+		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
+		tmpText = trim(etree.IterTextWithSpacing(resultBody))
 	}
 
 	// Filter output

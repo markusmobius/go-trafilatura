@@ -166,6 +166,11 @@ type Config struct {
 	MinExtractedCommentSize int
 	MinOutputSize           int
 	MinOutputCommentSize    int
+
+	// What is the minimum percentage amount of text in all paragraphs
+	// that should be extracted. If the ratio is bellow this percentage,
+	// recoverWildText will be used to try to recover more text.
+	MinExtractedParagraphPercent float64
 }
 
 // DefaultConfig returns the default configuration value.
