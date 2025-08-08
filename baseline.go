@@ -38,7 +38,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape JSON+LD for article body
 	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`) {
 		// Get the json text inside the script
-		jsonLdText := dom.TextContent(script)
+		jsonLdText := etree.IterTextWithSpacing(script)
 		jsonLdText = strings.TrimSpace(jsonLdText)
 		jsonLdText = html.UnescapeString(jsonLdText)
 		if jsonLdText == "" {
@@ -65,7 +65,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 						if strings.Contains(v, "<p>") {
 							tmp := dom.CreateElement("div")
 							dom.SetInnerHTML(tmp, v)
-							articleBody = trim(dom.TextContent(tmp))
+							articleBody = trim(etree.IterTextWithSpacing(tmp))
 						} else {
 							articleBody = v
 						}
@@ -104,7 +104,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape from article tag
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
-		articleText := trim(dom.TextContent(articleElement))
+		articleText := trim(etree.IterTextWithSpacing(articleElement))
 		if utf8.RuneCountInString(articleText) > 100 {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, articleText)
@@ -120,7 +120,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	// Scrape from text paragraphs
 	results := make(map[string]struct{})
 	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
-		entry := trim(dom.TextContent(element))
+		entry := trim(etree.IterTextWithSpacing(element))
 		if _, exist := results[entry]; !exist {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, entry)
@@ -145,7 +145,7 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	}
 
 	// New fallback
-	text := trim(dom.TextContent(doc))
+	text := trim(etree.IterTextWithSpacing(doc))
 	elem := etree.SubElement(postBody, "p")
 	etree.SetText(elem, text)
 	return postBody, text

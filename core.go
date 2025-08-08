@@ -167,6 +167,7 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	// Rescue: try to use original/dirty tree
 	lenText := utf8.RuneCountInString(tmpBodyText)
 	if lenText < opts.Config.MinExtractedSize && opts.Focus != FavorPrecision {
+
 		postBody, tmpBodyText = baseline(docBackup2)
 	}
 
