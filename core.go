@@ -167,7 +167,13 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	// Rescue: try to use original/dirty tree
 	lenText := utf8.RuneCountInString(tmpBodyText)
 	if lenText < opts.Config.MinExtractedSize && opts.Focus != FavorPrecision {
-		postBody, tmpBodyText = baseline(docBackup2)
+
+		// choose which baseline function to use
+		baseFn := baseline
+		if opts.Config.FavourTermSeparation {
+			baseFn = baselineSpacing
+		}
+		postBody, tmpBodyText = baseFn(docBackup2)
 	}
 
 	// Tree size sanity check

@@ -168,6 +168,11 @@ type Config struct {
 	// that should be extracted. If the ratio is bellow this percentage,
 	// recoverWildText will be used to try to recover more text.
 	MinExtractedParagraphPercent float64
+
+	// FavourTermSeparation is used to determine whether the extractor should
+	// separate terms in the text or not. If true, it will try to separate
+	// terms in the text, otherwise it will keep the terms as is.
+	FavourTermSeparation bool
 }
 
 // DefaultConfig returns the default configuration value.

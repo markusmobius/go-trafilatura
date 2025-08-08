@@ -27,8 +27,16 @@ func basicCleaning(doc *html.Node) *html.Node {
 	return doc
 }
 
-// baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
 func baseline(doc *html.Node) (*html.Node, string) {
+	return baselineCore(doc, false)
+}
+
+func baselineSpacing(doc *html.Node) (*html.Node, string) {
+	return baselineCore(doc, true)
+}
+
+// baseline uses baseline extraction function targeting text paragraphs and/or JSON metadata.
+func baselineCore(doc *html.Node, spacing bool) (*html.Node, string) {
 	var tmpText string
 	postBody := etree.Element("body")
 	if doc == nil {
@@ -39,6 +47,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`) {
 		// Get the json text inside the script
 		jsonLdText := dom.TextContent(script)
+		if spacing {
+			jsonLdText = etree.IterTextWithSpacing(script)
+		}
 		jsonLdText = strings.TrimSpace(jsonLdText)
 		jsonLdText = html.UnescapeString(jsonLdText)
 		if jsonLdText == "" {
@@ -66,6 +77,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 							tmp := dom.CreateElement("div")
 							dom.SetInnerHTML(tmp, v)
 							articleBody = trim(dom.TextContent(tmp))
+							if spacing {
+								articleBody = trim(etree.IterTextWithSpacing(tmp))
+							}
 						} else {
 							articleBody = v
 						}
@@ -105,6 +119,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	articleElement := dom.QuerySelector(doc, "article")
 	if articleElement != nil {
 		articleText := trim(dom.TextContent(articleElement))
+		if spacing {
+			articleText = trim(etree.IterTextWithSpacing(articleElement))
+		}
 		if utf8.RuneCountInString(articleText) > 100 {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, articleText)
@@ -121,6 +138,10 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	results := make(map[string]struct{})
 	for _, element := range etree.Iter(doc, "blockquote", "pre", "q", "code", "p") {
 		entry := trim(dom.TextContent(element))
+
+		if spacing {
+			entry = trim(etree.IterTextWithSpacing(element))
+		}
 		if _, exist := results[entry]; !exist {
 			p := etree.SubElement(postBody, "p")
 			etree.SetText(p, entry)
@@ -146,6 +167,9 @@ func baseline(doc *html.Node) (*html.Node, string) {
 
 	// New fallback
 	text := trim(dom.TextContent(doc))
+	if spacing {
+		text = trim(etree.IterTextWithSpacing(doc))
+	}
 	elem := etree.SubElement(postBody, "p")
 	etree.SetText(elem, text)
 	return postBody, text
