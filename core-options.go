@@ -143,6 +143,9 @@ type Options struct {
 
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
 	PruneSelector string
+
+	// Whether to filter out cookie banners with custom discard selector or not.
+	FilterCookieBanners bool
 }
 
 // Config is advanced setting to fine tune the extraction result.
