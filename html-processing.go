@@ -23,7 +23,6 @@ package trafilatura
 
 import (
 	"maps"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -138,17 +137,6 @@ func pruneHTML(doc *html.Node, opts Options) {
 	}
 }
 
-func hasOTAncestor(n *html.Node) bool {
-	for p := n; p != nil; p = p.Parent {
-		if strings.HasPrefix(dom.ID(p), "ot-") ||
-			strings.HasPrefix(dom.ID(p), "onetrust") ||
-			strings.Contains(dom.ClassName(p), "ot-") {
-			return true
-		}
-	}
-	return false
-}
-
 // pruneUnwantedNodes prune the HTML tree by removing unwanted sections.
 func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...bool) *html.Node {
 	var oldLen int
@@ -165,11 +153,6 @@ func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...
 		subElements := selector.QueryAll(tree, query)
 		for i := len(subElements) - 1; i >= 0; i-- {
 			subElement := subElements[i]
-
-			if hasOTAncestor(subElement) {
-				etree.Remove(subElement)
-				continue
-			}
 
 			// Preserve tail text from deletion
 			tail := etree.Tail(subElement)

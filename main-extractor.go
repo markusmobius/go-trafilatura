@@ -620,10 +620,6 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	selectors := strings.Join(selectorList, ", ")
 	for _, element := range dom.QuerySelectorAll(searchDoc, selectors) {
 
-		if hasOTAncestor(element) {
-			continue // ignore everything that lives under ot-/onetrust
-		}
-
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
