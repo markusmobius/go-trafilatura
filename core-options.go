@@ -143,6 +143,9 @@ type Options struct {
 
 	// PruneSelector is the CSS selector to select nodes to be pruned before extraction.
 	PruneSelector string
+
+	// Whether to filter out cookie banners with custom discard selector or not.
+	FilterCookieBanners bool
 }
 
 // Config is advanced setting to fine tune the extraction result.
@@ -160,6 +163,11 @@ type Config struct {
 	MinExtractedCommentSize int
 	MinOutputSize           int
 	MinOutputCommentSize    int
+
+	// What is the minimum percentage amount of text in all paragraphs
+	// that should be extracted. If the ratio is bellow this percentage,
+	// recoverWildText will be used to try to recover more text.
+	MinExtractedParagraphPercent float64
 }
 
 // DefaultConfig returns the default configuration value.

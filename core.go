@@ -124,9 +124,15 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	// No backup as this is completely full control of the user.
 	if opts.PruneSelector != "" {
 		cssSelector, err := cascadia.ParseGroup(opts.PruneSelector)
+
 		if err == nil {
-			doc = pruneUnwantedNodes(doc, []selector.Rule{cssSelector.Match})
+			doc = pruneUnwantedNodes(doc, []selector.Rule{cssSelector.Match}, false)
 		}
+	}
+
+	if opts.FilterCookieBanners {
+		// DDG - custom prune selectors
+		doc = pruneUnwantedNodes(doc, selector.CustomDDGSelectors, false)
 	}
 
 	// Backup document to make sure the original kept untouched

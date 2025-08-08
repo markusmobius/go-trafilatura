@@ -423,6 +423,31 @@ func Test_Formatting(t *testing.T) {
 	assert.Contains(t, fnHtml(result), `The <code>in</code> operator is used to check data structures for membership in Python.`)
 	assert.Contains(t, fnHtml(result), `It returns a Boolean (either <code>True</code> or <code>False</code>) and can be used as follows:`)
 
+	// Spans without spaces
+	r = strings.NewReader(`
+		<html><body>
+			<article data-testid="content-post" id="asset:d51deea4-5d25-483a-8467-ad25292104d7" class="ssrcss-1b1nywt-ContentPost e6wdqbx1">
+			<header class="ssrcss-1p40248-Header e14e9ror5">
+				<span class="ssrcss-1de7kuz-HeadingContainer e14e9ror1">
+					<h3 type="normal" class="ssrcss-ad2rmd-Heading e10rt3ze0">
+						<span role="text" class="ssrcss-189b1h2-HeadlineWrap e14e9ror2">
+							<span>Goodbye!</span><span class="ssrcss-rcvhal-ServerSideTime e14e9ror0">
+							<span data-testid="timestamp" class="ssrcss-umer6k-Timestamp ekpio9q4">
+								<span data-testid="accessible-timestamp" class="visually-hidden ssrcss-1f39n02-VisuallyHidden e16en2lz0">published at 23:05 British Summer Time 4 June</span>
+								<div class="ssrcss-1kjj6jl-Wrapper ekpio9q3"><span aria-hidden="true" class="ssrcss-crgz56-Time ekpio9q2">23:05 BST 4 June</span></div>
+							</span>
+						</span>
+					</h3>
+				</span>
+			</header>
+		</article>
+	</body></html>`)
+	result, _ = Extract(r, zeroOpts)
+	normalized := func(s string) string {
+		return strings.Join(strings.Fields(s), " ")
+	}
+	assert.Contains(t, normalized(fnHtml(result)), `Goodbye! published at 23:05 British Summer Time 4 June`)
+
 	// Double <p> elems
 	r = strings.NewReader("<html><body><p>AAA, <p>BBB</p>, CCC.</p></body></html>")
 	result, _ = Extract(r, Options{IncludeLinks: true, Config: zeroConfig})

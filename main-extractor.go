@@ -50,7 +50,7 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		}
 	}
 
-	if title != nil && textCharsTest(etree.IterText(title, "")) {
+	if title != nil && textCharsTest(etree.IterText(title, " ")) {
 		return title
 	}
 
@@ -118,7 +118,7 @@ func processNestedElement(child, newChildElement *html.Node, cache *lru.Cache, o
 
 // isTextElement checks if the element contains text.
 func isTextElement(element *html.Node) bool {
-	return element != nil && textCharsTest(etree.IterText(element, ""))
+	return element != nil && textCharsTest(etree.IterText(element, " "))
 }
 
 // defineNewElement creates a new sub-element if necessary.
@@ -257,6 +257,27 @@ func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 func handleOtherElements(element *html.Node, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) *html.Node {
 	// Handle W3Schools Code
 	tagName := dom.TagName(element)
+
+	// Custom-element names always contain a dash (“web-components” spec).
+	// If such a node has printable text, convert it to a clean <p>.
+	//
+	// Spec: // https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name
+	// Exact wording from the spec:
+	// A valid custom element name is a sequence of characters that matches the CustomElementName production.
+	// It must contain a hyphen. For example, my-element is valid, but myelement is not.
+	if strings.Contains(tagName, "-") {
+		txt := strings.TrimSpace(etree.Text(element))
+
+		if txt != "" {
+			p := etree.Element("p")
+			etree.SetText(p, txt)
+			if tail := strings.TrimSpace(etree.Tail(element)); tail != "" {
+				etree.SetTail(p, tail)
+			}
+			return p
+		}
+	}
+
 	if tagName == "div" && strings.Contains(dom.ClassName(element), "w3-code") {
 		return handleCodeBlocks(element)
 	}
@@ -598,6 +619,7 @@ func recoverWildText(doc, resultBody *html.Node, potentialTags map[string]struct
 	var processedElems []*html.Node
 	selectors := strings.Join(selectorList, ", ")
 	for _, element := range dom.QuerySelectorAll(searchDoc, selectors) {
+
 		processedElement := handleTextElem(element, potentialTags, cache, opts)
 		if processedElement != nil {
 			processedElems = append(processedElems, processedElement)
@@ -685,6 +707,8 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		potentialTags["a"] = struct{}{}
 	}
 
+	var paragraphLength int
+
 	// Iterate each selector rule
 	for _, query := range selector.Content {
 		// Capture first node that matched with the rule
@@ -716,8 +740,10 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			factor = 1
 		}
 
+		paragraphLength += utf8.RuneCountInString(paragraphText)
+
 		if paragraphText == "" ||
-			utf8.RuneCountInString(paragraphText) < opts.Config.MinExtractedSize*factor {
+			paragraphLength < opts.Config.MinExtractedSize*factor {
 			potentialTags["div"] = struct{}{}
 		}
 
@@ -771,13 +797,24 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Try parsing wild <p> elements if nothing found or text too short
-	tmpText := trim(etree.IterText(resultBody, " "))
+	tmpText := trim(etree.IterTextWithSpacing(resultBody))
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
-	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
-		resultBody = dom.CreateElement("body")
+	// e.g. recover if we lost >= MinExtractedParagraphPercent % of the original <p> text
+	missingRatio := float64(paragraphLength-tmpTextLength) / float64(paragraphLength)
+
+	if (opts.Config.MinExtractedParagraphPercent > 0 &&
+		missingRatio > float64(opts.Config.MinExtractedParagraphPercent)) ||
+		len(dom.Children(resultBody)) == 0 ||
+		tmpTextLength < opts.Config.MinExtractedSize {
+
+		// we want to throw away the result body in the case we're recovering wild
+		// text because it's been too short so far, but we haven't missed too much paragraphs
+		if missingRatio < float64(opts.Config.MinExtractedParagraphPercent) {
+			resultBody = dom.CreateElement("body")
+		}
 		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-		tmpText = trim(etree.IterText(resultBody, " "))
+		tmpText = trim(etree.IterTextWithSpacing(resultBody))
 	}
 
 	// Filter output
