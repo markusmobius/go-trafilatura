@@ -2,9 +2,9 @@
 
 Go-Trafilatura is a Go package and command-line tool which seamlessly downloads, parses, and scrapes web page data: it can extract metadata, main body text and comments while preserving parts of the text formatting and page structure.
 
-As implied by its name, this package is based on [Trafilatura][0] which is a Python package that created by [Adrien Barbaresi][1]. We decided to port this package because according to ScrapingHub [benchmark][2], at the time this port is created Trafilatura is the most efficient open-source article extractor. This is especially impressive considering how robust its code, only around 4,000 lines of Python code that separated in 26 files. As comparison, [Dom Distiller][3] has 148 files with around 17,000 lines of code.
+As implied by its name, this package is based on [Trafilatura][0] which is a Python package created by [Adrien Barbaresi][1]. We decided to port this package because, based on the ScrapingHub [benchmark][2] available at the time of creation, Trafilatura was the most efficient open-source article extractor. This is especially impressive considering Trafilatura's code robustness: it achieves this performance with only about 4,000 lines of Python code across 26 files. In comparison, [Dom Distiller][3] requires approximately 17,000 lines of code in 148 files.
 
-The structure of this package is arranged following the structure of original Python code. This way, any improvements from the original can be implemented easily here. Another advantage, hopefully all web page that can be parsed by the original Trafilatura can be parsed by this package as well with identical result.
+The package's structure closely mirrors the original Python code. This alignment not only simplifies the implementation of future improvements but also ensures that any web page parsable by the original Trafilatura should yield identical results with this package.
 
 ## Table of Contents
 
@@ -147,7 +147,7 @@ This package and its dependencies heavily use regular expression for various pur
 - The regex engine in other language usually implemented in C, while in Go it's implemented from scratch in Go language. As expected, C implementation is still faster than Go's.
 - Since Go is usually used for web service, its regex is designed to finish in time linear to the length of the input, which useful for protecting server from ReDoS attack. However, this comes with performance cost.
 
-To solve this issue, we compile several important regexes into Go code using [re2go]. Thanks to this we are able to get a great speed without using cgo or external regex packages.
+To solve this issue, we compile several important regexes into Go code using [re2go]. Thanks to this we are able to achieve greater speed without using cgo or external regex packages.
 
 ## Comparison with Other Go Packages
 
@@ -184,9 +184,9 @@ Trafilatura:
 - Designed to be used in academic domain e.g. natural language processing.
 - Actively maintained with new release almost every month.
 - CON: slower than the other extractors, mostly because it also looks for language and publish date.
-- CON: doesn't really good at extracting images.
+- CON: not very good at extracting images.
 
-The benchmark that compares these extractors is available in [this repository][benchmark]. It uses each extractor to process 983 web pages in single thread. Here is its benchmark result when tested in my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
+The benchmark that compares these extractors is available in [this repository][benchmark]. It uses each extractor to process 983 web pages in single thread. Here is its benchmark result when tested on my PC (Intel i7-8550U @ 4.000GHz, RAM 16 GB):
 
 Here we compare the extraction result between `go-trafilatura`, `go-readability` and `go-domdistiller`. To reproduce this test, clone this repository then run:
 
@@ -218,11 +218,11 @@ Here is the result when compared with the original Trafilatura v1.12.2:
 | `go-trafilatura` + fallback + precision |   0.921   | 0.900  |  0.912   |  0.910  |   7.68   |
 |  `go-trafilatura` + fallback + recall   |   0.893   | 0.927  |  0.908   |  0.910  |   6.43   |
 
-From the table above we can see that our port has almost similar performance as the original Trafilatura. This is thanks to the fact that most of code is ported line by line from Python to Go (excluding some difference that mentioned above). The small performance difference between our port and the original, I believe is happened not because of incorrectly ported code but because we are using different fallback extractors compared to the original.
+As the table demonstrates, the performance of our port is nearly identical to the original Trafilatura. This parity is achieved because the code was ported almost line-by-line from Python to Go (excluding minor, previously mentioned differences). We attribute the small remaining performance gap not to incorrect porting, but rather to our use of different fallback extractors than those in the original implementation.
 
-For the speed, our Go port is far faster than the original. This is mainly thanks to re2go that compiles several important regex ahead of time into Go code, so we don't get performance hit from using Go's regex.
+Regarding speed, our Go port is significantly faster than the original. This is largely due to our use of re2go, which compiles several critical regular expressions ahead of time into native Go code. This approach allows us to avoid the typical performance overhead associated with standard Go regex libraries.
 
-By the way, this package is thread-safe (as far as we test it anyway) so depending on your use case you might want to use it concurrently for additional speed. As example, here is the result on my PC when the comparison script run concurrently in all thread:
+Furthermore, this package is thread-safe (based on our current testing). Depending on your application's needs, you can leverage this concurrency for substantial additional speed gains. For example, here are the results achieved on my PC when the comparison script was run concurrently across all available threads:
 
 ```
 go run scripts/comparison/*.go content -j -1
@@ -257,7 +257,7 @@ This package won't be exist without effort by Adrien Barbaresi, the author of th
 
 ## License
 
-Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICENSE).
+Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICENSE) license.
 
 [0]: https://github.com/adbar/trafilatura
 [1]: https://github.com/adbar
