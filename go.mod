@@ -5,12 +5,12 @@ go 1.24.1
 toolchain go1.24.2
 
 require (
+	codeberg.org/readeck/go-readability/v2 v2.1.1
 	github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc
 	github.com/andybalholm/cascadia v1.3.3
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.3.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
-	github.com/go-shiori/go-readability v0.0.0-20250217085726-9f5bf5ca7612
 	github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4
 	github.com/markusmobius/go-htmldate v1.9.3
 	github.com/matoous/go-nanoid/v2 v2.0.0
@@ -18,9 +18,9 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.10.0
 	github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4
-	golang.org/x/net v0.40.0
-	golang.org/x/sync v0.14.0
-	golang.org/x/text v0.25.0
+	golang.org/x/net v0.41.0
+	golang.org/x/sync v0.15.0
+	golang.org/x/text v0.26.0
 )
 
 require (

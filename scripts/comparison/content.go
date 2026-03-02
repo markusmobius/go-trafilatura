@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	nurl "net/url"
@@ -10,7 +11,7 @@ import (
 	"time"
 
 	"github.com/go-shiori/dom"
-	"github.com/go-shiori/go-readability"
+	"codeberg.org/readeck/go-readability/v2"
 	distiller "github.com/markusmobius/go-domdistiller"
 	gt "github.com/markusmobius/go-trafilatura"
 	"golang.org/x/net/html"
@@ -253,7 +254,9 @@ func prepareReadability(nWorker int) ExtractorRunner {
 				// Evaluate the result
 				var ev EvaluationResult
 				if err == nil {
-					ev = evaluateEntry(param.Entry, article.TextContent)
+					var textBuf bytes.Buffer
+					_ = article.RenderText(&textBuf)
+					ev = evaluateEntry(param.Entry, textBuf.String())
 				}
 
 				// Temporarily lock resource
