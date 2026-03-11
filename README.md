@@ -49,7 +49,7 @@ Now you can use Trafilatura to extract content of a web page. For basic usage yo
 To use CLI, you need to build it from source. Make sure you use `go >= 1.16` then run following commands :
 
 ```
-go get -u -v github.com/markusmobius/go-trafilatura/cmd/go-trafilatura
+go get -u -v github.com/markusmobius/go-trafilatura/v2/cmd/go-trafilatura
 ```
 
 Once installed, you can use it from your terminal:
