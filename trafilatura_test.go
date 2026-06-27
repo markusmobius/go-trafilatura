@@ -273,6 +273,33 @@ func Test_LanguageClassifier(t *testing.T) {
 	assert.Equal(t, "fr", result.Metadata.Language)
 }
 
+func Test_SkipLanguageDetection(t *testing.T) {
+	htmlInput := `<html><body><p>Texto en español que es suficientemente largo.</p></body></html>`
+
+	// Default: language is detected and stored in metadata.
+	base, err := Extract(strings.NewReader(htmlInput), Options{})
+	assert.NoError(t, err)
+	assert.Equal(t, "es", base.Metadata.Language)
+
+	// SkipLanguageDetection: same extracted content, but no language detected.
+	skipped, err := Extract(strings.NewReader(htmlInput), Options{SkipLanguageDetection: true})
+	assert.NoError(t, err)
+	assert.Equal(t, "", skipped.Metadata.Language)
+	assert.Equal(t, base.ContentText, skipped.ContentText)
+
+	// TargetLanguage still forces detection even when SkipLanguageDetection is set,
+	// so language filtering keeps working.
+	ok, err := Extract(strings.NewReader(htmlInput), Options{
+		TargetLanguage: "es", SkipLanguageDetection: true})
+	assert.NoError(t, err)
+	assert.Equal(t, "es", ok.Metadata.Language)
+
+	bad, err := Extract(strings.NewReader(htmlInput), Options{
+		TargetLanguage: "de", SkipLanguageDetection: true})
+	assert.Error(t, err)
+	assert.Nil(t, bad)
+}
+
 func Test_Cache(t *testing.T) {
 	cache := lru.NewCache(2)
 

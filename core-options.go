@@ -126,6 +126,15 @@ type Options struct {
 	// EnableLog specify whether log should be enabled or not.
 	EnableLog bool
 
+	// SkipLanguageDetection skips the per-document language detection used to
+	// populate Metadata.Language. Detection runs whatlanggo over the extracted
+	// text on every document, which is a significant share of extraction cost for
+	// callers that don't read Metadata.Language. When true, Metadata.Language is
+	// left empty. It is IGNORED when TargetLanguage is set, since language
+	// filtering still requires detection. Defaults to false (detection enabled),
+	// so existing behaviour is unchanged.
+	SkipLanguageDetection bool
+
 	// HtmlDateMode specify the behaviour of the external HtmlDate package that used
 	// to extract publish date from a web page.
 	HtmlDateMode HtmlDateMode
