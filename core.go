@@ -192,8 +192,13 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		return nil, fmt.Errorf("extracted body has been duplicated")
 	}
 
-	// Sanity check on language
-	lang := languageClassifier(tmpBodyText, tmpComments)
+	// Sanity check on language. Detection (whatlanggo) is a notable share of
+	// extraction cost, so skip it when the caller opted out and isn't filtering by
+	// language; TargetLanguage filtering still forces detection.
+	var lang string
+	if opts.TargetLanguage != "" || !opts.SkipLanguageDetection {
+		lang = languageClassifier(tmpBodyText, tmpComments)
+	}
 	if opts.TargetLanguage != "" {
 		if lang != opts.TargetLanguage {
 			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
