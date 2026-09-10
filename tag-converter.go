@@ -22,4 +22,5 @@ var (
 	mapXmlGraphicTags = sliceToMap(listXmlGraphicTags...)
 	mapXmlItemTags    = sliceToMap(listXmlItemTags...)
 	mapXmlCellTags    = sliceToMap(listXmlCellTags...)
+	inlineCarriedTags = sliceToMap(append([]string{"a", "code", "del", "s", "strike", "img"}, listXmlHiTags...)...)
 )

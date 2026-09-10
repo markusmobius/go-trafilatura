@@ -22,9 +22,12 @@
 package trafilatura
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
@@ -162,4 +165,67 @@ func Test_Baseline(t *testing.T) {
 	doc = docFromStr("<html><body><div>   Document body...   </div><script> console.log('Hello world') </script></body></html>")
 	_, result = baseline(doc)
 	assert.Equal(t, "Document body...", result)
+}
+
+func Test_Baseline_Upstream22(test *testing.T) {
+	fullText := strings.Repeat("Complete article content. ", 8)
+	for _, schema := range []any{
+		[]any{map[string]any{"articleBody": fullText}},
+		map[string]any{"@graph": []any{map[string]any{"reviewBody": fullText}}},
+		map[string]any{"recipeInstructions": []any{map[string]any{"text": fullText}}},
+		map[string]any{"@type": "HowTo", "step": []any{map[string]any{"itemListElement": []any{map[string]any{"text": fullText}}}}},
+		map[string]any{"mainEntity": map[string]any{"acceptedAnswer": map[string]any{"text": fullText}}},
+	} {
+		encoded, err := json.Marshal(schema)
+		assert.NoError(test, err)
+		doc := docFromStr(`<html><body><script type="application/ld+json">` + string(encoded) + `</script></body></html>`)
+		original := dom.OuterHTML(doc)
+		_, text := baseline(doc)
+		assert.Equal(test, trim(fullText), text)
+		assert.Equal(test, original, dom.OuterHTML(doc))
+	}
+	assert.Equal(test, "i<b and c>d", renderBaselineText("i<b and c>d"))
+	assert.Equal(test, "Embedded text", renderBaselineText("&lt;p&gt;Embedded &lt;b&gt;text&lt;/b&gt;&lt;/p&gt;"))
+	unrelated := docFromStr(`<html><body><script type="application/ld+json">{"step":"` + fullText + `"}</script></body></html>`)
+	_, unrelatedText := baseline(unrelated)
+	assert.Empty(test, unrelatedText)
+	unicodeText := strings.Repeat("\u4e2d", 80_000)
+	unicodeBody, unicodeResult := buildBaselineBody([]string{unicodeText, unicodeText}, true)
+	assert.Equal(test, unicodeText, unicodeResult)
+	assert.Len(test, dom.Children(unicodeBody), 1)
+
+	doc := docFromStr(`<html><body><script type="application/ld+json">{"articleBody":"Rejected short JSON"}</script><article>` + fullText + `</article></body></html>`)
+	body, text := baseline(doc)
+	assert.Equal(test, trim(fullText), text)
+	assert.Equal(test, 1, len(dom.Children(body)))
+
+	doc = docFromStr(`<html><body><blockquote><p>` + fullText + `</p></blockquote></body></html>`)
+	body, text = baseline(doc)
+	assert.Equal(test, trim(fullText), text)
+	assert.Equal(test, 1, len(dom.Children(body)))
+
+	doc = docFromStr(`<html><body><article>` + fullText + `</article><article>` + fullText + `</article></body></html>`)
+	body, _ = baseline(doc)
+	assert.Equal(test, 2, len(dom.Children(body)))
+
+	topic, err := json.Marshal(map[string]any{"post_stream": map[string]any{"posts": []any{map[string]any{"cooked": "<p>" + fullText + "</p>"}, false}}})
+	assert.NoError(test, err)
+	preload, err := json.Marshal(map[string]string{"topic_1": string(topic)})
+	assert.NoError(test, err)
+	doc = docFromStr(`<html><body><div id="data-preloaded"></div></body></html>`)
+	dom.SetAttribute(dom.QuerySelector(doc, "div"), "data-preloaded", string(preload))
+	_, text = baseline(doc)
+	assert.Equal(test, trim(fullText), text)
+}
+
+func Test_HTML2Text_Upstream22(test *testing.T) {
+	doc := docFromStr(`<html><body class="cookies-not-set"><div>A<b>B</b>C</div><p>Second<br>line</p><div class="CookieConsentBanner">Discard consent text</div><svg>discard</svg><template>discard</template></body></html>`)
+	original := dom.OuterHTML(doc)
+	assert.Equal(test, "ABC Second line", html2txt(doc))
+	assert.Equal(test, original, dom.OuterHTML(doc))
+	assert.Equal(test, "", html2txt(nil))
+	body, text := buildBaselineBody([]string{"repeat", "repeat"}, true)
+	assert.Equal(test, "repeat\nrepeat", text)
+	assert.Equal(test, 2, len(dom.Children(body)))
+	assert.NotEmpty(test, etree.ToString(body))
 }

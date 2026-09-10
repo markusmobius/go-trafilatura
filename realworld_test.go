@@ -191,9 +191,7 @@ func Test_Extract(t *testing.T) {
 	result = extractMockFile(rwMockFiles, "http://schleifen.ucoz.de/blog/briefe/2010-10-26-18")
 	assert.True(t, resContains(result, "Es war gesagt,"))
 	assert.True(t, resContains(result, "Symbol auf dem Finger haben"))
-	// TODO: this one is different than the original.
-	// In original, it should be false, but our go-readability still catch it.
-	assert.True(t, resContains(result, "Aufrufe:"))
+	assert.False(t, resContains(result, "Aufrufe:"))
 
 	result = extractMockFile(rwMockFiles, "https://www.austria.info/de/aktivitaten/radfahren/radfahren-in-der-weltstadt-salzburg")
 	assert.True(t, resContains(result, "Salzburg liebt seine Radfahrer."))

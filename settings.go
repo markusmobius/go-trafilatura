@@ -21,9 +21,14 @@
 
 package trafilatura
 
+const (
+	minDuplicateLength = 50
+	dedupeScanCap      = 200_000
+)
+
 var tagsToClean = sliceToMap(
 	// important
-	"aside", "embed", "footer", "form", "head", "iframe", "menu", "object", "script",
+	"aside", "embed", "fencedframe", "footer", "form", "head", "iframe", "menu", "object", "script",
 	// other content
 	"applet", "audio", "canvas", "figure", "map", "picture", "svg", "video",
 	// secondary
@@ -36,7 +41,7 @@ var tagsToClean = sliceToMap(
 
 var tagsToStrip = sliceToMap(
 	"abbr", "acronym", "address", "bdi", "bdo", "big", "cite", "data", "dfn", "font",
-	"hgroup", "img", "ins", "mark", "meta", "ruby", "small", "template",
+	"hgroup", "img", "ins", "mark", "meta", "nobr", "ruby", "small", "template",
 	"tbody", "tfoot", "thead",
 	// "center", "rb", "wbr",
 )

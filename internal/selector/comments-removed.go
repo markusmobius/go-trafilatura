@@ -42,7 +42,7 @@ func removedCommentsRule1(n *html.Node) bool {
 	tagName := dom.TagName(n)
 
 	switch tagName {
-	case "div", "ol", "ul", "dl", "section":
+	case "div", "ol", "ul", "dl", "section", "details":
 	default:
 		return false
 	}

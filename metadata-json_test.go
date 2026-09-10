@@ -174,3 +174,42 @@ func Test_MetadataJson(t *testing.T) {
 	assert.Empty(t, metadata.Title)
 	assert.Equal(t, "Jaime Welton", metadata.Author)
 }
+
+func Test_MetadataJson_PublisherGuard(test *testing.T) {
+	for _, testCase := range []struct {
+		publisher string
+		original  string
+		expected  string
+	}{
+		{`{"name":"BBC"}`, "https://www.bbc.com", "BBC"},
+		{`{"name":"BBC"}`, "BBC News", "BBC News"},
+		{`{"name":"BBC News"}`, "BBC", "BBC News"},
+		{`{"name":""}`, "BBC News", "BBC News"},
+		{`{"name":123}`, "BBC News", "BBC News"},
+		{`null`, "BBC News", "BBC News"},
+	} {
+		doc := docFromStr(`<html><head><script type="application/ld+json">{"@type":"NewsArticle","publisher":` + testCase.publisher + `}</script></head></html>`)
+		metadata := extractJsonLd(defaultOpts, doc, Metadata{Sitename: testCase.original})
+		assert.Equal(test, testCase.expected, metadata.Sitename)
+	}
+}
+
+func Test_MetadataJson_AuthorShapes(test *testing.T) {
+	testCases := []struct {
+		authors  string
+		expected string
+	}{
+		{`"John Doe"`, "John Doe"},
+		{`{"name":"John Doe"}`, "John Doe"},
+		{`["John Doe", {"name":"Jane Smith"}, null, false, 42, {"@type":"Organization","name":"Not An Author"}]`, "John Doe; Jane Smith"},
+		{`{"@type":"Person","name":42}`, ""},
+	}
+	for _, testCase := range testCases {
+		test.Run(testCase.authors, func(test *testing.T) {
+			input := `<html><head><script type="application/ld+json">{"@type":"NewsArticle","headline":"Example Article","publisher":"Bare Publisher","author":` + testCase.authors + `}</script></head></html>`
+			metadata := testGetMetadataFromHTML(input)
+			assert.Equal(test, testCase.expected, metadata.Author)
+			assert.Equal(test, "Bare Publisher", metadata.Sitename)
+		})
+	}
+}

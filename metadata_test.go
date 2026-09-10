@@ -92,6 +92,12 @@ func Test_Metadata_Titles(t *testing.T) {
 	rawHTML = `<html><body><h1>First</h1><h1>Second</h1></body></html>`
 	isEqual(rawHTML, "First")
 
+	rawHTML = `<html><body><h1> </h1><h1> First non-empty title </h1><h1>Second</h1></body></html>`
+	isEqual(rawHTML, "First non-empty title")
+
+	rawHTML = `<html><head><title>example.org</title></head><body><h2>Article heading</h2></body></html>`
+	isEqual(rawHTML, "Article heading")
+
 	rawHTML = `<html><body><h1>   </h1><div class="post-title">Test Title</div></body></html>`
 	isEqual(rawHTML, "Test Title")
 
@@ -482,6 +488,23 @@ func Test_Metadata_License(t *testing.T) {
 	assert.Equal(t, "CC BY-NC", metadata.License)
 }
 
+func Test_Metadata_AuthorDeduplication(test *testing.T) {
+	assert.Equal(test, "John Doe", normalizeAuthors("John", "John Doe"))
+	assert.Equal(test, "John Doe", normalizeAuthors("John Doe", "John"))
+	assert.Equal(test, "Jane Smith; John Doe", normalizeAuthors("John; Jane Smith", "John Doe"))
+	assert.Equal(test, "John Doe", normalizeAuthors("", "John; John Doe"))
+}
+
+func Test_Metadata_LicenseNestedText(test *testing.T) {
+	for _, input := range []string{
+		`<html><body><a rel="license" href="/license"><span>CC BY-SA 4.0</span></a></body></html>`,
+		`<html><body><footer><a href="/license"><span>CC BY-SA 4.0</span></a></footer></body></html>`,
+	} {
+		metadata := testGetMetadataFromHTML(input)
+		assert.Equal(test, "CC BY-SA 4.0", metadata.License)
+	}
+}
+
 func Test_Metadata_MetaImages(t *testing.T) {
 	var rawHTML string
 	exampleURL, _ := url.ParseRequestURI("http://example.org")
@@ -508,6 +531,14 @@ func Test_Metadata_MetaImages(t *testing.T) {
 
 	rawHTML = `<html><head><meta property="twitter:image:src" content="example-twitter.jpg"></html>`
 	isEqual(rawHTML, "http://example.org/example-twitter.jpg")
+
+	for _, name := range []string{"image", "og:image", "twitter:image", "twitter:image:src"} {
+		rawHTML = `<html><head><meta name="` + name + `" content="example.jpg"></head></html>`
+		isEqual(rawHTML, "http://example.org/example.jpg")
+	}
+
+	rawHTML = `<html><head><meta name="image" content="other.jpg"><meta property="og:image" content="preferred.jpg"></head></html>`
+	isEqual(rawHTML, "http://example.org/preferred.jpg")
 
 	// Without image
 	rawHTML = `<html><head><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /></html>`

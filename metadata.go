@@ -60,8 +60,8 @@ var (
 	rxAuthorNickname     = regexp.MustCompile(`(?i)["‘({\[’\'][^"]+?[‘’"\')\]}]`)
 	rxAuthorSpecialChars = regexp.MustCompile(`(?i)[^\pL\pM\pN_]+$|[:()?*$#!%/<>{}~¿]`)
 	rxAuthorPreposition  = regexp.MustCompile(`(?i)\b\s+(am|on|for|at|in|to|from|of|via|with|—|-|–)\s+(.*)`)
-	rxAuthorEmail        = regexp.MustCompile(`(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`)
-	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|[^\pL\pM\pN_])[u|a]nd(?:$|[^\pL\pM\pN_])`)
+	rxAuthorEmail        = regexp.MustCompile(`(?i)\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`)
+	rxAuthorSeparator    = regexp.MustCompile(`(?i)/|;|,|\||&|(?:^|[^\pL\pM\pN_])[ua]nd(?:$|[^\pL\pM\pN_])`)
 	rxAuthorHTML         = regexp.MustCompile(`(?i)<[^>]+>`)
 
 	metaNameAuthor = sliceToMap(
@@ -329,6 +329,8 @@ func examineMeta(doc *html.Node) Metadata {
 				if isAbs, _ := isAbsoluteURL(content); metadata.URL == "" && isAbs {
 					metadata.URL = content
 				}
+			} else if inMap(name, metaNameImage) {
+				metadata.Image = strOr(metadata.Image, content)
 			} else if inMap(name, metaNameTag) { // "page-topic"
 				metadata.Tags = append(metadata.Tags, content)
 			}
@@ -460,20 +462,17 @@ func extractDomTitle(doc *html.Node) string {
 
 	// Look in <title> tag
 	title, first, second := examineTitleElement(doc)
-	if first != "" && !strings.Contains(first, ".") {
-		title = first
-	} else if second != "" && !strings.Contains(second, ".") {
-		title = second
-	}
-
-	if title != "" {
-		return title
+	for _, candidate := range []string{first, second, title} {
+		if candidate != "" && !strings.Contains(candidate, ".") {
+			return candidate
+		}
 	}
 
 	// If still not found, just use the first H1 as it is
-	if len(h1Nodes) > 0 {
-		title := dom.TextContent(h1Nodes[0])
-		return trim(title)
+	for _, heading := range h1Nodes {
+		if title := trim(dom.TextContent(heading)); title != "" {
+			return title
+		}
 	}
 
 	// If STILL not found, use the first H2 as it is
@@ -670,7 +669,7 @@ func parseLicenseElement(node *html.Node, strict bool) string {
 	}
 
 	// Check in text
-	if text := trim(etree.Text(node)); text != "" {
+	if text := trim(dom.TextContent(node)); text != "" {
 		if !strict {
 			return text
 		}
@@ -739,13 +738,26 @@ func normalizeAuthors(authors string, input string) string {
 
 		// Save to list
 		_, tracked := tracker[a]
-		if !strings.Contains(authors, a) && !tracked {
+		if !tracked {
 			tracker[a] = struct{}{}
 			listAuthor = append(listAuthor, a)
 		}
 	}
 
-	return strings.Join(listAuthor, "; ")
+	fullNames := make([]string, 0, len(listAuthor))
+	for _, author := range listAuthor {
+		partial := false
+		for _, other := range listAuthor {
+			if author != other && strings.Contains(other, author) {
+				partial = true
+				break
+			}
+		}
+		if !partial {
+			fullNames = append(fullNames, author)
+		}
+	}
+	return strings.Join(fullNames, "; ")
 }
 
 func removeBlacklistedAuthors(current string, opts Options) string {

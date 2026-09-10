@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"fmt"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -36,7 +37,7 @@ import (
 type _FallbackGenerator func() (string, *html.Node)
 
 var tagsToSanitize = sliceToMap(
-	"aside", "audio", "button", "fieldset", "figure", "footer", "iframe",
+	"aside", "audio", "button", "fencedframe", "fieldset", "figure", "footer", "iframe",
 	"input", "label", "link", "nav", "noindex", "noscript",
 	"object", "option", "select", "source", "svg", "time",
 )
@@ -64,11 +65,13 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 
 	// Prior cleaning
 	cleanedDoc := dom.Clone(originalDoc, true)
+	etree.StripElements(cleanedDoc, true, "fencedframe")
 	if opts.Focus == FavorPrecision {
 		cleanedDoc = pruneUnwantedNodes(cleanedDoc, selector.OverallDiscardedContent)
 	}
 
 	// Process each candidate
+	usedFallback := false
 	for _, generator := range createFallbackGenerators(cleanedDoc, opts) {
 		// Generate candidate, skip if empty
 		candidateTitle, candidateDoc := generator()
@@ -83,8 +86,10 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 			candidateTitle, lenCandidate, lenExtracted)
 
 		// Check if candidate is usable
-		if candidateIsUsable(candidateDoc, extractedDoc, lenCandidate, lenExtracted, opts) {
-			extractedDoc, lenExtracted = candidateDoc, lenCandidate
+		usable := candidateIsUsable(candidateDoc, extractedDoc, lenCandidate, lenExtracted, opts)
+		if usable {
+			extractedDoc, lenExtracted = dom.Clone(candidateDoc, true), lenCandidate
+			usedFallback = true
 			logDebug(opts, "candidate %s is usable", candidateTitle)
 		}
 
@@ -95,7 +100,9 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 	}
 
 	// Final cleaning
-	sanitizeTree(extractedDoc, opts)
+	if usedFallback {
+		sanitizeTree(extractedDoc, opts)
+	}
 	extractedText = trim(etree.IterText(extractedDoc, " "))
 	return extractedDoc, extractedText
 }
@@ -146,59 +153,64 @@ func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator
 		})
 	} else {
 		generators = append(generators, func() (string, *html.Node) {
-			clone := dom.Clone(doc, true)
-			result, _ := distiller.Apply(clone, &distiller.Options{
-				OriginalURL:    opts.OriginalURL,
-				SkipPagination: true})
-			if result == nil {
-				return "", nil
-			}
-			return distillerTitle, result.Node
+			body, _ := distillerRescue(doc, opts)
+			return distillerTitle, body
 		})
 	}
 
 	return generators
 }
 
-// candidateIsUsable check if the fallback candidate is good enough to use as extraction result.
-func candidateIsUsable(candidateDoc, extractedDoc *html.Node, lenCandidate, lenExtracted int, opts Options) bool {
-	var candidateUsable bool
-
-	if lenCandidate == 0 || lenCandidate == lenExtracted {
-		candidateUsable = false
-	} else if lenExtracted == 0 && lenCandidate > 0 {
-		candidateUsable = true
-	} else if lenExtracted > 2*lenCandidate {
-		candidateUsable = false
-	} else if lenCandidate > 2*lenExtracted {
-		candidateUsable = true
+func distillerRescue(doc *html.Node, opts Options) (*html.Node, string) {
+	var body *html.Node
+	if opts.FallbackCandidates != nil && opts.FallbackCandidates.Distiller != nil {
+		body = dom.Clone(opts.FallbackCandidates.Distiller, true)
 	} else {
-		// Borderline case
-		extractedHeads := dom.GetElementsByTagName(extractedDoc, "head")
-		extractedTables := dom.GetElementsByTagName(extractedDoc, "table")
-		extractedParagraphs := dom.GetElementsByTagName(extractedDoc, "p")
-		candidateHeadings := dom.QuerySelectorAll(candidateDoc, "h2,h3,h4")
-
-		var pTextLength int
-		for _, p := range extractedParagraphs {
-			pText := trim(etree.IterText(p, " "))
-			pTextLength += utf8.RuneCountInString(pText)
-		}
-
-		if pTextLength == 0 && lenCandidate > opts.Config.MinExtractedSize*2 {
-			candidateUsable = true
-		} else if len(extractedTables) > len(extractedParagraphs) && lenCandidate > opts.Config.MinExtractedSize*2 {
-			candidateUsable = true
-		} else if opts.Focus == FavorRecall && len(extractedHeads) == 0 &&
-			len(candidateHeadings) > 0 && lenCandidate > lenExtracted {
-			candidateUsable = true
-		} else {
-			candidateUsable = false
+		cleaned := basicCleaning(dom.Clone(doc, true))
+		result, _ := distiller.Apply(cleaned, &distiller.Options{
+			OriginalURL:    opts.OriginalURL,
+			SkipPagination: true,
+		})
+		if result != nil {
+			body = result.Node
 		}
 	}
+	if body == nil {
+		return nil, ""
+	}
+	sanitizeTree(body, opts)
+	return body, trim(etree.IterText(body, " "))
+}
 
-	mustFavorRecall := lenExtracted < opts.Config.MinExtractedSize && opts.Focus == FavorRecall
-	return candidateUsable || mustFavorRecall
+// candidateIsUsable check if the fallback candidate is good enough to use as extraction result.
+func candidateIsUsable(candidateDoc, extractedDoc *html.Node, lenCandidate, lenExtracted int, opts Options) bool {
+	if lenCandidate == 0 || lenCandidate == lenExtracted {
+		return false
+	}
+	if lenExtracted > 2*lenCandidate {
+		return false
+	}
+	if lenExtracted == 0 {
+		return true
+	}
+	rawJSON := strings.HasPrefix(trim(etree.IterText(candidateDoc, " ")), "{")
+	if !rawJSON && (lenCandidate > 2*lenExtracted || (opts.Focus == FavorRecall && float64(lenCandidate) > 1.5*float64(lenExtracted))) {
+		return true
+	}
+	extractedParagraphs := dom.GetElementsByTagName(extractedDoc, "p")
+	paragraphText := false
+	for _, paragraph := range extractedParagraphs {
+		if dom.TextContent(paragraph) != "" {
+			paragraphText = true
+			break
+		}
+	}
+	if lenCandidate > opts.Config.MinExtractedSize*2 && (!paragraphText || len(dom.GetElementsByTagName(extractedDoc, "table")) > len(extractedParagraphs)) {
+		return true
+	}
+	return opts.Focus == FavorRecall && lenCandidate > lenExtracted &&
+		dom.QuerySelector(extractedDoc, "h1,h2,h3,h4,h5,h6") == nil &&
+		dom.QuerySelector(candidateDoc, "h2,h3,h4") != nil
 }
 
 // sanitizeTree converts and sanitize the output from the generic
@@ -220,6 +232,7 @@ func sanitizeTree(tree *html.Node, opts Options) {
 	}
 
 	etree.StripTags(tree, "span")
+	convertTags(tree, opts)
 
 	// 2. Sanitize
 	var sanitizationList []string

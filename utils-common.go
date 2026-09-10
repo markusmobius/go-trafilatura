@@ -19,13 +19,24 @@
 package trafilatura
 
 import (
-	"mime"
-	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"golang.org/x/net/html"
 )
+
+var rxImageExtension = regexp.MustCompile(`(?i)[^\s]+\.(avif|bmp|gif|hei[cf]|jpe?g|png|webp)(\b|$)`)
+
+func removeControlCharacters(text string) string {
+	return strings.Map(func(character rune) rune {
+		if unicode.IsPrint(character) || unicode.IsSpace(character) {
+			return character
+		}
+		return -1
+	}, text)
+}
 
 // trim removes unnecessary spaces within a text string.
 func trim(s string) string {
@@ -64,13 +75,11 @@ func isImageElement(element *html.Node) bool {
 }
 
 func isImageFile(imageSrc string) bool {
-	if imageSrc == "" {
+	if imageSrc == "" || len(imageSrc) > 8192 {
 		return false
 	}
 
-	ext := filepath.Ext(imageSrc)
-	mimeType := mime.TypeByExtension(ext)
-	return strings.HasPrefix(mimeType, "image")
+	return rxImageExtension.MatchString(imageSrc)
 }
 
 func uniquifyLists(currents ...string) []string {

@@ -57,9 +57,9 @@ func metaAuthorRule1(n *html.Node) bool {
 		itemProp == "author name",
 		rel == "me",
 		contains(class, "author-name"),
+		contains(class, "authorname"),
 		contains(class, "AuthorName"),
 		contains(class, "authorName"),
-		contains(class, "author name"),
 		dataTestID == "AuthorCard",
 		dataTestID == "AuthorURL":
 	default:

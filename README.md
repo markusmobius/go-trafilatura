@@ -1,14 +1,15 @@
 # Go-Trafilatura
 
-Go-Trafilatura is a Go package and command-line tool which seamlessly downloads, parses, and scrapes web page data: it can extract metadata, main body text and comments while preserving parts of the text formatting and page structure.
+Go-Trafilatura extracts main text, comments, and metadata from supplied HTML while preserving useful formatting and document structure. It is a Go port of [Trafilatura][0], the Python extractor created by [Adrien Barbaresi][1].
 
-As implied by its name, this package is based on [Trafilatura][0] which is a Python package created by [Adrien Barbaresi][1]. We decided to port this package because, based on the ScrapingHub [benchmark][2] available at the time of creation, Trafilatura was the most efficient open-source article extractor. This is especially impressive considering Trafilatura's code robustness: it achieves this performance with only about 4,000 lines of Python code across 26 files. In comparison, [Dom Distiller][3] requires approximately 17,000 lines of code in 148 files.
+The port began as a close, largely line-by-line translation. We keep the extraction code recognizable so upstream fixes can be reviewed and ported systematically, while preserving Go APIs and HTML-oriented results.
 
-The package's structure closely mirrors the original Python code. This alignment not only simplifies the implementation of future improvements but also ensures that any web page parsable by the original Trafilatura should yield identical results with this package.
+The goal is faithful extraction behavior within the scope below, not identical output for every input or a Go implementation of every Python feature.
 
 ## Table of Contents
 
 - [Status](#status)
+- [Philosophy and Scope](#philosophy-and-scope)
 - [Usage as Go package](#usage-as-go-package)
 - [Usage as CLI Application](#usage-as-cli-application)
 - [Performance](#performance)
@@ -19,18 +20,29 @@ The package's structure closely mirrors the original Python code. This alignment
 
 ## Status
 
-This package is stable enough for use and up to date with the original Trafilatura [v2.0.0][last-version] (commit [c6e8340][last-commit]).
+The supplied-HTML extraction implementation tracks the applicable changes through original Trafilatura [v2.2.0][last-version], pinned to commit [c1bc9531a2a978326112ca9987e1382745116136][last-commit].
 
-There are some difference between this port and the original Trafilatura:
+[UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. This is an upstream compatibility target, not a new Go module version.
 
-- In the original, metadata from JSON+LD is extracted using regular expressions while in this port it's done using a JSON parser. Thanks to this, our metadata extraction is more accurate than the original, but it will skip metadata that might exist in JSON with invalid format.
-- In the original, `python-readability` and `justext` are used as fallback extractors. In this port we use `go-readability` and `go-domdistiller` instead. Therefore, there will be some difference in extraction result between our port and the original.
-- In our port we can also specify custom fallback value, so we don't limited to only default extractors.
-- The main output of the original Trafilatura is XML, while in our port the main output is HTML. Thanks to this, there are some difference in handling formatting tags (e.g. `<b>`, `<i>`) and paragraphs.
+## Philosophy and Scope
+
+**Bring your own HTML.** The primary use case is processing HTML already obtained by your application or scraper. `Extract` accepts an `io.Reader`; `ExtractDocument` accepts a parsed HTML DOM and leaves the caller's document unchanged. `OriginalURL` supplies context for metadata and relative URLs; it is not a request to download the page.
+
+We follow upstream improvements to extraction, cleaning, metadata, tables, images, links, comments, and recovery. We do **not** aim for scraper, crawler, downloader, feed-discovery, or sitemap-discovery parity. The existing CLI download, batch, feed, and sitemap conveniences remain available for compatibility, but those subsystems are not expanded as part of extraction updates.
+
+Intentional differences remain:
+
+- JSON-LD is parsed structurally. Malformed JSON may be rejected instead of recovered through upstream's permissive decoding or regular-expression fallbacks. The Go parser also retains its article and publisher precedence rules.
+- Optional fallbacks use `go-readability` and `go-domdistiller`, not Python's readability fork and jusText. Custom `FallbackCandidates` remain supported. Library fallbacks are off by default; use Python's `fast=True` for comparable extractor-only tests.
+- Results contain an HTML DOM and plain text, with metadata always returned. The CLI supports HTML, text, and JSON; Python's Markdown, XML/TEI, CSV, and YAML-header serializers are not part of this port's compatibility target.
+- HTML parsing, whitespace, language detection, and date extraction use Go implementations and dependencies. Their behavior can differ from the corresponding Python libraries.
+- Standalone Simhash, fingerprinting, token-sampling, Python configuration files, and Python-specific APIs or tooling are outside this port's API surface. Existing paragraph deduplication is supported.
+
+Balanced extraction can now retry in recall mode when a short result covers little of the page. Recovery also understands additional embedded JSON content, and schema-identified discussion-forum posts are treated as main content. These changes can intentionally change results on existing inputs; the [compatibility record](UPSTREAM.md) describes the tested boundaries.
 
 ## Usage as Go package
 
-Run following command inside your Go project :
+Use Go 1.24.1 or newer, as specified in [go.mod](go.mod), then run:
 
 ```
 go get -u -v github.com/markusmobius/go-trafilatura
@@ -46,10 +58,10 @@ Now you can use Trafilatura to extract content of a web page. For basic usage yo
 
 ## Usage as CLI Application
 
-To use CLI, you need to build it from source. Make sure you use `go >= 1.16` then run following commands :
+To install the CLI with Go 1.24.1 or newer:
 
 ```
-go get -u -v github.com/markusmobius/go-trafilatura/cmd/go-trafilatura
+go install github.com/markusmobius/go-trafilatura/cmd/go-trafilatura@latest
 ```
 
 Once installed, you can use it from your terminal:
@@ -90,6 +102,12 @@ Use "go-trafilatura [command] --help" for more information about a command
 ```
 
 Here are some example of common usage
+
+- Extract from an existing HTML file without downloading a page:
+
+  ```sh
+  go-trafilatura article.html
+  ```
 
 - Fetch readable content from a specified URL
 
@@ -151,6 +169,8 @@ To solve this issue, we compile several important regexes into Go code using [re
 
 ## Comparison with Other Go Packages
 
+The comparisons in this section are historical, from May 2025. They are not measurements of the v2.2.0 update. Current verification on the same 960-document corpus is recorded in [UPSTREAM.md](UPSTREAM.md).
+
 As far as we know, currently there are three content extractors built for Go:
 
 - [Go-DomDistiller][dom-distiller]
@@ -205,7 +225,7 @@ For the test, we use 960 documents taken from various sources (2025-05-01). Here
 
 ## Comparison with Original Trafilatura
 
-Here is the result when compared with the original Trafilatura v1.12.2:
+The following historical results compare the earlier Go port with original Trafilatura v1.12.2, not v2.2.0:
 
 |                 Package                 | Precision | Recall | Accuracy | F-Score | Time (s) |
 | :-------------------------------------: | :-------: | :----: | :------: | :-----: | :------: |
@@ -218,11 +238,11 @@ Here is the result when compared with the original Trafilatura v1.12.2:
 | `go-trafilatura` + fallback + precision |   0.921   | 0.900  |  0.912   |  0.910  |   7.68   |
 |  `go-trafilatura` + fallback + recall   |   0.893   | 0.927  |  0.908   |  0.910  |   6.43   |
 
-As the table demonstrates, the performance of our port is nearly identical to the original Trafilatura. This parity is achieved because the code was ported almost line-by-line from Python to Go (excluding minor, previously mentioned differences). We attribute the small remaining performance gap not to incorrect porting, but rather to our use of different fallback extractors than those in the original implementation.
+These scores measure annotated content retention and boilerplate removal on that corpus. Similar aggregate scores do not imply identical extracted text. Parser, formatting, metadata, and fallback differences can all affect individual documents.
 
-Regarding speed, our Go port is significantly faster than the original. This is largely due to our use of re2go, which compiles several critical regular expressions ahead of time into native Go code. This approach allows us to avoid the typical performance overhead associated with standard Go regex libraries.
+The historical timings are specific to those versions, options, and hardware. The port uses re2go-generated code for several critical regular expressions, but no general speedup is claimed for the v2.2.0 update.
 
-Furthermore, this package is thread-safe (based on our current testing). Depending on your application's needs, you can leverage this concurrency for substantial additional speed gains. For example, here are the results achieved on my PC when the comparison script was run concurrently across all available threads:
+The comparison tool can also run concurrently. These historical timings used all available threads on the same PC:
 
 ```
 go run scripts/comparison/*.go content -j -1
@@ -263,8 +283,8 @@ Like the original, `go-trafilatura` is distributed under the [Apache v2.0](LICEN
 [1]: https://github.com/adbar
 [2]: https://github.com/scrapinghub/article-extraction-benchmark
 [3]: https://chromium.googlesource.com/chromium/dom-distiller
-[last-version]: https://github.com/adbar/trafilatura/releases/tag/v2.0.0
-[last-commit]: https://github.com/adbar/trafilatura/commit/c6e8340
+[last-version]: https://github.com/adbar/trafilatura/releases/tag/v2.2.0
+[last-commit]: https://github.com/adbar/trafilatura/commit/c1bc9531a2a978326112ca9987e1382745116136
 [paper-1]: https://aclanthology.org/2021.acl-demo.15/
 [paper-2]: https://hal.archives-ouvertes.fr/hal-02447264/document
 [paper-3]: https://hal.archives-ouvertes.fr/hal-01371704v2/document

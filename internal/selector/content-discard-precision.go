@@ -22,6 +22,9 @@
 package selector
 
 import (
+	"slices"
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -38,14 +41,12 @@ func precisionDiscardedContentRule1(n *html.Node) bool {
 
 // `.//*[self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span][
 // contains(@id|@class, "bottom") or
-// contains(@id|@class, "link") or
+// re:test(@id|@class, '(^|\s)link(\s|$)') or
 // contains(@style, "border")`,
 func precisionDiscardedContentRule2(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
 	style := dom.GetAttribute(n, "style")
 	tagName := dom.TagName(n)
-	idClass := id + class
+	idClass := firstAttribute(n, "id", "class")
 
 	switch tagName {
 	case "div", "dd", "dt", "li", "ul", "ol", "dl", "p", "section", "span":
@@ -55,7 +56,7 @@ func precisionDiscardedContentRule2(n *html.Node) bool {
 
 	switch {
 	case contains(idClass, "bottom"),
-		contains(idClass, "link"),
+		slices.Contains(strings.Fields(idClass), "link"),
 		contains(style, "border"):
 	default:
 		return false

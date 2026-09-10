@@ -1,5 +1,14 @@
 # Changelog
 
+### Unreleased
+
+- Track supplied-HTML extraction changes through upstream Trafilatura v2.2.0. See [UPSTREAM.md](UPSTREAM.md) for the complete 53-commit audit from v2.0.0.
+- Preserve pruning tails, nested inline formatting, relative and linked images, table captions, empty cells, and bounded row/column spans.
+- Improve metadata image, title, author, license, and JSON-LD publisher handling.
+- Update recovery deduplication, embedded-content baseline recovery, targeted boilerplate filtering, comment exclusion, forum-post routing, and bounded recall escalation.
+- Keep caller-owned DOMs and supplied fallback candidates unchanged during extraction.
+- Document the supplied-HTML philosophy and intentional differences. Existing CLI download, feed, and sitemap features are unchanged; crawler and Python-only API/output parity remain outside scope.
+
 ### 22 May 2021
 
 - Fix `sanitizeTree` and real world test.

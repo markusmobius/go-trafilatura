@@ -22,10 +22,13 @@
 package trafilatura
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	nurl "net/url"
 	"os"
+	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/andybalholm/cascadia"
@@ -80,6 +83,8 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 // ExtractDocument parses the specified document and find the main readable content.
 func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
+	doc = dom.Clone(doc, true)
+
 	//  Set default config
 	if opts.Config == nil {
 		opts.Config = DefaultConfig()
@@ -129,40 +134,9 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		}
 	}
 
-	// Backup document to make sure the original kept untouched
-	doc = dom.Clone(doc, true)
-	docBackup1 := dom.Clone(doc, true)
-	docBackup2 := dom.Clone(doc, true)
-
-	// Clean and convert HTML tags
-	docCleaning(doc, opts)
-	convertTags(doc, opts)
-
-	// Extract comments first, then remove
-	var tmpComments string
-	var lenComments int
-	var commentsBody *html.Node
-
-	if !opts.ExcludeComments { // Comment is included
-		commentsBody, tmpComments = extractComments(doc, cache, opts)
-		lenComments = utf8.RuneCountInString(tmpComments)
-	} else if opts.Focus == FavorPrecision {
-		doc = pruneUnwantedNodes(doc, selector.RemovedComments)
-	}
-
-	// Extract content
-	postBody, tmpBodyText := extractContent(doc, cache, opts)
-
-	// Use fallback if necessary
-	if opts.EnableFallback {
-		postBody, tmpBodyText = compareExternalExtraction(docBackup1, postBody, opts)
-	}
-
-	// Rescue: try to use original/dirty tree
+	postBody, tmpBodyText, commentsBody, tmpComments := extractionSequence(doc, cache, opts)
+	lenComments := utf8.RuneCountInString(tmpComments)
 	lenText := utf8.RuneCountInString(tmpBodyText)
-	if lenText < opts.Config.MinExtractedSize && opts.Focus != FavorPrecision {
-		postBody, tmpBodyText = baseline(docBackup2)
-	}
 
 	// Tree size sanity check
 	if opts.MaxTreeSize > 0 {
@@ -216,4 +190,111 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 		CommentsText: tmpComments,
 		Metadata:     metadata,
 	}, nil
+}
+
+func forumThreadPage(doc *html.Node) bool {
+	var hasForumType func(any) bool
+	hasForumType = func(value any) bool {
+		for _, item := range jsonItems(value) {
+			if object, ok := item.(map[string]any); ok {
+				if slices.Contains(getSchemaTypes(object, true), "discussionforumposting") {
+					return true
+				}
+				for _, child := range object {
+					if hasForumType(child) {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`) {
+		var value any
+		if json.Unmarshal([]byte(dom.TextContent(script)), &value) == nil && hasForumType(value) {
+			return true
+		}
+	}
+	return false
+}
+
+func prepareTree(doc *html.Node, opts Options) *html.Node {
+	cleaned := dom.Clone(doc, true)
+	docCleaning(cleaned, opts)
+	convertTags(cleaned, opts)
+	return cleaned
+}
+
+func recallRetry(doc *html.Node, opts Options) (*html.Node, string) {
+	opts.Focus = FavorRecall
+	cache := lru.NewCache(opts.Config.CacheSize)
+	body, text := extractContent(prepareTree(doc, opts), cache, opts)
+	if opts.EnableFallback {
+		body, text = compareExternalExtraction(doc, body, opts)
+	}
+	return body, text
+}
+
+func extractionSequence(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node, string, *html.Node, string) {
+	isForum := forumThreadPage(doc)
+	if opts.ExcludeComments && (opts.Focus == FavorPrecision || !isForum) {
+		doc = pruneUnwantedNodes(doc, selector.RemovedComments)
+	}
+	cleaned := prepareTree(doc, opts)
+	var commentsBody, forumPosts *html.Node
+	var commentsText string
+	if !opts.ExcludeComments {
+		commentsBody, commentsText = extractComments(cleaned, cache, opts)
+		if commentsText != "" && isForum {
+			forumPosts = commentsBody
+			commentsBody, commentsText = nil, ""
+			cleaned = prepareTree(doc, opts)
+		}
+	}
+	if opts.Focus == FavorPrecision && !isForum {
+		cleaned = pruneUnwantedNodes(cleaned, selector.RemovedComments)
+	}
+	body, text := extractContent(cleaned, cache, opts)
+	if opts.EnableFallback {
+		body, text = compareExternalExtraction(doc, body, opts)
+	}
+	length := utf8.RuneCountInString(text)
+	if length < opts.Config.MinExtractedSize && opts.Focus != FavorPrecision {
+		body, text = baseline(doc)
+		length = utf8.RuneCountInString(text)
+		forumPosts = nil
+	}
+	if opts.Focus == Balanced && length > 0 && length < 3000 && float64(length) < 0.2*float64(utf8.RuneCountInString(html2txt(doc))) {
+		retryDoc := doc
+		if !isForum {
+			retryDoc = pruneUnwantedNodes(dom.Clone(doc, true), selector.RemovedComments)
+		}
+		retryBody, retryText := recallRetry(retryDoc, opts)
+		retryLength := utf8.RuneCountInString(retryText)
+		var distillerBody *html.Node
+		var distillerText string
+		if opts.EnableFallback {
+			distillerBody, distillerText = distillerRescue(retryDoc, opts)
+		}
+		distillerLength := utf8.RuneCountInString(distillerText)
+		if distillerLength > retryLength && distillerLength > 2*length {
+			body, text, forumPosts = distillerBody, distillerText, nil
+		} else if retryLength >= opts.Config.MinExtractedSize && float64(retryLength) > 1.5*float64(length) {
+			body, text, forumPosts = retryBody, retryText, nil
+		}
+	}
+	if forumPosts != nil {
+		var existing []string
+		for _, element := range dom.Children(body) {
+			existing = append(existing, trim(dom.TextContent(element)))
+		}
+		bodyText := strings.Join(existing, "\n")
+		for _, post := range dom.Children(forumPosts) {
+			if postText := trim(dom.TextContent(post)); postText != "" && !strings.Contains(bodyText, postText) {
+				etree.Append(body, post)
+			}
+		}
+		text = trim(etree.IterText(body, " "))
+	}
+	return body, text, commentsBody, commentsText
 }

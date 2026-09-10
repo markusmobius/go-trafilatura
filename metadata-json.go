@@ -141,7 +141,8 @@ func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Meta
 	}
 
 	// If the new sitename exist and longer, override the original
-	if utf8.RuneCountInString(metadata.Sitename) > utf8.RuneCountInString(originalMetadata.Sitename) {
+	if metadata.Sitename != "" && (utf8.RuneCountInString(metadata.Sitename) > utf8.RuneCountInString(originalMetadata.Sitename) ||
+		(strings.HasPrefix(originalMetadata.Sitename, "http") && !strings.HasPrefix(metadata.Sitename, "http"))) {
 		originalMetadata.Sitename = metadata.Sitename
 	}
 
@@ -322,11 +323,7 @@ func getSchemaNames(v any, expectedTypes ...string) []string {
 		// If there are expected types specified, make sure this schema is one of those types.
 		// If not, we just return empty handed.
 		schemaTypes := getSchemaTypes(value, true)
-		if len(expectedTypes) > 0 {
-			if len(schemaTypes) == 0 {
-				return nil
-			}
-
+		if len(expectedTypes) > 0 && len(schemaTypes) > 0 {
 			var schemaAllowed bool
 			for _, schemaType := range schemaTypes {
 				if strIn(schemaType, expectedTypes...) {

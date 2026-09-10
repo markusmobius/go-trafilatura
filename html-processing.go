@@ -23,6 +23,8 @@ package trafilatura
 
 import (
 	"maps"
+	"slices"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
@@ -58,6 +60,9 @@ func docCleaning(doc *html.Node, opts Options) {
 				figure.Data = "div"
 			}
 		}
+		for _, table := range dom.QuerySelectorAll(doc, `table[role="presentation"], table[role="none"]`) {
+			table.Data = "div"
+		}
 	}
 
 	if opts.IncludeImages {
@@ -69,15 +74,15 @@ func docCleaning(doc *html.Node, opts Options) {
 	}
 
 	// Remove nodes in stripping list but keep its children
-	for tagName := range strippingList {
+	for _, tagName := range slices.Sorted(maps.Keys(strippingList)) {
 		etree.StripTags(doc, tagName)
 	}
 
 	// Prevent removal of paragraphs
 	if opts.Focus == FavorRecall && len(dom.GetElementsByTagName(doc, "p")) > 0 {
 		docBackup := dom.Clone(doc, true)
-		for tagName := range cleaningList {
-			etree.StripElements(doc, false, tagName)
+		for _, tagName := range slices.Sorted(maps.Keys(cleaningList)) {
+			etree.StripElements(doc, true, tagName)
 		}
 
 		// If paragraphs is removed, revert to backup
@@ -86,8 +91,8 @@ func docCleaning(doc *html.Node, opts Options) {
 		}
 	} else {
 		// Remove nodes in cleaning list including its children
-		for tagName := range cleaningList {
-			etree.StripElements(doc, false, tagName)
+		for _, tagName := range slices.Sorted(maps.Keys(cleaningList)) {
+			etree.StripElements(doc, true, tagName)
 		}
 	}
 
@@ -143,7 +148,6 @@ func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...
 	var backup *html.Node
 	backupEnabled := len(withBackup) > 0 && withBackup[0]
 
-	tree = dom.Clone(tree, true)
 	if backupEnabled {
 		backup = dom.Clone(tree, true)
 		oldLen = utf8.RuneCountInString(dom.TextContent(tree))
@@ -152,28 +156,7 @@ func pruneUnwantedNodes(tree *html.Node, queries []selector.Rule, withBackup ...
 	for _, query := range queries {
 		subElements := selector.QueryAll(tree, query)
 		for i := len(subElements) - 1; i >= 0; i-- {
-			subElement := subElements[i]
-
-			// Preserve tail text from deletion
-			tail := etree.Tail(subElement)
-			if tail != "" {
-				previous := dom.PreviousElementSibling(subElement)
-				if previous == nil {
-					previous = subElement.Parent
-				}
-
-				if previous != nil {
-					// There is a previous node, append text to its tail
-					previousTail := etree.Tail(previous)
-					if previousTail != "" {
-						etree.SetTail(previous, previousTail+" "+tail)
-					} else {
-						etree.SetTail(previous, tail)
-					}
-				}
-			}
-
-			etree.Remove(subElement)
+			etree.Remove(subElements[i], true)
 		}
 	}
 
@@ -250,6 +233,9 @@ func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 	if nLinks == 0 {
 		return nil, false
 	}
+	if opts.IncludeImages && dom.QuerySelector(element, "img") != nil {
+		return nil, false
+	}
 
 	// Get element text
 	text := trim(dom.TextContent(element))
@@ -302,6 +288,12 @@ func linkDensityTest(element *html.Node, opts Options) ([]*html.Node, bool) {
 			(nNonEmptyLinks > 1 && float64(nShortLinks)/float64(nNonEmptyLinks) > 0.8) {
 			return nonEmptyLinks, true
 		}
+		return nonEmptyLinks, false
+	} else if nLinks > 4 {
+		linkLength, _, nonEmptyLinks := collectLinkInfo(links)
+		if float64(linkLength) > float64(textLength)*0.9 && linkLength < 100*len(nonEmptyLinks) {
+			return nonEmptyLinks, true
+		}
 	}
 
 	return nil, false
@@ -324,11 +316,7 @@ func linkDensityTestTables(table *html.Node, opts Options) bool {
 	}
 
 	// Check link info
-	linkLength, _, nonEmptyLinks := collectLinkInfo(links)
-	nNonEmptyLinks := len(nonEmptyLinks)
-	if nNonEmptyLinks == 0 {
-		return true
-	}
+	linkLength, _, _ := collectLinkInfo(links)
 
 	logDebug(opts, "table link text: %d / total: %d", linkLength, textLength)
 
@@ -412,7 +400,7 @@ func postCleaning(doc *html.Node) {
 		grandChildren := dom.Children(child)
 		isVoidElement := dom.IsVoidElement(child)
 		isEmpty := !textCharsTest(etree.Text(child))
-		if len(grandChildren) == 0 && isEmpty && !isVoidElement {
+		if len(grandChildren) == 0 && isEmpty && !isVoidElement && !inMap(dom.TagName(child), mapXmlCellTags) {
 			etree.Strip(child)
 		}
 	}
@@ -461,6 +449,9 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 
 	for _, elem := range etree.Iter(subTree, tagNames...) {
 		nonEmptyLinks, isHighDensity := linkDensityTest(elem, opts)
+		if dom.TagName(elem) == "p" && (inMap(dom.TagName(elem.Parent), mapXmlItemTags) || inMap(dom.TagName(elem.Parent), mapXmlCellTags)) {
+			continue
+		}
 
 		if isHighDensity {
 			nodesToDelete = append(nodesToDelete, elem)
@@ -474,7 +465,7 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 	}
 
 	for i := len(nodesToDelete) - 1; i >= 0; i-- {
-		etree.Remove(nodesToDelete[i])
+		etree.Remove(nodesToDelete[i], true)
 	}
 }
 
@@ -483,6 +474,16 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 // into the one that suitable for XML. However, since we prefer the results
 // to be HTML, we won't do it here.
 func convertTags(tree *html.Node, opts Options) {
+	for _, heading := range dom.QuerySelectorAll(tree, `strong[class*="schema-faq-question"]`) {
+		heading.Data = "h3"
+		heading.Attr = nil
+	}
+	for _, element := range dom.QuerySelectorAll(tree, "sub, sup") {
+		if etree.Text(element) == "" && len(dom.Children(element)) == 0 {
+			etree.Remove(element, true)
+		}
+	}
+
 	// Delete links for faster processing
 	if !opts.IncludeLinks {
 		// Prepare selector
@@ -538,6 +539,12 @@ func convertTags(tree *html.Node, opts Options) {
 			if len(children) == 1 && dom.TagName(children[0]) == "span" {
 				codeFlag = true
 			}
+			for _, indicator := range []string{"{", "(\"", "('", "\n    "} {
+				if strings.Contains(etree.Text(elem), indicator) {
+					codeFlag = true
+					break
+				}
+			}
 		}
 
 		// Find hljs elements to detect if it's code
@@ -552,6 +559,26 @@ func convertTags(tree *html.Node, opts Options) {
 
 		if codeFlag {
 			elem.Data = "code"
+		}
+	}
+
+	if opts.IncludeImages && opts.IncludeLinks {
+		for _, link := range dom.QuerySelectorAll(tree, "a") {
+			if link.Parent == nil {
+				continue
+			}
+			images := dom.QuerySelectorAll(link, "img")
+			nextElement := dom.NextElementSibling(link)
+			for _, image := range images {
+				nodes := append([]*html.Node{image}, etree.TailNodes(image)...)
+				for _, node := range nodes {
+					node.Parent.RemoveChild(node)
+					link.Parent.InsertBefore(node, nextElement)
+				}
+			}
+			if len(images) > 0 && strings.TrimSpace(dom.TextContent(link)) == "" {
+				etree.Remove(link, true)
+			}
 		}
 	}
 }

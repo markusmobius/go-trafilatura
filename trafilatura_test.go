@@ -612,6 +612,12 @@ func Test_Images(t *testing.T) {
 	assert.True(t, isImageFile("test.jpg"))
 	assert.False(t, isImageFile("test.txt"))
 
+	for _, source := range []string{"PHOTO.JPG", "photo.JpEg?width=400", "image.PNG#view", "photo.AVIF", "photo.HEIC"} {
+		assert.True(t, isImageFile(source), source)
+	}
+	assert.False(t, isImageFile("photo.jpgx"))
+	assert.False(t, isImageFile(strings.Repeat("x", 8192)+".jpg"))
+
 	// Image handler
 	img := handleImage(nil)
 	assert.Nil(t, img)
@@ -692,6 +698,48 @@ func Test_Images(t *testing.T) {
 	assert.True(t, dom.HasAttribute(img, "alt"))
 	assert.True(t, dom.HasAttribute(img, "src"))
 	assert.True(t, strings.HasPrefix(dom.GetAttribute(img, "src"), "http"))
+}
+
+func Test_Images_RelativeSourcesAndTails(test *testing.T) {
+	baseURL, err := nurl.Parse("https://example.org/articles/page.html")
+	assert.NoError(test, err)
+	testCases := []struct {
+		source   string
+		expected string
+	}{
+		{"photo.jpg", "https://example.org/articles/photo.jpg"},
+		{"../photo.jpg", "https://example.org/photo.jpg"},
+		{"/photo.jpg", "https://example.org/photo.jpg"},
+		{"//cdn.example.org/photo.jpg", "https://cdn.example.org/photo.jpg"},
+		{"https://cdn.example.org/photo.jpg", "https://cdn.example.org/photo.jpg"},
+	}
+	for _, testCase := range testCases {
+		test.Run(testCase.source, func(test *testing.T) {
+			node := etree.FromString(`<div><img src="` + testCase.source + `"> after image</div>`)
+			image := handleImage(dom.QuerySelector(node, "img"), Options{OriginalURL: baseURL})
+			assert.Equal(test, testCase.expected, dom.GetAttribute(image, "src"))
+			assert.Equal(test, " after image", etree.Tail(image))
+		})
+	}
+}
+
+func Test_NestedInline_Upstream22(test *testing.T) {
+	testCases := []string{
+		`<p>before <a href="/page"><strong>linked <em>words</em></strong></a> after</p>`,
+		`<ul><li>before <strong>bold <code>code</code></strong> after</li></ul>`,
+		`<blockquote><p>before <a href="/page"><strong>linked words</strong></a> after</p></blockquote>`,
+		`<p>Hyper<b>link</b>ed</p>`,
+	}
+	for _, input := range testCases {
+		test.Run(input, func(test *testing.T) {
+			opts := Options{Config: zeroConfig, IncludeLinks: true}
+			result, err := Extract(strings.NewReader(`<html><body><article>`+input+`</article></body></html>`), opts)
+			if assert.NoError(test, err) && assert.NotNil(test, result) {
+				assert.Contains(test, etree.ToString(result.ContentNode), input)
+				assert.Equal(test, dom.TextContent(etree.FromString(input)), dom.TextContent(result.ContentNode))
+			}
+		})
+	}
 }
 
 func Test_Links(t *testing.T) {
@@ -912,6 +960,78 @@ func Test_PrecisionRecall(t *testing.T) {
 	assert.Equal(t, "Text.", result.ContentText)
 }
 
+func Test_Fallback_Upstream22(test *testing.T) {
+	extracted := etree.FromString(`<div><p>` + strings.Repeat("Article text. ", 12) + `</p></div>`)
+	rawJSON := etree.FromString(`<div><p>{` + strings.Repeat(`"data": 123,`, 50) + `}</p></div>`)
+	assert.False(test, candidateIsUsable(rawJSON, extracted, len(dom.TextContent(rawJSON)), len(dom.TextContent(extracted)), defaultOpts))
+
+	candidate := etree.FromString(`<div><p>` + strings.Repeat("Recovered article text. ", 12) + `</p></div>`)
+	opts := Options{Focus: FavorRecall, Config: DefaultConfig()}
+	assert.True(test, candidateIsUsable(candidate, extracted, len(dom.TextContent(candidate)), len(dom.TextContent(extracted)), opts))
+	assert.False(test, candidateIsUsable(etree.Element("div"), extracted, 0, 150, opts))
+
+	opts = Options{Config: DefaultConfig(), EnableFallback: true, FallbackCandidates: &FallbackCandidates{Readability: candidate}}
+	original := etree.ToString(candidate)
+	_, _ = compareExternalExtraction(docFromStr(`<html><body></body></html>`), etree.Element("body"), opts)
+	assert.Equal(test, original, etree.ToString(candidate))
+
+	opts.IncludeLinks = true
+	opts.OriginalURL = exampleURL
+	candidate = etree.FromString(`<div><p><a href="/article">Linked text</a></p></div>`)
+	sanitizeTree(candidate, opts)
+	assert.Equal(test, "https://example.org/article", dom.GetAttribute(dom.QuerySelector(candidate, "a"), "href"))
+}
+
+func Test_ExtractionSequence_Upstream22(test *testing.T) {
+	mainText := strings.Repeat("Primary article content. ", 20)
+	commentText := strings.Repeat("Reader discussion text. ", 20)
+	for _, fallback := range []bool{false, true} {
+		for _, focus := range []ExtractionFocus{Balanced, FavorRecall, FavorPrecision} {
+			input := `<html><body><article><p>` + mainText + `</p></article><details id="comments"><p>` + commentText + `</p></details></body></html>`
+			result, err := Extract(strings.NewReader(input), Options{ExcludeComments: true, Focus: focus, EnableFallback: fallback})
+			if assert.NoError(test, err) {
+				assert.Contains(test, result.ContentText, "Primary article content.")
+				assert.NotContains(test, result.ContentText, "Reader discussion text.")
+				assert.Empty(test, result.CommentsText)
+			}
+		}
+	}
+
+	for _, schema := range []string{
+		`{"@type":"DiscussionForumPosting"}`,
+		`{"@type":["Article","DiscussionForumPosting"]}`,
+		`{"@graph":[{"@type":"DiscussionForumPosting"}]}`,
+	} {
+		for _, exclude := range []bool{false, true} {
+			input := `<html><head><script type="application/ld+json">` + schema + `</script></head><body><p>` + mainText + `</p><div id="comments"><p>` + commentText + `</p></div></body></html>`
+			result, err := Extract(strings.NewReader(input), Options{ExcludeComments: exclude})
+			if assert.NoError(test, err) {
+				assert.Contains(test, result.ContentText, "Reader discussion text.")
+				assert.Empty(test, result.CommentsText)
+			}
+		}
+	}
+	for _, schema := range []string{`{"@type":"QAPage"}`, `{"description":"DiscussionForumPosting"}`, `{"@type":7}`, `{invalid}`} {
+		assert.False(test, forumThreadPage(docFromStr(`<html><script type="application/ld+json">`+schema+`</script></html>`)))
+	}
+
+	additional := strings.Repeat("Additional substantive material in this article. ", 80)
+	input := `<html><body><article><p>` + mainText + `</p><div class="teaser-content"><p>` + additional + `</p></div></article></body></html>`
+	opts := Options{Focus: Balanced, Config: DefaultConfig()}
+	result, err := Extract(strings.NewReader(input), opts)
+	if assert.NoError(test, err) {
+		assert.Contains(test, result.ContentText, "Additional substantive material")
+		assert.Equal(test, 1, strings.Count(result.ContentText, trim(mainText)))
+	}
+	assert.Equal(test, Balanced, opts.Focus)
+	assert.Equal(test, DefaultConfig(), opts.Config)
+	opts.Focus = FavorPrecision
+	result, err = Extract(strings.NewReader(input), opts)
+	if assert.NoError(test, err) {
+		assert.NotContains(test, result.ContentText, "Additional substantive material")
+	}
+}
+
 func Test_TableProcessing(t *testing.T) {
 	var opts Options
 	var processedTable *html.Node
@@ -960,7 +1080,7 @@ func Test_TableProcessing(t *testing.T) {
 	</body></html>`)
 	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ := ExtractDocument(complexPage, opts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td></tr></table>`)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td><td><a href="link">linktext</a></td></tr></table>`)
 
 	// Table cell with text and child
 	tableCellWithTextAndChild := etree.FromString(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
@@ -971,7 +1091,8 @@ func Test_TableProcessing(t *testing.T) {
 	tableCellWithLink := etree.FromString(`<table><tr><td><a href='test'>link</a></td></tr></table>`)
 	processedTable = handleTable(tableCellWithLink, potentialTags, nil, defaultOpts)
 	nodeValues = iterNodeValues(dom.QuerySelector(processedTable, "td"))
-	assert.Equal(t, []string{"td", "p"}, nodeValues)
+	assert.Equal(t, []string{"td", "a-link"}, nodeValues)
+	assert.Equal(t, "test", dom.GetAttribute(dom.QuerySelector(processedTable, "a"), "href"))
 
 	// Table with head
 	tableWithHead := etree.FromString(`
@@ -1011,7 +1132,7 @@ func Test_TableProcessing(t *testing.T) {
 
 	firstRow = dom.Children(processedTable)[0]
 	firstRowCells = dom.Children(firstRow)
-	assert.Equal(t, 3, len(firstRowCells))
+	assert.Equal(t, 4, len(firstRowCells))
 	assert.Equal(t, "th", dom.TagName(firstRowCells[0]))
 	assert.Equal(t, "th", dom.TagName(firstRowCells[1]))
 	assert.Equal(t, "th", dom.TagName(firstRowCells[2]))
@@ -1088,7 +1209,8 @@ func Test_TableProcessing(t *testing.T) {
 		<table><tr><td>1</td></tr></table>
 	</td></tr></table>`)
 	processedTable = handleTable(tableNested2, potentialTags, nil, defaultOpts)
-	assert.Equal(t, []string{"table", "tr", "td", "td-1"}, iterNodeValues(processedTable))
+	assert.NotContains(t, dom.TextContent(processedTable), "1")
+	assert.Equal(t, "1", dom.TextContent(dom.QuerySelector(tableNested2, "table")))
 
 	// Nested table - complex
 	tableNestedComplex := etree.FromString(`
@@ -1104,7 +1226,7 @@ func Test_TableProcessing(t *testing.T) {
 		</tr>
 	</table>`)
 	processedTable = handleTable(tableNestedComplex, potentialTags, nil, defaultOpts)
-	assert.Equal(t, []string{"table", "tr", "td", "td-1", "td-text1", "tr", "td-text2"}, iterNodeValues(processedTable))
+	assert.Equal(t, []string{"table", "tr", "td", "td-text1", "tr", "td-text2", "td"}, iterNodeValues(processedTable))
 
 	// Table with list
 	tableWithList := etree.FromString(`
@@ -1140,6 +1262,102 @@ func Test_TableProcessing(t *testing.T) {
 	result, _ = ExtractDocument(tableInFigure, zeroOpts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<th>1</th>")
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), "<td>2</td>")
+}
+
+func Test_TableProcessing_Upstream22(test *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{"empty cells", `<table><tr><td>A</td><td></td><td>C</td></tr><tr><td>D</td></tr></table>`, `<table><tr><td>A</td><td></td><td>C</td></tr><tr><td>D</td><td></td><td></td></tr></table>`},
+		{"colspan", `<table><tr><th colspan="2">Header</th><th>Last</th></tr><tr><td>A</td><td>B</td><td>C</td></tr></table>`, `<table><tr><th>Header</th><th></th><th>Last</th></tr><tr><td>A</td><td>B</td><td>C</td></tr></table>`},
+		{"rowspan", `<table><tr><td rowspan="2">A</td><td>B</td></tr><tr><td>C</td></tr></table>`, `<table><tr><td>A</td><td>B</td></tr><tr><td></td><td>C</td></tr></table>`},
+		{"combined spans", `<table><tr><td rowspan="2" colspan="2">A</td><td>B</td></tr><tr><td>C</td></tr></table>`, `<table><tr><td>A</td><td></td><td>B</td></tr><tr><td></td><td></td><td>C</td></tr></table>`},
+		{"rowspan expires on padding", `<table><tr><td>A</td><td rowspan="2">B</td><td>C</td></tr><tr><td>D</td></tr><tr><td>E</td><td>F</td><td>G</td></tr></table>`, `<table><tr><td>A</td><td>B</td><td>C</td></tr><tr><td>D</td><td></td><td></td></tr><tr><td>E</td><td>F</td><td>G</td></tr></table>`},
+		{"caption", `<table><caption>Table caption</caption><tr><td>A</td><td>B</td></tr></table>`, `<table><tr><th>Table caption</th><td></td></tr><tr><td>A</td><td>B</td></tr></table>`},
+		{"nested inline link", `<table><tr><td><a href="/page"><b>linked words</b></a> tail</td></tr></table>`, `<table><tr><td><a href="/page"><b>linked words</b></a> tail</td></tr></table>`},
+		{"nested table tail", `<table><tr><td>before<table><tr><td>nested</td></tr></table>after</td><td>last</td></tr></table>`, `<table><tr><td>beforeafter</td><td>last</td></tr></table>`},
+		{"empty rows", `<table><tr><td></td><td></td></tr><tr><td>A</td><td>B</td></tr></table>`, `<table><tr><td>A</td><td>B</td></tr></table>`},
+	}
+	for _, testCase := range testCases {
+		test.Run(testCase.name, func(test *testing.T) {
+			node := etree.FromString(testCase.input)
+			result := handleTable(node, maps.Clone(tagCatalog), nil, zeroOpts)
+			postCleaning(result)
+			assert.Equal(test, testCase.expected, etree.ToString(result))
+		})
+	}
+	for _, span := range []string{"n/a", "-1", "1.5", "999999999999999999999999999999999"} {
+		node := etree.FromString(`<table><tr><td colspan="` + span + `">bounded</td></tr></table>`)
+		result := handleTable(node, maps.Clone(tagCatalog), nil, zeroOpts)
+		assert.LessOrEqual(test, len(dom.QuerySelectorAll(result, "td")), maxTableSpan)
+		assert.Equal(test, "bounded", dom.TextContent(result))
+	}
+	for _, testCase := range []struct {
+		value string
+		span  int
+	}{
+		{"2", 2}, {"\u0662", 2}, {"\uff12", 2}, {"\U0001d7da", 2},
+		{"\u00b2", 1}, {"1\u00b2", 1}, {"2x", 1}, {"", 1}, {"0", 0},
+		{strings.Repeat("9", 5000), maxTableSpan}, {strings.Repeat("9", 100) + "x", 1},
+	} {
+		cell := etree.Element("td")
+		dom.SetAttribute(cell, "colspan", testCase.value)
+		assert.Equal(test, testCase.span, tableSpan(cell, "colspan"))
+	}
+	input := `<html><body><article><p>Introduction to the tables.</p><table><tr><td>Outer cell text.</td></tr><tr><td><table><tr><td>Nested cell text.</td></tr></table></td></tr></table></article></body></html>`
+	result, err := Extract(strings.NewReader(input), Options{Config: zeroConfig})
+	if assert.NoError(test, err) {
+		assert.Contains(test, result.ContentText, "Outer cell text.")
+		assert.Equal(test, 1, strings.Count(result.ContentText, "Nested cell text."))
+		assert.Equal(test, 2, len(dom.QuerySelectorAll(result.ContentNode, "table")))
+	}
+}
+
+func Test_Recovery_Upstream22(test *testing.T) {
+	opts := Options{Config: DefaultConfig()}
+	doc := docFromStr(`<html><body><article><h1>Retained heading</h1><p>Initial text.</p></article><p>Recovered text.</p></body></html>`)
+	body, text := extractContent(doc, nil, opts)
+	assert.Contains(test, text, "Retained heading")
+	assert.Contains(test, text, "Recovered text.")
+	assert.Equal(test, 1, strings.Count(text, "Initial text."))
+	assert.NotNil(test, dom.QuerySelector(body, "h1"))
+
+	longText := strings.Repeat("Substantial repeated content. ", 10)
+	doc = docFromStr(`<html><body><article><p>` + longText + `</p><p>` + longText + `</p></article></body></html>`)
+	body, _ = extractContent(doc, nil, opts)
+	assert.Equal(test, 1, len(dom.QuerySelectorAll(body, "p")))
+
+	doc = docFromStr(`<html><body><article><p>Short repeat</p><p>Short repeat</p></article></body></html>`)
+	body, _ = extractContent(doc, nil, zeroOpts)
+	assert.Equal(test, 2, len(dom.QuerySelectorAll(body, "p")))
+
+	body = etree.FromString(`<body><p>Hyper<b>link</b>ed text.</p></body>`)
+	if dom.TagName(body) != "body" {
+		container := etree.Element("body")
+		etree.Append(container, body)
+		body = container
+	}
+	doc = docFromStr(`<html><body><p>Hyper<b>link</b>ed text.</p><p>New text.</p></body></html>`)
+	recoverWildText(doc, body, tagCatalog, nil, opts)
+	assert.Equal(test, 1, strings.Count(dom.TextContent(body), "Hyperlinked text."))
+	assert.Contains(test, dom.TextContent(body), "New text.")
+
+	unicodeText := strings.Repeat("\u4e2d", 80_000)
+	body = etree.Element("body")
+	etree.SetText(etree.SubElement(body, "p"), "prefix"+unicodeText+"suffix")
+	doc = docFromStr(`<html><body><p>` + unicodeText + `</p></body></html>`)
+	recoverWildText(doc, body, tagCatalog, nil, opts)
+	assert.Len(test, dom.Children(body), 1)
+}
+
+func Test_Extraction_PreservesInput(test *testing.T) {
+	doc := docFromStr(`<html><body><article><p>Keep this text.</p><p class="remove">Remove this text.</p></article></body></html>`)
+	original := dom.OuterHTML(doc)
+	_, err := ExtractDocument(doc, Options{Config: zeroConfig, PruneSelector: ".remove"})
+	assert.NoError(test, err)
+	assert.Equal(test, original, dom.OuterHTML(doc))
 }
 
 func Test_ListProcessing(t *testing.T) {

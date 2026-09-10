@@ -74,7 +74,7 @@ var OverallDiscardedContent = []Rule{
 // or contains(@class, "most-popular") or contains(@class, "mol-factbox")
 // or starts-with(@class, "ZendeskForm") or contains(@id|@class, "message-container")
 // or contains(@class, "yin") or contains(@class, "zlylin")
-// or contains(@class, "xg1") or contains(@id, "bmdh")
+// or contains(@id, "bmdh")
 // or contains(@class, "slide") or contains(@class, "viewport")
 // or @data-lp-replacement-content
 // or contains(@id, "premium") or contains(@class, "overlay")
@@ -86,7 +86,7 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 	role := dom.GetAttribute(n, "role")
 	dataComponent := dom.GetAttribute(n, "data-component")
 	tagName := dom.TagName(n)
-	idClass := id + class
+	idClass := id + " " + class
 
 	switch tagName {
 	case "div", "dd", "dt", "li", "ul", "ol", "dl", "p", "section", "span":
@@ -100,7 +100,8 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 		contains(id, "related"),
 		contains(class, "elated"),
 		contains(idClass, "viral"),
-		startsWith(idClass, "shar"),
+		startsWith(id, "shar"),
+		startsWith(class, "shar"),
 		contains(class, "share-"),
 		contains(lower(id), "share"),
 		contains(idClass, "social"),
@@ -112,7 +113,7 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 		contains(class, "embed"),
 		contains(idClass, "newsletter"),
 		contains(class, "subnav"),
-		contains(idClass, "cookie"),
+		contains(firstAttribute(n, "id", "class"), "cookie"),
 		contains(idClass, "tags"),
 		contains(class, "tag-list"),
 		contains(idClass, "sidebar"),
@@ -161,7 +162,6 @@ func overallDiscardedContentRule1(n *html.Node) bool {
 		contains(idClass, "message-container"),
 		contains(class, "yin"),
 		contains(class, "zlylin"),
-		contains(class, "xg1"),
 		contains(id, "bmdh"),
 		contains(class, "slide"),
 		contains(class, "viewport"),

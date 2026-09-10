@@ -46,3 +46,14 @@ func QueryAll(root *html.Node, selector Rule) []*html.Node {
 	}
 	return matches
 }
+
+func firstAttribute(node *html.Node, names ...string) string {
+	for _, attribute := range node.Attr {
+		for _, name := range names {
+			if attribute.Key == name {
+				return attribute.Val
+			}
+		}
+	}
+	return ""
+}
