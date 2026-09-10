@@ -5,7 +5,7 @@ This record covers all 53 commits in `v2.0.0..v2.2.0` of [adbar/trafilatura](htt
 - Baseline: v2.0.0, `c6e834030779f0fb59aa3888c2f3222101bbdd0f` (December 3, 2024).
 - Intermediate release: v2.1.0, `2f4702d2117b0f95fabdd4ea35c9c2a4f3f39d04` (June 7, 2026).
 - Target: v2.2.0, `c1bc9531a2a978326112ca9987e1382745116136` (July 31, 2026).
-- Post-v2.2.0 commits are not included. The Go public API and dependency versions are retained.
+- Post-v2.2.0 commits are not included. Existing Go entry points and dependency versions are retained.
 
 ## Scope
 
@@ -85,7 +85,9 @@ Tests were extended in the existing files rather than introducing a parallel tes
 
 ## Verification
 
-Verification used Windows, Go 1.24.2, and a separate Python 3.12 environment with Trafilatura 2.2.0 installed from the pinned source. Python dependencies included lxml 6.1.3 and htmldate 1.10.0; Go dependencies remain those in [go.mod](go.mod). Neither the reference checkout nor temporary comparison tooling is part of this repository.
+Initial parity verification used Windows, Go 1.24.2, and a separate Python 3.12 environment with Trafilatura 2.2.0 installed from the pinned source. Python dependencies included lxml 6.1.3 and htmldate 1.10.0; Go dependencies remain those in [go.mod](go.mod). Neither the reference checkout nor temporary comparison tooling is part of this repository.
+
+Subsequent toolchain maintenance raised the minimum Go version to 1.26.0 and selected Go 1.27.1 for development. The complete package suite passes on Go 1.26.8 and Go 1.27.1, and the race-enabled suite passes on Go 1.27.1. Dependency versions are unchanged. The corpus scores and timing observations below remain from the initial Go 1.24.2 measurements.
 
 - All Go package and saved-page tests pass with `go test ./...`.
 - 22 representative comparisons matched after normalizing the two DOM vocabularies and whitespace: body/comments, link targets, image sources, headings, and table cells. They cover cleaning, inline nesting, code, images, tables, recovery, comments/forums, JSON rescue, and recall escalation, with fallbacks disabled.
@@ -98,15 +100,17 @@ Verification used Windows, Go 1.24.2, and a separate Python 3.12 environment wit
 | Updated Go port | 0.9171 | 0.9113 | 0.9142 |
 | Pinned Python 2.2.0 | 0.9155 | 0.9082 | 0.9118 |
 
-These are phrase-level annotation scores, not proof of universal superiority or exact parity. The Python comparison normalizes inter-element whitespace; the Go text column uses `ContentText`. The repository's existing multi-extractor benchmark also showed higher F1 in all four Go modes, but its shared input/execution order yields slightly different aggregate counts, so the isolated results above are the compatibility record.
+These are phrase-level annotation scores, not proof of universal superiority or exact parity. The Python comparison normalizes inter-element whitespace; Go is scored using `ContentText`. The repository's Go-only comparison tool uses pre-parsed DOMs and excludes failed extractions from its score totals. Its procedure differs from the isolated comparison above, which scores failures as empty text; the results are not interchangeable.
 
 Timing was measured with interleaved baseline/updated runs after a warm-up. Unchanged Readability and Dom Distiller runs also slowed materially during the later measurements, so no reliable speedup or slowdown is claimed. Historical README timing tables are not relabeled as v2.2.0 results.
 
-The race detector could not run: this environment has CGO disabled and no GCC/Clang toolchain. The `make test` generator prerequisite could not run because re2go is unavailable; no generated regex source was changed. These gates should be rerun in a development environment providing those tools:
+Regex regeneration and the race-enabled suite now pass using MSYS2 re2go 4.4 and UCRT64 GCC 16.2.0 with `CGO_ENABLED=1`. The `.re` rules are unchanged; regenerated Go files contain updated generator headers, a constant declaration, and equivalent end-of-input capture bookkeeping. The generator reports `-Wmatch-empty-string` on the intentional `$` end-of-input return rule.
+
+The first `make test` run exceeded its 30-second timeout while opening a saved-page fixture. A full uncached rerun with a longer timeout passed, followed by a successful rerun of the unchanged `make test` target. The full race-enabled suite also passed without reported races:
 
 ```sh
-go test -race ./...
 make test
+go test -race -timeout 5m ./... -count=1
 ```
 
 The existing local corpus benchmark remains available without temporary tooling:

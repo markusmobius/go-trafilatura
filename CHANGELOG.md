@@ -2,6 +2,8 @@
 
 ### Unreleased
 
+- Raise the minimum Go version to 1.26.0 and the preferred development toolchain to Go 1.27.1, without changing dependency versions.
+- Add opt-in `Options.InputEncoding` to bypass charset detection for supplied HTML with a known encoding, retaining normalization and leaving automatic detection unchanged by default.
 - Track supplied-HTML extraction changes through upstream Trafilatura v2.2.0. See [UPSTREAM.md](UPSTREAM.md) for the complete 53-commit audit from v2.0.0.
 - Preserve pruning tails, nested inline formatting, relative and linked images, table captions, empty cells, and bounded row/column spans.
 - Improve metadata image, title, author, license, and JSON-LD publisher handling.
@@ -11,132 +13,130 @@
 
 ### 22 May 2021
 
-- Fix `sanitizeTree` and real world test.
+- Fix `sanitizeTree` and the real-world test.
 - Add additional selector rules.
-- Restructure cmd.
-- Update README.
+- Restructure the CLI.
+- Update the README.
 
 ### 21 May 2021
 
-- Port the `comparison.py`. At this point all code have been ported.
+- Port the Python comparison script, completing the initial port.
 - Strip text elements containing only spaces.
-- Fix HTML language element filter.
+- Fix the HTML language element filter.
 - Fix `postCleaning`.
 - Improve test coverage.
 - Add support for details/summary tags.
-- Refined metadata title selector.
-- Include page license in metadata extraction.
-- Fix: don't remove tail of discarded elements.
-- Define generic function to remove nodes.
-- Fix wrong constant in `collectLinkInfo`.
+- Refine the metadata title selector.
+- Include page licenses in metadata extraction.
+- Preserve the tail text of discarded elements.
+- Add a generic node-removal function.
+- Fix an incorrect constant in `collectLinkInfo`.
 
 ### 20 May 2021
 
-- Add license header in each file
-- Improve charset encoding to make sure parsing HTML document always done in UTF-8.
+- Add a license header to each file.
+- Decode HTML as UTF-8 before parsing.
 
 ### 19 May 2021
 
-- In CLI, add flags to fetch only the urls from sitemap.
-- In CLI, implement feed finder and downloader.
-- In CLI, add flags for custom user agent.
-- Move `etree` and `selector` package to internal dir so it can't be reached by user.
-- Remove finished python codes.
+- Add CLI flags to fetch only the URLs from a sitemap.
+- Implement feed discovery and downloading in the CLI.
+- Add CLI flags for custom user agents.
+- Move the `etree` and `selector` packages into `internal` to keep them private.
+- Remove Python code whose port is complete.
 
 ### 18 May 2021
 
-- In CLI, implement sitemap finder and downloader.
+- Implement sitemap discovery and downloading in the CLI.
 
 ### 17 May 2021
 
-- In CLI, add support for several type of output.
-- In CLI, add subcommand for batch download from file that contains list of url.
+- Add support for multiple output formats in the CLI.
+- Add a CLI subcommand for batch downloads from a file containing URLs.
 
 ### 16 May 2021
 
-- Make the log less verbose.
+- Make logging less verbose.
 - Implement initial CLI.
 
 ### 12 May 2021
 
-- Modify paragraphs handling since our output is in HTML, not XML like the original Trafilatura.
-- Put whitespace in place of void element when writing text using `etree.IterText`.
-- Dont strip image elements when sanitizing extraction result.
-- Add initial example.
+- Modify paragraph handling for HTML output rather than the original Trafilatura's XML output.
+- Insert whitespace for void elements when writing text with `etree.IterText`.
+- Preserve image elements when sanitizing extraction results.
+- Add the initial example.
 
 ### 11 May 2021
 
-- Implement real world test from `tests/realworld_test.py`. In the original Trafilatura, in this test the extraction is done while enabling fallback extractors. However, since the fallback extractors in the original Trafilatura is different with the one that used in this port, obviously the result is different as well which make the test can't be ported as is.
-
-	To solve this, I've changed the test in the original Trafilatura to disable the fallback extractors. This way the test is more focused on the capability of Trafilatura alone, which make the test is compatible and can be ported.
+- Port the real-world tests from `tests/realworld_test.py`. The original tests enable fallback extractors, but the Go port uses different fallback engines and can produce different results. Disable fallbacks in the reference tests to compare Trafilatura's extraction alone.
 
 ### 10 May 2021
 
-- Since our port use `go-readability` as one of its fallback, here we updated it to more recent version of Readability.js.
-- Fix external `dom` package to not appending child to void elements (elements that can't have any children, eg `<br/>`).
+- Update the `go-readability` fallback to reflect a more recent version of Readability.js.
+- Fix the external `dom` package to avoid appending children to void elements, such as `<br/>`.
 
 ### 9 May 2021
 
-- Now `Extract` also returns metadata along the extracted content.
-- Add advanced config in extraction `Options`.
-- Minor change  in `etree.ToString` to make it more readable.
+- Return metadata alongside the extracted content from `Extract`.
+- Add advanced configuration to extraction `Options`.
+- Improve readability in `etree.ToString`.
 - Implement unit tests.
 
 ### 8 May 2021
 
-- Finished implementing `Extract` function. At this point the port is kind of finished, but it's still not tested, so there is still a long way to go.
+- Finish implementing `Extract`. The initial implementation is complete but has not yet been tested.
 - Restructure test files.
 
 ### 7 May 2021
 
-- Fix implementation of `IterText` in `etree` package.
+- Fix `IterText` in the `etree` package.
 - Implement fallback extraction using `go-readability` and `go-domdistiller`.
 
 ### 6 May 2021
 
 - Restructure selector files.
-- Implement comments extraction.
+- Implement comment extraction.
 - Implement content extraction.
 
 ### 5 May 2021
 
-- Port some of LXML functionality to `etree` package.
-- Fix major issue when appending or replacing node in external `dom` package. Apparently this issue goes unnoticed in both `go-readability` and `go-domdistiller`.
-- Restart porting process from zero 😢.
+- Port some lxml functionality to the `etree` package.
+- Fix a major issue when appending or replacing nodes in the external `dom` package. The issue appears to affect both `go-readability` and `go-domdistiller`.
+- Restart the porting process from scratch.
 - Reimplement `cache`.
-- Reimplement metadata extractor.
+- Reimplement the metadata extractor.
 
 ### 4 May 2021
 
-- No code today. Looks like I've made a wrong assumptions about LXML library that used by the original Trafilatura. In functionality it's really similar with `dom` package, however there are several difference in how it works. Might need to port some codes.
+- Reassess assumptions about lxml. It resembles the `dom` package, but behavioral differences may require additional porting.
 
 ### 3 May 2021
 
-- Port `link_density_test` and `link_density_test_tables` from `htmlprocessing.py`
+- Port `link_density_test` and `link_density_test_tables` from `htmlprocessing.py`.
 
 ### 2 May 2021
 
-- Port `DISCARD_XPATH` in `xpaths.py`
+- Port `DISCARD_XPATH` from `xpaths.py`.
 
 ### 1 May 2021
 
-- Port `LRUCache` in `lru.py`
-- Port `textfilter` in `filters.py`
-- Port `duplicate_test` in `filters.py`
-- Port `extract_comments` in `core.py`. It's still not tested though since there are no specific unit test for this.
-- Port `CONTENT_XPATH` in `xpaths.py`
+- Port `LRUCache` from `lru.py`.
+- Port `textfilter` from `filters.py`.
+- Port `duplicate_test` from `filters.py`.
+- Port `extract_comments` from `core.py`; dedicated unit tests are not yet available.
+- Port `CONTENT_XPATH` from `xpaths.py`.
 
 ### 29 April 2021
 
-- Port `check_html_lang` function in `filters.py`
-- Port metadata extraction in `metadata.py`. There is a minor modification in metadata extraction from JSON+LD data. In the original Trafilatura, this step is done using regular expressions which is not exactly ideal for handling JSON data. Instead, here we use a proper JSON parser with fallback to the original regular expressions. This way, the extraction should be more accurate yet still give the same result when tested.
-- Port `tree_cleaning` and `prune_html` in `htmlprocessing.py`
-- Good news: we might not need to port Python's [`courlan`][1] package since Go's `net/url` is good enough.
-- Bad news: we might need to port Python's [`htmldate`][2] which used to find publish date of a web page, which used in metadata extraction.
+- Port `check_html_lang` from `filters.py`.
+- Port metadata extraction from `metadata.py`. Use a JSON parser for JSON-LD data, with a fallback to the original regular expressions, to preserve the reference test results.
+- Port `tree_cleaning` and `prune_html` from `htmlprocessing.py`.
+- Consider using Go's `net/url` instead of porting Python's [`courlan`][1] package.
+- Consider porting Python's [`htmldate`][2] package to extract publication dates for metadata.
 
 ### 25 April 2021
 
-- Porting process started
+- Start the porting process.
 
 [1]: https://github.com/adbar/courlan
 [2]: https://github.com/adbar/htmldate

@@ -38,6 +38,10 @@ import (
 	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/html"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/runes"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 )
 
 var log zerolog.Logger
@@ -73,7 +77,22 @@ type ExtractResult struct {
 // Extract parses a reader and find the main readable content.
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	// Parse HTML
-	doc, err := dom.Parse(r)
+	var doc *html.Node
+	var err error
+	if opts.InputEncoding == "" {
+		doc, err = dom.Parse(r)
+	} else {
+		decoded, decodeErr := charset.NewReaderLabel(opts.InputEncoding, r)
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		normalized := transform.NewReader(decoded, transform.Chain(
+			norm.NFD,
+			runes.Remove(runes.Predicate(func(character rune) bool { return character == '\u00ad' })),
+			norm.NFC,
+		))
+		doc, err = html.Parse(normalized)
+	}
 	if err != nil {
 		return nil, err
 	}

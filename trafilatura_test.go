@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -31,6 +32,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/iotest"
 	"time"
 
 	"github.com/go-shiori/dom"
@@ -63,6 +65,83 @@ var (
 		Config: DefaultConfig(),
 	}
 )
+
+func Test_InputEncoding(test *testing.T) {
+	cases := []struct {
+		name     string
+		encoding string
+		text     string
+		want     string
+	}{
+		{"utf8", "utf-8", "Cafe\u0301 co\u00adoperate", "Caf\u00e9 cooperate"},
+		{"utf8 alias", " \tUtF8 ", "Cafe\u0301 co\u00adoperate", "Caf\u00e9 cooperate"},
+		{"windows1252", "windows-1252", "Caf\xe9 \x93co\xadoperate\x94", "Caf\u00e9 \u201ccooperate\u201d"},
+		{"html latin1 alias", "iso-8859-1", "Caf\xe9 \x93co\xadoperate\x94", "Caf\u00e9 \u201ccooperate\u201d"},
+		{"shift jis", "shift_jis", "\x93\xfa\x96\x7b\x8c\xea", "\u65e5\u672c\u8a9e"},
+	}
+	for _, item := range cases {
+		test.Run(item.name, func(test *testing.T) {
+			input := `<html><head><meta charset="utf-8"><title>` + item.text + `</title></head><body><article><p>` + item.text + `</p></article></body></html>`
+			result, err := Extract(iotest.OneByteReader(strings.NewReader(input)), Options{
+				InputEncoding: item.encoding,
+				Config:        zeroConfig,
+				HtmlDateMode:  Disabled,
+			})
+			if !assert.NoError(test, err) {
+				return
+			}
+			assert.Equal(test, item.want, result.ContentText)
+			assert.Equal(test, item.want, result.Metadata.Title)
+		})
+	}
+
+	test.Run("default and parsed document", func(test *testing.T) {
+		input := `<html><head><title>Cafe` + "\u0301" + ` article</title></head><body><article><p>` + strings.Repeat("Cafe\u0301 co\u00adoperate with the original parser. ", 20) + `</p></article><div id="comments"><p>A reader comment.</p></div></body></html>`
+		options := Options{Config: zeroConfig, HtmlDateMode: Disabled}
+		doc, err := dom.Parse(strings.NewReader(input))
+		if !assert.NoError(test, err) {
+			return
+		}
+		legacy, err := ExtractDocument(doc, options)
+		if !assert.NoError(test, err) {
+			return
+		}
+		for _, label := range []string{"", "utf-8"} {
+			options.InputEncoding = label
+			result, err := Extract(strings.NewReader(input), options)
+			if !assert.NoError(test, err) {
+				continue
+			}
+			assert.Equal(test, legacy.ContentText, result.ContentText)
+			assert.Equal(test, legacy.CommentsText, result.CommentsText)
+			assert.Equal(test, legacy.Metadata, result.Metadata)
+			assert.Equal(test, dom.OuterHTML(legacy.ContentNode), dom.OuterHTML(result.ContentNode))
+		}
+		options.InputEncoding = "not-a-charset"
+		result, err := ExtractDocument(doc, options)
+		if assert.NoError(test, err) {
+			assert.Equal(test, legacy.ContentText, result.ContentText)
+			assert.Equal(test, legacy.Metadata, result.Metadata)
+		}
+	})
+
+	test.Run("reader errors", func(test *testing.T) {
+		readErr := errors.New("input read failed")
+		for _, label := range []string{"", "utf-8", "windows-1252"} {
+			result, err := Extract(iotest.ErrReader(readErr), Options{InputEncoding: label})
+			assert.ErrorIs(test, err, readErr)
+			assert.Nil(test, result)
+		}
+	})
+
+	test.Run("unknown charset", func(test *testing.T) {
+		readErr := errors.New("input should not be read")
+		result, err := Extract(iotest.ErrReader(readErr), Options{InputEncoding: "not-a-charset"})
+		assert.ErrorContains(test, err, "unsupported charset")
+		assert.NotErrorIs(test, err, readErr)
+		assert.Nil(test, result)
+	})
+}
 
 func Test_Trim(t *testing.T) {
 	// Test string trimming

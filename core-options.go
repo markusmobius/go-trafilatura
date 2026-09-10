@@ -78,6 +78,10 @@ type Options struct {
 	// OriginalURL is the original URL of the page. Might be overwritten by URL in metadata.
 	OriginalURL *nurl.URL
 
+	// InputEncoding is the charset of the HTML passed to Extract, e.g. "utf-8".
+	// Leave empty for automatic detection. Ignored by ExtractDocument.
+	InputEncoding string
+
 	// TargetLanguage is ISO 639-1 language code to make the extractor only process web page that
 	// uses the specified language.
 	TargetLanguage string

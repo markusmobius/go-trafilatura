@@ -1,8 +1,8 @@
 module github.com/markusmobius/go-trafilatura
 
-go 1.24.1
+go 1.26.0
 
-toolchain go1.24.2
+toolchain go1.27.1
 
 require (
 	github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc
