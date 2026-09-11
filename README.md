@@ -87,13 +87,7 @@ See the [examples](examples) for basic usage.
 
 Add `/v2` to Go imports of this library, including imports in tests and examples. The package name remains `trafilatura`; the module-path correction does not change extraction APIs or behavior.
 
-The initial v2.2.0 tag retained the unversioned module path and was rejected by Go. This release corrects the module path in place while retaining the v2.2.0 version number. Install it with:
-
-```sh
-go get github.com/markusmobius/go-trafilatura/v2@v2.2.0
-```
-
-Existing v1 consumers retain the original import path; v1 tags and commit-based pins are unchanged. Source checkouts that already fetched the original v2.2.0 tag must explicitly refresh that tag to obtain the packaging correction. Do not disable Go checksum verification or use `+incompatible` to work around the module declaration.
+Existing v1 consumers retain the original import path; v1 tags and commit-based pins are unchanged.
 
 ### Known Input Encoding
 
