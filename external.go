@@ -26,8 +26,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
-	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/selector"
@@ -233,6 +233,22 @@ func sanitizeTree(tree *html.Node, opts Options) {
 
 	etree.StripTags(tree, "span")
 	convertTags(tree, opts)
+
+	for _, table := range etree.Iter(tree, "table") {
+		seenHeader := false
+		for _, row := range dom.GetElementsByTagName(table, "tr") {
+			headers := dom.QuerySelectorAll(row, "th")
+			if len(headers) == 0 {
+				continue
+			}
+			if seenHeader {
+				for _, header := range headers {
+					header.Data = "td"
+				}
+			}
+			seenHeader = true
+		}
+	}
 
 	// 2. Sanitize
 	var sanitizationList []string

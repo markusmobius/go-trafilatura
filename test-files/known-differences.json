@@ -1,0 +1,75 @@
+{
+  "package": "github.com/markusmobius/go-trafilatura",
+  "failures": [
+    {
+      "test": "Test_Python220_RealWorld/realworld_tests.py/test_extract/line_254",
+      "assertions": 1,
+      "reason": "Readeck retains the love-hina visitor counter and comment link."
+    },
+    {
+      "test": "Test_Python220_RealWorld/realworld_tests.py/test_extract/line_314",
+      "assertions": 1,
+      "reason": "Readeck returns no RNZ candidate; baseline recovery misses the article."
+    },
+    {
+      "test": "Test_Extract/love-hina.ch.0409.html",
+      "assertions": 2,
+      "reason": "Legacy assertions for the same love-hina counter and comment-link difference."
+    },
+    {
+      "test": "Test_Extract/rnz.de.witzel.html",
+      "assertions": 2,
+      "reason": "Legacy opening and closing phrase assertions for the same RNZ recovery difference."
+    },
+    {
+      "test": "Test_Python220_InputsAndOptions/test_lang_detection",
+      "assertions": 1,
+      "reason": "whatlanggo labels the short French phrase af instead of fr."
+    },
+    {
+      "test": "Test_Python220_Filters/test_filters/language_filter",
+      "assertions": 1,
+      "reason": "whatlanggo returns an empty ISO code for the English sentence, causing a false rejection."
+    },
+    {
+      "test": "Test_Python220_Recovery/test_recall_escalation_justext_comment_scoping/forum_keeps_posts",
+      "assertions": 1,
+      "reason": "The Go fallback cascade selects forum replies without the introduction; Python uses jusText."
+    },
+    {
+      "test": "Test_Python220_Recovery/test_recall_escalation_no_comment_doubling/p",
+      "assertions": 1,
+      "reason": "The paragraph-wrapped forum introduction is lost in the Go fallback cascade."
+    },
+    {
+      "test": "Test_Python220_Recovery/test_recall_escalation_no_comment_doubling/div",
+      "assertions": 1,
+      "reason": "The div-wrapped forum introduction is lost in the Go fallback cascade."
+    },
+    {
+      "test": "Test_Python220_Recovery/test_recall_escalation_blog_comment_leak",
+      "assertions": 1,
+      "reason": "Readeck includes eight comments outside the blog article wrapper."
+    },
+    {
+      "test": "Test_LanguageClassifier_Compatibility/english_sentence",
+      "assertions": 1,
+      "reason": "whatlanggo returns an empty ISO code for the short English sentence."
+    },
+    {
+      "test": "Test_LanguageClassifier_Compatibility/french_phrase",
+      "assertions": 1,
+      "reason": "whatlanggo labels the short French phrase af instead of fr."
+    },
+    {
+      "test": "Test_LanguageClassifier_Compatibility/equal_lengths_choose_content",
+      "assertions": 1,
+      "reason": "The selected French body text is labeled af; the body/comment tie policy is unchanged."
+    },
+    {
+      "test": "Test_LanguageClassifier_Compatibility/italian_sentence",
+      "assertions": 1,
+      "reason": "whatlanggo labels the short Italian sentence pt instead of it."
+    }
+  ]
+}

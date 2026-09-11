@@ -1,8 +1,8 @@
 package trafilatura
 
 import (
-	"encoding/json"
-	"sort"
+	"regexp"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
@@ -20,284 +20,196 @@ type SchemaData struct {
 // extractJsonLd search metadata from JSON+LD data following the Schema.org guidelines
 // (https://schema.org). Here we don't really care about error here, so if parse failed
 // we just return the original metadata.
-func extractJsonLd(opts Options, doc *html.Node, originalMetadata Metadata) Metadata {
-	var metadata Metadata
-
-	// Decode all script nodes that contain JSON+Ld schema
-	persons, organizations, articles := decodeJsonLd(doc, opts)
-
-	// Extract metadata from each article
-	for _, article := range articles {
-		// Grab "author" property from schema with @type "Person"
-		if metadata.Author == "" {
-			var authorNames string
-			for _, author := range getSchemaNames(article.Data["author"], "person") {
-				author = validateMetadataName(author)
-				authorNames = normalizeAuthors(authorNames, author)
-			}
-
-			if authorNames != "" {
-				metadata.Author = authorNames
-			}
-		}
-
-		// Grab sitename
-		if metadata.Sitename == "" {
-			if sitenames := getSchemaNames(article.Data["publisher"]); len(sitenames) > 0 {
-				metadata.Sitename = sitenames[0]
-			}
-		}
-
-		// Grab category
-		categories := getStringValues(article.Data, "articleSection")
-		if len(categories) != 0 {
-			metadata.Categories = append(metadata.Categories, categories...)
-		}
-
-		// Grab tags
-		tags := getSchemaNames(article.Data["keywords"])
-		if len(tags) > 0 {
-			metadata.Tags = append(metadata.Tags, tags...)
-		}
-
-		// Grab title
-		if metadata.Title == "" {
-			metadata.Title = getSingleStringValue(article.Data, "name")
-		}
-
-		// If title is empty or only consist of one word, try to look in headline
-		if metadata.Title == "" || strWordCount(metadata.Title) == 1 {
-			for attr := range article.Data {
-				if !strings.Contains(strings.ToLower(attr), "headline") {
-					continue
-				}
-
-				title := getSingleStringValue(article.Data, attr)
-				if title != "" && !strings.Contains(title, "...") {
-					metadata.Title = title
-					break
-				}
-			}
-		}
-
-		// If title found, use article type as page type
-		if metadata.PageType == "" && metadata.Title != "" && len(article.Types) > 0 {
-			metadata.PageType = article.Types[0]
-		}
-	}
-
-	// If author not found, look in persons
-	if metadata.Author == "" {
-		var authorNames string
-		for _, person := range persons {
-			for _, name := range getSchemaNames(person.Data) {
-				name = validateMetadataName(name)
-				authorNames = normalizeAuthors(authorNames, name)
-			}
-		}
-
-		if authorNames != "" {
-			metadata.Author = authorNames
-		}
-	}
-
-	// If sitename not found, look in organizations
-	if metadata.Sitename == "" {
-		names := []string{}
-		for _, org := range organizations {
-			for _, name := range getSchemaNames(org.Data) {
-				name = validateMetadataName(name)
-				if name != "" {
-					names = append(names, name)
-				}
-			}
-		}
-
-		if len(names) > 0 {
-			metadata.Sitename = strings.Join(names, "; ")
-		}
-	}
-
-	// If type not found, use the first article type
-	if metadata.PageType == "" && len(articles) > 0 && len(articles[0].Types) > 0 {
-		metadata.PageType = articles[0].Types[0]
-	}
-
-	// Uniquify tags and categories
-	metadata.Tags = uniquifyLists(metadata.Tags...)
-	metadata.Categories = uniquifyLists(metadata.Categories...)
-
-	// If available, override type, title, author, categories and tags in original metadata
-	originalMetadata.Title = strOr(originalMetadata.Title, metadata.Title)
-	originalMetadata.PageType = strOr(originalMetadata.PageType, metadata.PageType)
-	originalMetadata.Author = strOr(metadata.Author, originalMetadata.Author)
-
-	if len(metadata.Categories) > 0 {
-		originalMetadata.Categories = metadata.Categories
-	}
-
-	if len(metadata.Tags) > 0 {
-		originalMetadata.Tags = metadata.Tags
-	}
-
-	// If the new sitename exist and longer, override the original
-	if metadata.Sitename != "" && (utf8.RuneCountInString(metadata.Sitename) > utf8.RuneCountInString(originalMetadata.Sitename) ||
-		(strings.HasPrefix(originalMetadata.Sitename, "http") && !strings.HasPrefix(metadata.Sitename, "http"))) {
-		originalMetadata.Sitename = metadata.Sitename
-	}
-
-	return originalMetadata
-}
-
-func decodeJsonLd(doc *html.Node, opts Options) (persons, organizations, articles []SchemaData) {
-	// Prepare function to find articles and persons inside JSON+LD recursively
-	var findImportantObjects func(obj map[string]any, parent *SchemaData)
-	findImportantObjects = func(obj map[string]any, parent *SchemaData) {
-		// Schema type could be either string or slices, so extract it properly
-		schemaTypes := getSchemaTypes(obj, false)
-
-		// Check if the schemas is usable for our purpose
-		var isPerson bool
-		var isWebsite, isOrganization bool
-		var isArticle, isPosting, isReport, isBlog, isPage, isListing bool
-
-		for _, st := range schemaTypes {
-			st = strings.ToLower(st)
-			isPerson = isPerson || st == "person"
-			isWebsite = isWebsite || st == "website"
-			isOrganization = isOrganization || strings.Contains(st, "organization")
-			isArticle = isArticle || strings.Contains(st, "article")
-			isPosting = isPosting || strings.Contains(st, "posting")
-			isReport = isReport || st == "report"
-			isBlog = isBlog || st == "blog"
-			isPage = isPage || strings.Contains(st, "page")
-			isListing = isListing || strings.Contains(st, "listing")
-		}
-
-		// Create initial schema data
-		schemaData := SchemaData{
-			Types:  schemaTypes,
-			Data:   obj,
-			Parent: parent,
-		}
-
-		// Depending on its type, save the schema to respective slice
-		if isPerson {
-			persons = append(persons, schemaData)
-		}
-
-		if isWebsite || isOrganization {
-			// Organization is more important than website.
-			switch {
-			case isOrganization:
-				schemaData.Importance = 2
-			default:
-				schemaData.Importance = 1
-			}
-
-			organizations = append(organizations, schemaData)
-		}
-
-		if isArticle || isPosting || isReport || isBlog || isPage || isListing {
-			// Adjust its importance level
-			switch {
-			case isArticle, isPosting, isReport:
-				schemaData.Importance = 3
-			case isBlog:
-				schemaData.Importance = 2
-			case isPage, isListing:
-				schemaData.Importance = 1
-			}
-
-			articles = append(articles, schemaData)
-		}
-
-		// Continue to look in its sub values
-		for _, value := range obj {
-			switch v := value.(type) {
-			case map[string]any:
-				findImportantObjects(v, &schemaData)
-
-			case []any:
-				for _, item := range v {
-					if subObj, isObj := item.(map[string]any); isObj {
-						findImportantObjects(subObj, &schemaData)
-					}
-				}
-			}
-		}
-	}
-
-	// Find all script nodes that contain JSON+Ld schema
-	scriptNodes1 := dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`)
-	scriptNodes2 := dom.QuerySelectorAll(doc, `script[type="application/settings+json"]`)
-	scriptNodes := append(scriptNodes1, scriptNodes2...)
-
-	for _, script := range scriptNodes {
-		// Get the json text inside the script
-		jsonLdText := dom.TextContent(script)
-		jsonLdText = strings.TrimSpace(jsonLdText)
-		jsonLdText = html.UnescapeString(jsonLdText)
-		if jsonLdText == "" {
+func extractJsonLd(opts Options, doc *html.Node, metadata Metadata) Metadata {
+	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"], script[type="application/settings+json"]`) {
+		input := normalizeJSONText(dom.TextContent(script))
+		if input == "" {
 			continue
 		}
+		var value any
+		if err := decodeJSON(input, &value); err != nil {
+			logWarn(opts, "error in JSON metadata extraction: %v", err)
+			metadata = recoverJSONMetadata(input, metadata)
+		} else {
+			metadata = extractJSONMetadata(value, metadata)
+		}
+	}
+	return metadata
+}
 
-		// Decode JSON text assuming it is an array
-		var dataList []map[string]any
-		jsonLdByte := []byte(jsonLdText)
-		err := json.Unmarshal(jsonLdByte, &dataList)
-		if err != nil {
-			// If not succeed, try it as an object
-			var data map[string]any
-			err = json.Unmarshal(jsonLdByte, &data)
-			if err == nil {
-				dataList = []map[string]any{data}
-			} else {
-				logWarn(opts, "error in JSON metadata extraction: %v", err)
-				continue
+var jsonArticleTypes = sliceToMap("article", "backgroundnewsarticle", "blogposting", "medicalscholarlyarticle", "newsarticle", "opinionnewsarticle", "reportagenewsarticle", "scholarlyarticle", "socialmediaposting", "liveblogposting")
+var jsonPageTypes = sliceToMap("aboutpage", "checkoutpage", "collectionpage", "contactpage", "faqpage", "itempage", "medicalwebpage", "profilepage", "qapage", "realestatelisting", "searchresultspage", "webpage", "website", "article", "advertisercontentarticle", "newsarticle", "analysisnewsarticle", "askpublicnewsarticle", "backgroundnewsarticle", "opinionnewsarticle", "reportagenewsarticle", "reviewnewsarticle", "report", "satiricalarticle", "scholarlyarticle", "medicalscholarlyarticle", "socialmediaposting", "blogposting", "liveblogposting", "discussionforumposting", "techarticle", "blog", "jobposting")
+var rxJSONContext = regexp.MustCompile(`(?i)^https?://schema\.org`)
+var rxJSONUnicode = regexp.MustCompile(`\\u[0-9a-fA-F]{4}`)
+var rxJSONAuthor = regexp.MustCompile(`(?s)"author"\s*:[^}\[]+?"name?\\?"\s*:\s*\\?"([^"\\]+)|"author"[^}\[]+?"names?".+?"([^"]+)`)
+var rxJSONPerson = regexp.MustCompile(`(?s)"[Pp]erson"[^}]+?"names?".+?"([^"]+)`)
+var rxJSONAuthorRemove = regexp.MustCompile(`,?(?:"\w+"\s*:?[:|,\[])?\{?"@type"\s*:\s*"(?:[Ii]mageObject|[Oo]rganization|[Ww]eb[Pp]age)",[^}\[]+}[\]|}]?`)
+var rxJSONPublisher = regexp.MustCompile(`(?s)"publisher"\s*:[^}]+?"name?\\?"\s*:\s*\\?"([^"\\]+)`)
+var rxJSONType = regexp.MustCompile(`(?s)"@type"\s*:\s*"([^"]*)"`)
+var rxJSONCategory = regexp.MustCompile(`(?s)"articleSection"\s*:\s*"([^"\\]+)`)
+var rxJSONArticleName = regexp.MustCompile(`(?s)"@type"\s*:\s*"[Aa]rticle",\s*"name"\s*:\s*"([^"\\]+)`)
+var rxJSONHeadline = regexp.MustCompile(`(?s)"headline"\s*:\s*"([^"\\]+)`)
+
+func normalizeJSONText(input string) string {
+	if strings.Contains(input, `\`) {
+		input = strings.NewReplacer(`\n`, "", `\r`, "", `\t`, "").Replace(input)
+		input = rxJSONUnicode.ReplaceAllStringFunc(input, func(escape string) string {
+			value, _ := strconv.ParseUint(escape[2:], 16, 16)
+			if value >= 0xd800 && value <= 0xdfff {
+				return ""
+			}
+			return string(rune(value))
+		})
+		input = html.UnescapeString(input)
+	}
+	return trim(rxHtmlStripTag.ReplaceAllString(input, ""))
+}
+
+func plausibleJSONSitename(current, candidate, contentType string) bool {
+	return candidate != "" && (current == "" || (utf8.RuneCountInString(candidate) > utf8.RuneCountInString(current) && contentType != "webpage") || (strings.HasPrefix(current, "http") && !strings.HasPrefix(candidate, "http")))
+}
+
+func processJSONMetadata(parents any, metadata Metadata) Metadata {
+	for _, item := range jsonItems(parents) {
+		content, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if publisher, ok := content["publisher"].(map[string]any); ok {
+			candidate, _ := publisher["name"].(string)
+			if plausibleJSONSitename(metadata.Sitename, candidate, "") {
+				metadata.Sitename = candidate
 			}
 		}
-
-		// Extract each data
-		for _, data := range dataList {
-			findImportantObjects(data, nil)
+		types := getSchemaTypes(content, true)
+		if len(types) == 0 {
+			continue
+		}
+		contentType := types[0]
+		if metadata.PageType == "" && inMap(contentType, jsonPageTypes) {
+			metadata.PageType = normalizeJSONText(contentType)
+		}
+		switch {
+		case strIn(contentType, "newsmediaorganization", "organization", "webpage", "website"):
+			candidate := strOr(getSingleStringValue(content, "name"), getSingleStringValue(content, "legalName"), getSingleStringValue(content, "alternateName"))
+			if plausibleJSONSitename(metadata.Sitename, candidate, contentType) {
+				metadata.Sitename = candidate
+			}
+		case contentType == "person":
+			if name, ok := content["name"].(string); ok && !strings.HasPrefix(name, "http") {
+				metadata.Author = normalizeAuthors(metadata.Author, name)
+			}
+		case inMap(contentType, jsonArticleTypes):
+			authors := content["author"]
+			if text, ok := authors.(string); ok {
+				var decoded any
+				if decodeJSON(text, &decoded) == nil {
+					authors = decoded
+				}
+			}
+			for _, author := range jsonItems(authors) {
+				if name, ok := author.(string); ok {
+					metadata.Author = normalizeAuthors(metadata.Author, name)
+					continue
+				}
+				object, ok := author.(map[string]any)
+				if !ok {
+					continue
+				}
+				if authorType, exists := object["@type"]; exists && authorType != "Person" {
+					continue
+				}
+				name := strings.Join(getSchemaNames(object), "; ")
+				if name == "" && object["givenName"] != nil && object["familyName"] != nil {
+					name = trim(getSingleStringValue(object, "givenName") + " " + getSingleStringValue(object, "additionalName") + " " + getSingleStringValue(object, "familyName"))
+				}
+				metadata.Author = normalizeAuthors(metadata.Author, name)
+			}
+			if len(metadata.Categories) == 0 {
+				metadata.Categories = getStringValues(content, "articleSection")
+			}
+			if metadata.Title == "" {
+				if contentType == "article" {
+					metadata.Title = getSingleStringValue(content, "name")
+				}
+				if metadata.Title == "" {
+					metadata.Title = getSingleStringValue(content, "headline")
+				}
+			}
 		}
 	}
+	return metadata
+}
 
-	// Sort schemas based on importance
-	sort.SliceStable(organizations, func(i, j int) bool {
-		return organizations[i].Importance > organizations[j].Importance
-	})
-
-	sort.SliceStable(articles, func(i, j int) bool {
-		return articles[i].Importance > articles[j].Importance
-	})
-
-	// When possible, only use persons from articles
-	var articlePersons []SchemaData
-	for _, person := range persons {
-		if schemaInArticle(person, "person") {
-			articlePersons = append(articlePersons, person)
+func extractJSONMetadata(value any, metadata Metadata) Metadata {
+	var parents []any
+	for _, item := range jsonItems(value) {
+		parent, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		context, _ := parent["@context"].(string)
+		if !rxJSONContext.MatchString(context) {
+			continue
+		}
+		if graph, exists := parent["@graph"]; exists {
+			parents = append(parents, jsonItems(graph)...)
+		} else if contentType, ok := parent["@type"].(string); ok && strings.Contains(strings.ToLower(contentType), "liveblogposting") && parent["liveBlogUpdate"] != nil {
+			parents = append(parents, jsonItems(parent["liveBlogUpdate"])...)
+		} else {
+			parents = append(parents, parent)
 		}
 	}
+	return processJSONMetadata(parents, metadata)
+}
 
-	if len(articlePersons) > 0 {
-		persons = articlePersons
+func extractJSONAuthors(input string, pattern *regexp.Regexp) string {
+	var authors string
+	for {
+		match := pattern.FindStringSubmatchIndex(input)
+		if match == nil {
+			break
+		}
+		var name string
+		for index := 2; index < len(match); index += 2 {
+			if match[index] >= 0 {
+				name = input[match[index]:match[index+1]]
+				break
+			}
+		}
+		if !strings.Contains(name, " ") {
+			break
+		}
+		authors = normalizeAuthors(authors, name)
+		input = input[:match[0]] + input[match[1]:]
 	}
+	return authors
+}
 
-	// Do the same for organizations
-	var articleOrganizations []SchemaData
-	for _, org := range organizations {
-		if schemaInArticle(org, "organization") {
-			articleOrganizations = append(articleOrganizations, org)
+func recoverJSONMetadata(input string, metadata Metadata) Metadata {
+	authorInput := rxJSONAuthorRemove.ReplaceAllString(input, "")
+	if authors := strOr(extractJSONAuthors(authorInput, rxJSONAuthor), extractJSONAuthors(authorInput, rxJSONPerson)); authors != "" {
+		metadata.Author = authors
+	}
+	if match := rxJSONType.FindStringSubmatch(input); len(match) > 1 {
+		if candidate := normalizeJSONText(strings.ToLower(match[1])); inMap(candidate, jsonPageTypes) {
+			metadata.PageType = candidate
 		}
 	}
-
-	if len(articleOrganizations) > 0 {
-		organizations = articleOrganizations
+	if match := rxJSONPublisher.FindStringSubmatch(input); len(match) > 1 && !strings.Contains(match[1], ",") {
+		if candidate := normalizeJSONText(match[1]); plausibleJSONSitename(metadata.Sitename, candidate, "") {
+			metadata.Sitename = candidate
+		}
 	}
-
-	return
+	if match := rxJSONCategory.FindStringSubmatch(input); len(match) > 1 {
+		metadata.Categories = []string{normalizeJSONText(match[1])}
+	}
+	for _, pattern := range []*regexp.Regexp{rxJSONArticleName, rxJSONHeadline} {
+		if match := pattern.FindStringSubmatch(input); metadata.Title == "" && len(match) > 1 {
+			metadata.Title = normalizeJSONText(match[1])
+		}
+	}
+	return metadata
 }
 
 func getSchemaNames(v any, expectedTypes ...string) []string {
@@ -346,7 +258,9 @@ func getSchemaNames(v any, expectedTypes ...string) []string {
 			additionalName := getSingleStringValue(value, "additionalName")
 			familyName := getSingleStringValue(value, "familyName")
 			fullName := trim(givenName + " " + additionalName + " " + familyName)
-			names = []string{fullName}
+			if fullName != "" {
+				names = []string{fullName}
+			}
 		}
 
 		// If name still empty, try its legal name
@@ -416,6 +330,7 @@ func getStringValues(obj map[string]any, key string) []string {
 		}
 
 	case []any:
+		result = []string{}
 		for _, item := range value {
 			str, ok := item.(string)
 			if !ok {
@@ -437,47 +352,4 @@ func getSingleStringValue(obj map[string]any, key string) string {
 		return values[0]
 	}
 	return ""
-}
-
-func schemaInArticle(data SchemaData, wantedType string) bool {
-	// If it doesn't have any parent, it's important
-	if data.Parent == nil {
-		return true
-	}
-
-	// Check if parent is person or organization
-	var parentIsPerson bool
-	var parentIsOrganization bool
-
-	for _, st := range data.Parent.Types {
-		st = strings.ToLower(st)
-		parentIsPerson = parentIsPerson || st == "person"
-		parentIsOrganization = parentIsOrganization || st == "website" || strings.Contains(st, "organization")
-	}
-
-	// If necessary, check grandparent types
-	parentTypesToCheck := data.Parent.Types
-	if (wantedType == "person" && parentIsPerson) || (wantedType == "organization" && parentIsOrganization) {
-		if data.Parent.Parent == nil {
-			return true
-		} else {
-			parentTypesToCheck = data.Parent.Parent.Types
-		}
-	}
-
-	// Now, check if this schema inside article
-	for _, st := range parentTypesToCheck {
-		st = strings.ToLower(st)
-		isArticle := strings.Contains(st, "article")
-		isPosting := strings.Contains(st, "posting")
-		isReport := st == "report"
-		isBlog := st == "blog"
-		isPage := strings.Contains(st, "page")
-		isListing := strings.Contains(st, "listing")
-		if isArticle || isPosting || isReport || isBlog || isPage || isListing {
-			return true
-		}
-	}
-
-	return false
 }

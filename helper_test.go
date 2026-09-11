@@ -27,8 +27,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"testing"
 
+	xmltree "github.com/beevik/etree"
 	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"golang.org/x/net/html"
 )
 
@@ -99,4 +102,87 @@ func docFromStr(str string) *html.Node {
 func noSpace(s string) string {
 	s = strings.Join(strings.Fields(s), "")
 	return strings.TrimSpace(s)
+}
+
+func python220CanonicalHTML(element *html.Node) string {
+	cloned := dom.Clone(element, true)
+	for _, node := range etree.Iter(cloned) {
+		switch dom.TagName(node) {
+		case "strong":
+			node.Data = "b"
+		case "em":
+			node.Data = "i"
+		case "s", "strike":
+			node.Data = "del"
+		case "kbd":
+			node.Data = "tt"
+		}
+	}
+	return etree.ToString(cloned)
+}
+
+func python220Element(test testing.TB, input string) *html.Node {
+	test.Helper()
+	document := xmltree.NewDocument()
+	if err := document.ReadFromString(input); err != nil {
+		test.Fatalf("Invalid upstream internal-tree fixture: %v", err)
+	}
+	var convert func(*xmltree.Element) *html.Node
+	convert = func(source *xmltree.Element) *html.Node {
+		tag := source.Tag
+		switch tag {
+		case "ref":
+			tag = "a"
+		case "graphic":
+			tag = "img"
+		case "lb":
+			tag = "br"
+		case "quote":
+			tag = "blockquote"
+		case "row":
+			tag = "tr"
+		case "cell":
+			tag = "td"
+			if source.SelectAttrValue("role", "") == "head" {
+				tag = "th"
+			}
+		case "list":
+			tag = source.SelectAttrValue("rend", "ul")
+		case "item":
+			tag = "li"
+		case "head":
+			tag = source.SelectAttrValue("rend", "h2")
+		case "hi":
+			tag = strings.TrimPrefix(source.SelectAttrValue("rend", "#i"), "#")
+			if tag == "t" {
+				tag = "tt"
+			}
+		}
+		target := &html.Node{Type: html.ElementNode, Data: tag}
+		for _, attribute := range source.Attr {
+			key := attribute.Key
+			if key == "rend" || (source.Tag == "cell" && key == "role") {
+				continue
+			}
+			if source.Tag == "ref" && key == "target" {
+				key = "href"
+			}
+			target.Attr = append(target.Attr, html.Attribute{Key: key, Val: attribute.Value})
+		}
+		for _, token := range source.Child {
+			switch child := token.(type) {
+			case *xmltree.Element:
+				target.AppendChild(convert(child))
+			case *xmltree.CharData:
+				target.AppendChild(&html.Node{Type: html.TextNode, Data: child.Data})
+			case *xmltree.Comment:
+				target.AppendChild(&html.Node{Type: html.CommentNode, Data: child.Data})
+			}
+		}
+		return target
+	}
+	if document.Root() == nil {
+		test.Fatal("Upstream internal-tree fixture has no root")
+	}
+	return convert(document.Root())
 }

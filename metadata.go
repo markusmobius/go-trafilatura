@@ -40,7 +40,6 @@ import (
 )
 
 var (
-	rxCommaSeparator = regexp.MustCompile(`\s*[,;]\s*`)
 	rxTitleCleaner   = regexp.MustCompile(`(?i)^(.+)?\s+[–•·—|⁄*⋆~‹«<›»>:-]\s+(.+)$`) // part without dots?
 	rxJsonSymbol     = regexp.MustCompile(`[{\\}]`)
 	rxNameJson       = regexp.MustCompile(`(?i)"name\\?":\s*\\?"([^"\\]+)`)
@@ -119,6 +118,10 @@ type Metadata struct {
 }
 
 func extractMetadata(doc *html.Node, opts Options) Metadata {
+	if doc == nil {
+		return Metadata{}
+	}
+
 	// Extract metadata from <meta> tags
 	metadata := examineMeta(doc)
 	metadata.Author = removeBlacklistedAuthors(metadata.Author, opts)
@@ -152,7 +155,7 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Validate URL
 	// If URL exist, it must be absolute. If not absolute, just remove it.
 	if metadata.URL != "" {
-		validURL, isAbs := validateURL(metadata.URL, opts.OriginalURL)
+		validURL, isAbs := validateURL(metadata.URL, nil)
 		if validURL != "" && isAbs {
 			metadata.URL = validURL
 		} else {
@@ -168,16 +171,6 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// Hostname
 	if metadata.URL != "" {
 		metadata.Hostname = getDomainURL(metadata.URL)
-	}
-
-	// Validate image URL, it must be absolute. If not absolute, just remove it.
-	if metadata.Image != "" {
-		validURL, isAbs := validateURL(metadata.Image, opts.OriginalURL)
-		if validURL != "" && isAbs {
-			metadata.Image = validURL
-		} else {
-			metadata.Image = ""
-		}
 	}
 
 	// Publish date
@@ -261,7 +254,20 @@ func extractMetadata(doc *html.Node, opts Options) Metadata {
 	// License
 	metadata.License = extractLicense(doc)
 
+	for _, field := range []*string{&metadata.Title, &metadata.Author, &metadata.URL, &metadata.Hostname, &metadata.Description, &metadata.Sitename, &metadata.ID, &metadata.Fingerprint, &metadata.License, &metadata.Language, &metadata.Image, &metadata.PageType} {
+		if utf8.RuneCountInString(*field) > 10000 {
+			*field = string([]rune(*field)[:9999]) + "\u2026"
+		}
+		*field = cleanMetadataText(*field)
+	}
+
 	return metadata
+}
+
+func cleanMetadataText(text string) string {
+	text = html.UnescapeString(text)
+	text = strings.ReplaceAll(text, "\v", "")
+	return trim(removeControlCharacters(text))
 }
 
 // examineMeta search meta tags for relevant information
@@ -282,16 +288,18 @@ func examineMeta(doc *html.Node) Metadata {
 		// Make sure content is not empty
 		content := dom.GetAttribute(node, "content")
 		content = rxHtmlStripTag.ReplaceAllString(content, "")
-		content = html.UnescapeString(content)
-		content = trim(content)
+		property := trim(dom.GetAttribute(node, "property"))
+		name := trim(strings.ToLower(dom.GetAttribute(node, "name")))
+		if property == "article:tag" || (property == "" && inMap(name, metaNameTag)) {
+			content = normalizeTags(content)
+		} else {
+			content = cleanMetadataText(content)
+		}
 		if content == "" {
 			continue
 		}
 
 		// Handle property attribute
-		property := dom.GetAttribute(node, "property")
-		property = trim(property)
-
 		if property != "" {
 			switch {
 			case strings.HasPrefix(property, "og:"):
@@ -309,10 +317,6 @@ func examineMeta(doc *html.Node) Metadata {
 		}
 
 		// Handle name attribute
-		name := dom.GetAttribute(node, "name")
-		name = strings.ToLower(name)
-		name = trim(name)
-
 		if name != "" {
 			if inMap(name, metaNameAuthor) {
 				content = rxHtmlStripTag.ReplaceAllString(content, "")
@@ -361,8 +365,8 @@ func examineMeta(doc *html.Node) Metadata {
 
 	// Clean up author and tags
 	metadata.Author = validateMetadataName(metadata.Author)
-	metadata.Categories = uniquifyLists(metadata.Categories...)
-	metadata.Tags = uniquifyLists(metadata.Tags...)
+	metadata.Categories = cleanCatTags(metadata.Categories)
+	metadata.Tags = cleanCatTags(metadata.Tags)
 	return metadata
 }
 
@@ -378,8 +382,11 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 
 		// Make sure node has content attribute
 		content := dom.GetAttribute(node, "content")
-		content = html.UnescapeString(content)
-		content = trim(content)
+		if propName == "og:article:tag" {
+			content = trim(html.UnescapeString(content))
+		} else {
+			content = cleanMetadataText(content)
+		}
 		if content == "" {
 			continue
 		}
@@ -401,7 +408,7 @@ func extractOpenGraphMeta(doc *html.Node) Metadata {
 				metadata.URL = content
 			}
 		case "og:article:tag":
-			metadata.Tags = uniquifyLists(content)
+			metadata.Tags = cleanCatTags([]string{content})
 		case "og:type":
 			metadata.PageType = content
 		}
@@ -584,7 +591,7 @@ func extractDomCategories(doc *html.Node) []string {
 		}
 	}
 
-	return uniquifyLists(categories...)
+	return cleanCatTags(categories)
 }
 
 // extractDomTags returns the tags of the document.
@@ -607,19 +614,31 @@ func extractDomTags(doc *html.Node) []string {
 		}
 	}
 
-	return uniquifyLists(tags...)
+	return cleanCatTags(tags)
 }
 
 func cleanCatTags(catTags []string) []string {
 	cleanedEntries := []string{}
+	seen := make(map[string]bool)
 	for _, entry := range catTags {
-		for _, item := range rxCommaSeparator.Split(entry, -1) {
-			if item = trim(item); item != "" {
-				cleanedEntries = append(cleanedEntries, item)
-			}
+		if entry = trim(entry); entry != "" && !seen[entry] {
+			cleanedEntries = append(cleanedEntries, entry)
+			seen[entry] = true
 		}
 	}
 	return cleanedEntries
+}
+
+func normalizeTags(input string) string {
+	input = trim(html.UnescapeString(input))
+	input = strings.NewReplacer(`"`, "", "'", "").Replace(input)
+	var entries []string
+	for _, entry := range strings.Split(input, ", ") {
+		if entry != "" {
+			entries = append(entries, entry)
+		}
+	}
+	return strings.Join(entries, ", ")
 }
 
 func extractDomMetaSelectors(doc *html.Node, limit int, queries []selector.Rule) string {
@@ -688,12 +707,9 @@ func normalizeAuthors(authors string, input string) string {
 	}
 
 	// Clean up input string
-	input = trim(input)
-	input = html.UnescapeString(input)
-	input = gomoji.RemoveEmojis(input)
-	input = rxAuthorDigits.ReplaceAllString(input, "")
-	input = rxAuthorSocialMedia.ReplaceAllString(input, "")
-	input = rxAuthorSpaceChars.ReplaceAllString(input, " ")
+	if strings.Contains(input, `\u`) {
+		input = normalizeJSONText(input)
+	}
 
 	// Fix HTML entities
 	if strings.Contains(input, "&#") || strings.Contains(input, "&amp;") {
@@ -713,34 +729,38 @@ func normalizeAuthors(authors string, input string) string {
 	tracker := sliceToMap(listAuthor...)
 
 	// Save the new authors
-	for _, a := range rxAuthorSeparator.Split(input, -1) {
+	for _, author := range rxAuthorSeparator.Split(input, -1) {
 		// Clean the author
-		a = rxAuthorNickname.ReplaceAllString(a, "")
-		a = rxAuthorSpecialChars.ReplaceAllString(a, "")
-		a = rxAuthorPrefix.ReplaceAllString(a, "")
-		a = rxAuthorPreposition.ReplaceAllString(a, "")
-		a = trim(a)
+		author = trim(author)
+		author = gomoji.RemoveEmojis(author)
+		author = rxAuthorSocialMedia.ReplaceAllString(author, "")
+		author = trim(rxAuthorSpaceChars.ReplaceAllString(author, " "))
+		author = rxAuthorNickname.ReplaceAllString(author, "")
+		author = rxAuthorSpecialChars.ReplaceAllString(author, "")
+		author = rxAuthorPrefix.ReplaceAllString(author, "")
+		author = rxAuthorDigits.ReplaceAllString(author, "")
+		author = rxAuthorPreposition.ReplaceAllString(author, "")
 
 		// Stop if author is empty, or single word but too long.
 		// The max length 23 is taken from ISO IEC-7813.
-		length := utf8.RuneCountInString(a)
-		hasDash := strings.Contains(a, "-")
-		hasSpace := strings.Contains(a, " ")
+		length := utf8.RuneCountInString(author)
+		hasDash := strings.Contains(author, "-")
+		hasSpace := strings.Contains(author, " ")
 		if length == 0 || (!hasDash && !hasSpace && length >= 50) {
 			continue
 		}
 
 		// If necessary, convert to title
-		firstRune, _ := utf8.DecodeRuneInString(a)
-		if !unicode.IsUpper(firstRune) || strings.ToLower(a) == a {
-			a = cases.Title(language.English).String(a)
+		firstRune, _ := utf8.DecodeRuneInString(author)
+		if !unicode.IsUpper(firstRune) {
+			author = cases.Title(language.English).String(author)
 		}
 
 		// Save to list
-		_, tracked := tracker[a]
+		_, tracked := tracker[author]
 		if !tracked {
-			tracker[a] = struct{}{}
-			listAuthor = append(listAuthor, a)
+			tracker[author] = struct{}{}
+			listAuthor = append(listAuthor, author)
 		}
 	}
 
@@ -757,7 +777,7 @@ func normalizeAuthors(authors string, input string) string {
 			fullNames = append(fullNames, author)
 		}
 	}
-	return strings.Join(fullNames, "; ")
+	return strings.Trim(strings.Join(fullNames, "; "), "; ")
 }
 
 func removeBlacklistedAuthors(current string, opts Options) string {

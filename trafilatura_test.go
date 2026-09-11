@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"bytes"
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"io"
@@ -65,6 +66,940 @@ var (
 		Config: DefaultConfig(),
 	}
 )
+
+func Test_InputSafety(test *testing.T) {
+	result, err := ExtractDocument(nil, Options{})
+	assert.Error(test, err)
+	assert.Nil(test, result)
+	failure := errors.New("reader failure")
+	_, err = Extract(iotest.ErrReader(failure), Options{})
+	assert.ErrorIs(test, err, failure)
+	for _, input := range [][]byte{{0x1f, 0x8b}, {0x1f, 0x8b, 0x00, 0x00}} {
+		result, err := Extract(bytes.NewReader(input), Options{})
+		assert.Error(test, err)
+		assert.Nil(test, result)
+	}
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	_, err = writer.Write([]byte("<html><body><p>Caf\u00e9.</p></body></html>"))
+	assert.NoError(test, err)
+	assert.NoError(test, writer.Close())
+	result, err = Extract(iotest.OneByteReader(bytes.NewReader(compressed.Bytes())), Options{InputEncoding: "utf-8"})
+	if assert.NoError(test, err) && assert.NotNil(test, result) {
+		assert.Equal(test, "Caf\u00e9.", result.ContentText)
+	}
+	_, err = Extract(bytes.NewReader(compressed.Bytes()[:compressed.Len()-4]), Options{})
+	assert.Error(test, err)
+}
+
+func Test_Python220_InputsAndOptions(test *testing.T) {
+	test.Run("test_input", func(test *testing.T) {
+		test.Run("nil", func(test *testing.T) {
+			assert.NotPanics(test, func() {
+				result, _ := Extract(nil, Options{EnableFallback: true})
+				assert.Nil(test, result)
+			})
+		})
+		for _, input := range []string{
+			"<html><body>\u00c4\u00d6\u00dc</body></html>",
+			"<html><body>\x2f\x2e\x9f</body></html>",
+		} {
+			doc, err := dom.Parse(strings.NewReader(input))
+			assert.NoError(test, err)
+			assert.NotNil(test, doc)
+		}
+		page := "<html><body><article>" + strings.Repeat("<p>Long enough article paragraph\x1d for baseline\uffff to trigger.</p>", 3) + "</article></body></html>"
+		_, text := baseline(docFromStr(page))
+		assert.NotEmpty(test, text)
+		result, err := Extract(strings.NewReader(page), Options{})
+		assert.NoError(test, err)
+		assert.NotNil(test, result)
+		result, err = Extract(strings.NewReader("<html><body><p>A\u0308ffin</p></body></html>"), zeroOpts)
+		if assert.NoError(test, err) {
+			assert.Equal(test, "\u00c4ffin", result.ContentText)
+		}
+		for _, sample := range []struct {
+			tag      string
+			accepted bool
+		}{{"p", true}, {"unexpected", false}} {
+			node := etree.Element(sample.tag)
+			etree.SetText(node, "text")
+			processed := handleTextElem(node, nil, nil, defaultOpts)
+			assert.Equal(test, sample.accepted, processed != nil)
+			if processed != nil {
+				assert.Equal(test, "text", etree.Text(processed))
+			}
+		}
+		result, err = Extract(strings.NewReader("<html><body><p>ABC</p></body></html>"), Options{EnableFallback: true})
+		if assert.NoError(test, err) && assert.NotNil(test, result) {
+			assert.Equal(test, "ABC", result.ContentText)
+		}
+		test.Run("gzip", func(test *testing.T) {
+			input, err := os.Open("test-files/mock/webpage.html.gz")
+			if !assert.NoError(test, err) {
+				return
+			}
+			defer input.Close()
+			result, err := Extract(input, Options{EnableFallback: true})
+			if assert.NoError(test, err) && assert.NotNil(test, result) {
+				assert.True(test, strings.Contains(result.ContentText, "Long story short,"), "unit_tests.py:224: gzip input must be decompressed before extraction")
+			}
+		})
+	})
+	test.Run("test_extraction_options", func(test *testing.T) {
+		input := `<html><head><meta http-equiv="content-language" content="EN"/></head><body><div="article-body"><p>Text.<!-- comment --><?php echo "This is a PHP processing instruction"; ?></p></div></body></html>`
+		highMinimum := DefaultConfig()
+		highMinimum.MinExtractedSize, highMinimum.MinExtractedCommentSize = 10000, 10000
+		highMinimum.MinOutputSize, highMinimum.MinOutputCommentSize = 10000, 10000
+		for _, sample := range []struct {
+			name     string
+			opts     Options
+			accepted bool
+		}{
+			{"configured_minimum", Options{Config: highMinimum, EnableFallback: true}, false},
+			{"zero_minimum", zeroOpts, true},
+			{"optional_metadata", Options{Config: zeroConfig, EnableFallback: true}, true},
+			{"essential_metadata", Options{Config: zeroConfig, EnableFallback: true, HasEssentialMetadata: true}, false},
+			{"wrong_language", Options{Config: zeroConfig, EnableFallback: true, TargetLanguage: "de"}, false},
+			{"wrong_language_fast", Options{Config: zeroConfig, TargetLanguage: "de"}, false},
+		} {
+			test.Run(sample.name, func(test *testing.T) {
+				result, _ := Extract(strings.NewReader(input), sample.opts)
+				assert.Equal(test, sample.accepted, result != nil)
+			})
+		}
+		large := "<html><head/><body>" + strings.Repeat("<p>ABC def ghi jkl.</p>", 1000) + "<p>Posted on 1st Dec 2019<.</p></body></html>"
+		result, err := Extract(strings.NewReader(large), zeroOpts)
+		if assert.NoError(test, err) {
+			assert.False(test, result.Metadata.Date.IsZero())
+		}
+		result, err = Extract(strings.NewReader(large), Options{Config: highMinimum, EnableFallback: true, HtmlDateMode: Fast})
+		if assert.NoError(test, err) && assert.NotNil(test, result) {
+			assert.True(test, result.Metadata.Date.IsZero())
+		}
+		test.Run("with_metadata_false", func(test *testing.T) {
+			test.Skip("Go always returns metadata; Python's with_metadata=False option has no equivalent")
+		})
+	})
+	test.Run("test_extract_with_metadata", func(test *testing.T) {
+		address, err := nurl.Parse("http://aa.bb/cc.html")
+		if !assert.NoError(test, err) {
+			return
+		}
+		for _, sample := range []struct{ input, title, date string }{
+			{"<html>\n        <head></head>\n        <body>\n        <article>\n        <p>AAA, <p>BBB</p>, CCC.</p>\n        </article>\n        </body>\n        </html>\n    ", "", ""},
+			{"<html>\n        <head><title>title</title></head>\n        <body>\n        <article>\n        <div>May 24, 2021</div>\n        <p>AAA, <p>BBB</p>, CCC.</p>\n        </article>\n        </body>\n        </html>\n    ", "title", "2021-05-24"},
+		} {
+			result, err := Extract(strings.NewReader(sample.input), Options{OriginalURL: address, HtmlDateMode: Extensive})
+			if !assert.NoError(test, err) {
+				continue
+			}
+			for _, text := range []string{"AAA", "BBB", "CCC"} {
+				assert.Contains(test, result.ContentText, text)
+			}
+			assert.Equal(test, address.String(), result.Metadata.URL)
+			assert.Equal(test, sample.title, result.Metadata.Title)
+			if sample.date == "" {
+				assert.True(test, result.Metadata.Date.IsZero())
+			} else {
+				assert.Equal(test, sample.date, result.Metadata.Date.Format("2006-01-02"))
+			}
+		}
+		result, _ := Extract(strings.NewReader(`<html><head><meta http-equiv="content-language" content="es"></head><body><article><p>AAA, <p>BBB</p>, CCC.</p></article></body></html>`), Options{TargetLanguage: "en"})
+		assert.Nil(test, result)
+	})
+	test.Run("test_large_doc_performance", func(test *testing.T) {
+		input := "<html><body>" + strings.Repeat("<p>Sample text</p>", 10000) + "</body></html>"
+		start := time.Now()
+		_, _ = Extract(strings.NewReader(input), zeroOpts)
+		assert.Less(test, time.Since(start), 5*time.Second)
+	})
+	test.Run("test_wrong_language_discarded", func(test *testing.T) {
+		result, _ := Extract(strings.NewReader("<html><body>"+strings.Repeat("<p>Questo testo non \u00e8 affatto in lingua inglese.</p>", 20)+"</body></html>"), Options{TargetLanguage: "en", Config: zeroConfig, EnableFallback: true})
+		assert.Nil(test, result)
+	})
+	test.Run("test_lang_detection", func(test *testing.T) {
+		for _, sample := range []struct{ input, expected string }{{"<html><body><p>Texto en espa\u00f1ol</p></body></html>", "es"}, {"<html><body><p>Texte en fran\u00e7ais</p></body></html>", "fr"}} {
+			result, err := Extract(strings.NewReader(sample.input), zeroOpts)
+			if assert.NoError(test, err) {
+				assert.Equal(test, sample.expected, languageClassifier(result.ContentText, ""))
+			}
+		}
+	})
+	test.Run("test_html_conversion", func(test *testing.T) {
+		for _, title := range []string{"Title", "Title 1"} {
+			input := "<html><body><article><h1>" + title + "</h1><p>Text.</p></article></body></html>"
+			result, err := Extract(strings.NewReader(input), Options{Config: zeroConfig, EnableFallback: true})
+			if assert.NoError(test, err) && assert.NotNil(test, result) {
+				assert.Equal(test, "<body><h1>"+title+"</h1><p>Text.</p></body>", etree.ToString(result.ContentNode))
+				if title == "Title 1" {
+					assert.Equal(test, title, result.Metadata.Title)
+				}
+			}
+		}
+		input := `<html><body><article><p>Body text here.</p><img src="pic.jpg" alt="a"/></article></body></html>`
+		result, err := Extract(strings.NewReader(input), Options{Config: zeroConfig, EnableFallback: true, IncludeImages: true})
+		if assert.NoError(test, err) && assert.NotNil(test, result) {
+			assert.Contains(test, etree.ToString(result.ContentNode), `<img src="pic.jpg" alt="a"/>`)
+			assert.Nil(test, dom.QuerySelector(result.ContentNode, "graphic"))
+		}
+	})
+}
+
+func Test_Python220_ImagesAndLinks(test *testing.T) {
+	extract := func(test *testing.T, input string, options Options) *ExtractResult {
+		test.Helper()
+		result, err := Extract(strings.NewReader(input), options)
+		if !assert.NoError(test, err) || !assert.NotNil(test, result) {
+			test.FailNow()
+		}
+		return result
+	}
+	test.Run("test_images", func(test *testing.T) {
+		input, err := os.ReadFile("test-files/simple/http_sample.html")
+		if !assert.NoError(test, err) {
+			return
+		}
+		result := extract(test, string(input), Options{EnableFallback: true})
+		assert.Nil(test, dom.QuerySelector(result.ContentNode, `img[src="test.jpg"]`), "unit_tests.py:886")
+		result = extract(test, string(input), Options{IncludeImages: true})
+		assert.NotNil(test, dom.QuerySelector(result.ContentNode, `img[src="test.jpg"][title="Example image"]`), "unit_tests.py:887")
+		for _, sample := range []struct {
+			line                   int
+			input, address, source string
+		}{
+			{895, `<img data-src="test.jpg" alt="text" title="a title"/>`, "", "test.jpg"},
+			{896, `<p><img data-src="test.jpg" alt="text" title="a title"/></p>`, "", "test.jpg"},
+			{897, `<p><img other="test.jpg" alt="text" title="a title"/></p>`, "", ""},
+			{898, `<div><p><img data-src="test.jpg" alt="text" title="a title"/></p></div>`, "", "test.jpg"},
+			{899, `<div><p><img data-src-small="test.jpg" alt="text" title="a title"/></p></div>`, "", "test.jpg"},
+			{900, `<div><p><img src="https://a.b/test.jpg" alt="text" title="a title"/></p></div>`, "", "https://a.b/test.jpg"},
+			{906, `<div><p><img src="//a.b/test.jpg" alt="text" title="a title"/></p></div>`, "http://a.b/c/d.html", "http://a.b/test.jpg"},
+			{910, `<div><p><img src="/a.b/test.jpg" alt="text" title="a title"/></p></div>`, "http://a.b/c/d.html", "http://a.b/a.b/test.jpg"},
+			{914, `<div><p><img src="./a.b/test.jpg" alt="text" title="a title"/></p></div>`, "http://a.b/c/d.html", "http://a.b/c/a.b/test.jpg"},
+			{918, `<div><p><img src="../a.b/test.jpg" alt="text" title="a title"/></p></div>`, "http://a.b/c/d.html", "http://a.b/a.b/test.jpg"},
+		} {
+			test.Run(fmt.Sprintf("line_%d", sample.line), func(test *testing.T) {
+				options := Options{Config: zeroConfig, IncludeImages: true}
+				if sample.address != "" {
+					options.OriginalURL, err = nurl.Parse(sample.address)
+					if !assert.NoError(test, err) {
+						return
+					}
+				}
+				result := extract(test, "<html><body><article>"+sample.input+"</article></body></html>", options)
+				images := dom.GetElementsByTagName(result.ContentNode, "img")
+				if sample.source == "" {
+					assert.Empty(test, images)
+					assert.Empty(test, result.ContentText)
+					return
+				}
+				if assert.Len(test, images, 1) {
+					assert.Equal(test, sample.source, dom.GetAttribute(images[0], "src"))
+					assert.Equal(test, "text", dom.GetAttribute(images[0], "alt"))
+					assert.Equal(test, "a title", dom.GetAttribute(images[0], "title"))
+				}
+			})
+		}
+	})
+	test.Run("test_links", func(test *testing.T) {
+		for _, sample := range []struct {
+			line                   int
+			input, address, target string
+		}{
+			{961, `<html><body><p><a href="testlink.html">Test link text.</a> This part of the text has to be long enough.</p></body></html>`, "", "testlink.html"},
+			{965, `<html><body><p><a href="testlink.html">Test link text.</a> This part of the text has to be long enough.</p></body></html>`, "https://www.example.com/", "https://www.example.com/testlink.html"},
+			{972, `<html><body><p><a>Test link text.</a> This part of the text has to be long enough.</p></body></html>`, "", ""},
+		} {
+			test.Run(fmt.Sprintf("line_%d", sample.line), func(test *testing.T) {
+				options := Options{IncludeLinks: true, Config: zeroConfig}
+				if sample.address != "" {
+					address, err := nurl.Parse(sample.address)
+					if !assert.NoError(test, err) {
+						return
+					}
+					options.OriginalURL = address
+				}
+				result := extract(test, sample.input, options)
+				links := dom.GetElementsByTagName(result.ContentNode, "a")
+				if assert.Len(test, links, 1) {
+					assert.Equal(test, sample.target, dom.GetAttribute(links[0], "href"))
+					assert.Equal(test, "Test link text.", dom.TextContent(links[0]))
+					assert.Equal(test, " This part of the text has to be long enough.", etree.Tail(links[0]))
+				}
+			})
+		}
+		input, err := os.ReadFile("test-files/simple/http_sample.html")
+		if !assert.NoError(test, err) {
+			return
+		}
+		result := extract(test, string(input), Options{IncludeLinks: true, Config: zeroConfig})
+		link := dom.QuerySelector(result.ContentNode, `a[href="testlink.html"]`)
+		if assert.NotNil(test, link, "unit_tests.py:983") {
+			assert.Equal(test, "link", dom.TextContent(link))
+		}
+		result = extract(test, `<html><body><p>Test text under <a rel="license" href="">CC BY-SA license</a>.</p></body></html>`, Options{IncludeLinks: true, Config: zeroConfig})
+		assert.Equal(test, "CC BY-SA license", result.Metadata.License, "unit_tests.py:989")
+	})
+}
+
+func Test_Python220_Structures(test *testing.T) {
+	extractBody := func(test *testing.T, input string, options Options) *html.Node {
+		test.Helper()
+		options.Config = zeroConfig
+		result, err := Extract(strings.NewReader("<html><body><article><p>enough intro text here for extraction</p>"+input+"</article></body></html>"), options)
+		if !assert.NoError(test, err) {
+			test.FailNow()
+		}
+		return result.ContentNode
+	}
+	for _, sample := range []struct{ name, input, selector, expected string }{
+		{"test_blockquote_inline_content/bold", "<blockquote><p>A <b>bold</b> word</p></blockquote>", "blockquote", "<blockquote><p>A <b>bold</b> word</p></blockquote>"},
+		{"test_blockquote_inline_content/link", "<blockquote><p>see <a href='http://x.com'>link</a></p></blockquote>", "blockquote", `<blockquote><p>see <a href="http://x.com">link</a></p></blockquote>`},
+		{"test_blockquote_inline_content/image", "<blockquote><p>text</p><img src='x.jpg' alt='img'/></blockquote>", "blockquote", `<blockquote><p>text</p><img src="x.jpg" alt="img"/></blockquote>`},
+		{"test_list_item_block_child_single_bullet", "<ul><li><p>x <b>bold</b> y</p></li></ul>", "ul", "<ul><li><p>x</p><b>bold</b> y</li></ul>"},
+		{"test_list_item_image_gets_bullet", "<ul><li><img src='/i.jpg' alt='a'></li><li>plain</li></ul>", "ul", `<ul><li><img src="/i.jpg" alt="a"/></li><li>plain</li></ul>`},
+		{"test_ordered_list_numbering/three", "<ol><li>one</li><li>two</li><li>three</li></ol>", "ol", "<ol><li>one</li><li>two</li><li>three</li></ol>"},
+		{"test_ordered_list_numbering/one", "<ol><li>only</li></ol>", "ol", "<ol><li>only</li></ol>"},
+		{"test_ordered_list_numbering/unordered", "<ul><li>a</li><li>b</li></ul>", "ul", "<ul><li>a</li><li>b</li></ul>"},
+		{"test_nested_list_indentation/unordered", "<ul><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ul>", "ul", "<ul><li>a<ul><li>b</li><li>c</li></ul></li><li>d</li></ul>"},
+		{"test_nested_list_indentation/ordered", "<ul><li>a<ol><li>b</li></ol></li></ul>", "ul", "<ul><li>a<ol><li>b</li></ol></li></ul>"},
+		{"test_list_item_link_with_inline_formatting/bold", "<ul><li>see <a href='http://x.com'><b>bold link</b></a> here</li></ul>", "ul", `<ul><li>see <a href="http://x.com"><b>bold link</b></a> here</li></ul>`},
+		{"test_list_item_link_with_inline_formatting/mixed", "<ul><li>see <a href='http://x.com'>link <b>bold</b></a> here</li></ul>", "ul", `<ul><li>see <a href="http://x.com">link <b>bold</b></a> here</li></ul>`},
+		{"test_paragraph_link_with_inline_formatting", "<p>see <a href='http://x.com'><b>bold</b></a> more</p>", "p:last-child", `<p>see <a href="http://x.com"><b>bold</b></a> more</p>`},
+		{"test_nested_inline_formatting/paragraph", "<p>text <b><i>nested</i></b> end</p>", "p:last-child", "<p>text <b><i>nested</i></b> end</p>"},
+		{"test_nested_inline_formatting/prefix", "<p><b>prefix <i>italic</i></b></p>", "p:last-child", "<p><b>prefix <i>italic</i></b></p>"},
+		{"test_nested_inline_formatting/list", "<ul><li>text <b><i>nested</i></b> end</li></ul>", "ul", "<ul><li>text <b><i>nested</i></b> end</li></ul>"},
+		{"test_blockquote_bare_inline", "<blockquote><b>bold</b> text here</blockquote>", "blockquote", "<blockquote><b>bold</b> text here</blockquote>"},
+		{"test_del_and_code_in_non_paragraph_contexts/top", "<del>gone</del>", "del", "<del>gone</del>"},
+		{"test_del_and_code_in_non_paragraph_contexts/list", "<ul><li>text <del>struck</del> more</li></ul>", "ul", "<ul><li>text <del>struck</del> more</li></ul>"},
+		{"test_del_and_code_in_non_paragraph_contexts/quote", "<blockquote>text <del>struck</del> more</blockquote>", "blockquote", "<blockquote>text <del>struck</del> more</blockquote>"},
+		{"test_del_and_code_in_non_paragraph_contexts/code", "<ul><li>use <code>func()</code> here</li></ul>", "ul", "<ul><li>use <code>func()</code> here</li></ul>"},
+		{"test_hi_del_nesting_with_direct_text", "<p>before <b>bold <del>struck</del></b></p>", "p:last-child", "<p>before <b>bold <del>struck</del></b></p>"},
+		{"test_image_tail_not_duplicated", "<ul><li>a <img src='i.jpg' alt='A'/> b</li></ul>", "ul", `<ul><li>a <img src="i.jpg" alt="A"/> b</li></ul>`},
+	} {
+		test.Run(sample.name, func(test *testing.T) {
+			body := extractBody(test, sample.input, Options{IncludeLinks: true, IncludeImages: true, EnableFallback: true})
+			element := dom.QuerySelector(body, sample.selector)
+			if assert.NotNil(test, element) {
+				assert.Equal(test, etree.ToString(python220Element(test, sample.expected)), etree.ToString(element))
+			}
+		})
+	}
+	test.Run("test_list_item_attr_whitelist", func(test *testing.T) {
+		body := extractBody(test, `<ul><li>x <img src="p.jpg" class="c" width="9" alt="a"/> <a href="http://x.io" class="q">lnk</a> y</li></ul>`, Options{IncludeImages: true, IncludeLinks: true, Focus: FavorRecall, EnableFallback: true})
+		image := dom.QuerySelector(body, "img")
+		if assert.NotNil(test, image) {
+			assert.Equal(test, "p.jpg", dom.GetAttribute(image, "src"))
+			assert.Equal(test, "a", dom.GetAttribute(image, "alt"))
+		}
+		assert.Empty(test, dom.QuerySelectorAll(body, "[class], [width]"))
+		assert.NotNil(test, dom.QuerySelector(body, `a[href="http://x.io"]`))
+	})
+	test.Run("test_include_images_does_not_truncate", func(test *testing.T) {
+		lead := strings.Repeat("This single lead paragraph is deliberately long enough to exceed the minimum extracted size. ", 4)
+		input := "<html><body><article><img src='/lead.jpg' alt='lead'><p>" + lead + "</p></article><div id='content'>"
+		for index := 1; index < 5; index++ {
+			input += fmt.Sprintf("<p>Continuation paragraph %d that must also survive extraction in full here.</p>", index)
+		}
+		input += "</div></body></html>"
+		result, err := Extract(strings.NewReader(input), Options{IncludeImages: true, EnableFallback: true})
+		if !assert.NoError(test, err) {
+			return
+		}
+		assert.NotNil(test, dom.QuerySelector(result.ContentNode, `img[src="/lead.jpg"]`))
+		for index := 1; index < 5; index++ {
+			assert.Contains(test, result.ContentText, fmt.Sprintf("Continuation paragraph %d", index))
+		}
+	})
+	test.Run("test_table_cell_keeps_nested_formatting", func(test *testing.T) {
+		for _, sample := range []struct{ input, selector, expected string }{{"<p><b>bold</b></p>", "b", "bold"}, {"<p><img src='/i.jpg' alt='a'></p>", "img", ""}, {"<p>pre <b>mid</b> post</p>", "b", "mid"}, {"<p>x <del>gone</del> y</p>", "del", "gone"}, {"<p>x <code>c</code> y</p>", "code", "c"}} {
+			body := extractBody(test, "<table><tr><td>"+sample.input+"</td><td>x</td></tr></table>", Options{IncludeImages: true, EnableFallback: true})
+			element := dom.QuerySelector(body, "td "+sample.selector)
+			if assert.NotNil(test, element) {
+				assert.Equal(test, sample.expected, dom.TextContent(element))
+				if sample.selector == "img" {
+					assert.Equal(test, "/i.jpg", dom.GetAttribute(element, "src"))
+					assert.Equal(test, "a", dom.GetAttribute(element, "alt"))
+				}
+			}
+		}
+	})
+	test.Run("test_table_image_in_cell", func(test *testing.T) {
+		address := "http://aa.bb/c.jpg"
+		for _, sample := range []struct {
+			input string
+			alts  []string
+			text  string
+		}{
+			{`<td>a<img src="` + address + `" alt="img"/><span>a</span></td>`, []string{"img"}, "aa"},
+			{`<td><a href="` + address + `"><img src="` + address + `" alt="img"/><span>a</span></a></td>`, []string{"img"}, "a"},
+			{`<td><img src="` + address + `" alt="img"/><span>a</span></td>`, []string{"img"}, "a"},
+			{`<td><img src="` + address + `" alt="img1"/><span>a</span><img src="` + address + `" alt="img2"/></td>`, []string{"img1", "img2"}, "a"},
+		} {
+			body := extractBody(test, "<table><tr><td>a</td><td>b</td><td>c</td></tr><tr>"+sample.input+"<td><p>b</p><p>c</p></td><td>d</td></tr></table>", Options{IncludeImages: true})
+			rows := dom.QuerySelectorAll(body, "tr")
+			if !assert.Len(test, rows, 2) {
+				continue
+			}
+			cells := dom.Children(rows[1])
+			if !assert.Len(test, cells, 3) {
+				continue
+			}
+			assert.Equal(test, sample.text, noSpace(dom.TextContent(cells[0])))
+			assert.Equal(test, "b c", trim(etree.IterText(cells[1], " ")))
+			assert.Equal(test, "d", dom.TextContent(cells[2]))
+			var alts []string
+			for _, image := range dom.QuerySelectorAll(cells[0], "img") {
+				assert.Equal(test, address, dom.GetAttribute(image, "src"))
+				alts = append(alts, dom.GetAttribute(image, "alt"))
+			}
+			assert.Equal(test, sample.alts, alts)
+		}
+	})
+	combo := `<p>Intro with a <a href="http://x.io/p">link</a> and <b>bold</b> word.</p><table><tr><td>h1</td><td>h2</td></tr><tr><td><a href="http://x.io/c"><b>bold link</b></a></td><td><img src="http://x.io/i.jpg" alt="pic"/></td></tr></table>`
+	for _, disabled := range []string{"", "include_links", "include_images", "include_tables"} {
+		name := "test_combined_links_formatting_images_tables"
+		if disabled != "" {
+			name = "test_combined_flags_toggle_off/" + disabled
+		}
+		test.Run(name, func(test *testing.T) {
+			body := extractBody(test, combo, Options{IncludeImages: disabled != "include_images", IncludeLinks: disabled != "include_links", ExcludeTables: disabled == "include_tables", EnableFallback: true})
+			assert.Contains(test, dom.TextContent(body), "Intro with a link and bold word.")
+			assert.NotNil(test, dom.QuerySelector(body, "p b"))
+			assert.Equal(test, disabled != "include_links", dom.QuerySelector(body, `a[href="http://x.io/p"]`) != nil)
+			assert.Equal(test, disabled != "include_tables", dom.QuerySelector(body, "table") != nil)
+			if disabled != "include_tables" {
+				assert.NotNil(test, dom.QuerySelector(body, "td b"))
+				assert.Equal(test, disabled != "include_links", dom.QuerySelector(body, `td a[href="http://x.io/c"]`) != nil)
+				assert.Equal(test, disabled != "include_images", dom.QuerySelector(body, `td img[src="http://x.io/i.jpg"][alt="pic"]`) != nil)
+			}
+		})
+	}
+	test.Run("test_combined_flags_toggle_off/include_formatting", func(test *testing.T) {
+		test.Skip("Go always preserves HTML formatting; Python's Markdown-formatting toggle has no equivalent")
+	})
+}
+
+func Test_Python220_Filters(test *testing.T) {
+	test.Run("test_filters/language_filter", func(test *testing.T) {
+		assert.Equal(test, "de", languageClassifier("Hier ist ein Text auf Deutsch", ""))
+		assert.NotEqual(test, "en", languageClassifier("Hier ist ein Text auf Deutsch", ""))
+		assert.Equal(test, "de", languageClassifier("Hier ist ein Text.", "Die Kommentare sind aber etwas l\u00e4nger."))
+		input := "<html><body><article><p>How many ages hence/Shall this our lofty scene be acted over,/In states unborn and accents yet unknown!</p></article></body></html>"
+		for _, language := range []string{"de", "en"} {
+			result, _ := Extract(strings.NewReader(input), Options{Config: zeroConfig, EnableFallback: true, TargetLanguage: language})
+			assert.Equal(test, language == "en", result != nil, language)
+		}
+		paragraph := "<p>In sleep a king, but waking no such matter.</p>"
+		for _, sample := range []struct {
+			htmlLanguage, target string
+			fallback, accepted   bool
+		}{{"en-US", "en", false, true}, {"en-US", "de", false, false}, {"de-DE", "de", true, false}} {
+			result, _ := Extract(strings.NewReader(`<html lang="`+sample.htmlLanguage+`"><body>`+strings.Repeat(paragraph, 50)+`</body></html>`), Options{TargetLanguage: sample.target, EnableFallback: sample.fallback})
+			assert.Equal(test, sample.accepted, result != nil, sample)
+		}
+	})
+	test.Run("test_filters/max_tree_size", func(test *testing.T) {
+		for _, sample := range []struct {
+			paragraph string
+			count     int
+			accepted  bool
+		}{{"<p>abc</p>", 50, true}, {"<p>abc</p>", 501, false}, {`<p><hi rend="#i">abc</hi></p>`, 501, false}, {`<p><hi rend="#i">abc</hi></p>`, 499, true}} {
+			doc := python220Element(test, "<html><body>"+strings.Repeat(sample.paragraph, sample.count)+"</body></html>")
+			result, _ := ExtractDocument(doc, Options{MaxTreeSize: 500, EnableFallback: true})
+			assert.Equal(test, sample.accepted, result != nil, sample)
+		}
+		assert.Zero(test, Options{}.MaxTreeSize)
+	})
+	test.Run("test_filters/check_html_lang", func(test *testing.T) {
+		for _, sample := range []struct {
+			input, language  string
+			strict, expected bool
+		}{
+			{`<html><body></body></html>`, "en", false, true},
+			{`<html lang="de_DE, en_US"><body></body></html>`, "de", false, true},
+			{`<html lang="de_DE, en_US"><body></body></html>`, "en", false, true},
+			{`<html lang="de_DE, en_US"><body></body></html>`, "de", true, true},
+			{`<html lang="de_DE, en_US"><body></body></html>`, "en", true, true},
+			{`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`, "en", false, true},
+			{`<html><head><meta http-equiv="content-language" content="en"></head><body></body></html>`, "de", false, false},
+			{`<html><head><meta http-equiv="content-language" content="DE"></head><body></body></html>`, "de", false, true},
+			{`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`, "de", false, true},
+			{`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`, "en", false, false},
+			{`<html lang="en"><body></body></html>`, "it", true, false},
+			{`<html lang="en"><body></body></html>`, "it", false, true},
+			{`<html lang="en-US"><head><meta property="og:locale" content="de_DE" /></head><body></body></html>`, "de", true, true},
+		} {
+			assert.Equal(test, sample.expected, checkHtmlLanguage(docFromStr(sample.input), Options{TargetLanguage: sample.language}, sample.strict), sample)
+		}
+	})
+	test.Run("test_filters/url_blacklist", func(test *testing.T) {
+		test.Skip("Go Options has no URL blacklist; this Python option has no Go API equivalent")
+	})
+	test.Run("test_filters/config_file", func(test *testing.T) {
+		test.Skip("Python configuration-file loading is excluded; MaxTreeSize is tested through Go Options")
+	})
+	test.Run("test_prune_xpath", func(test *testing.T) {
+		body := strings.Repeat("<p>abc</p>", 50)
+		for _, sample := range []struct{ body, selector, expected string }{{body, "p", ""}, {"<h1>ABC</h1>" + body, "p", "ABC"}, {"<h1>ABC</h1>" + body, "p, h1", ""}, {"<h1>ABC</h1><h2>42</h2>" + body, "p, h1", "42"}} {
+			input := "<html><body>" + sample.body + "</body></html>"
+			result, err := Extract(strings.NewReader(input), Options{PruneSelector: sample.selector, EnableFallback: true, Config: zeroConfig})
+			if assert.NoError(test, err) {
+				assert.Equal(test, sample.expected, result.ContentText)
+			}
+			result, err = Extract(strings.NewReader(input), Options{EnableFallback: true, Config: zeroConfig})
+			if assert.NoError(test, err) {
+				assert.NotEmpty(test, result.ContentText)
+			}
+		}
+		result, err := Extract(strings.NewReader("<html><body><p>abc</p></body></html><!-- comment -->"), Options{EnableFallback: true, Config: zeroConfig})
+		if assert.NoError(test, err) {
+			assert.Equal(test, "abc", result.ContentText)
+		}
+		test.Run("comment_xpath", func(test *testing.T) {
+			test.Skip("CSS PruneSelector cannot select comment nodes; normal comment removal is checked above")
+		})
+	})
+}
+
+func Test_Python220_Deduplication(test *testing.T) {
+	test.Run("test_lrucache", func(test *testing.T) {
+		cache := lru.NewCache(2)
+		first := python220Element(test, "<body><p>AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB AAAA BBBB</p></body>")
+		second := python220Element(test, "<body><p>CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD CCCC DDDD</p></body>")
+		third := python220Element(test, "<body><p>EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF EEEE FFFF</p></body>")
+		firstParagraph, secondParagraph, thirdParagraph := dom.Children(first)[0], dom.Children(second)[0], dom.Children(third)[0]
+		for _, sample := range []struct {
+			node      *html.Node
+			duplicate bool
+		}{{firstParagraph, false}, {firstParagraph, false}, {first, false}, {firstParagraph, true}, {second, false}, {secondParagraph, false}, {second, false}, {secondParagraph, true}, {third, false}, {third, false}, {third, false}, {secondParagraph, true}, {thirdParagraph, true}, {firstParagraph, false}} {
+			assert.Equal(test, sample.duplicate, duplicateTest(sample.node, cache, defaultOpts))
+		}
+		cache.Clear()
+		assert.False(test, duplicateTest(secondParagraph, cache, defaultOpts))
+		_, found := cache.Get("tralala")
+		assert.False(test, found)
+	})
+	test.Run("test_dedup/paragraph", func(test *testing.T) {
+		cache := lru.NewCache(2)
+		paragraph := python220Element(test, "<p>"+strings.Repeat("abc", 50)+"</p>")
+		opts := defaultOpts
+		opts.Deduplicate = true
+		for index := range 4 {
+			assert.Equal(test, index < 3, processNode(paragraph, cache, opts) != nil)
+		}
+	})
+	test.Run("test_dedup/cross_document", func(test *testing.T) {
+		test.Skip("Go creates an extraction-local cache; there is no Python-style process-global LRU_TEST")
+	})
+	test.Run("test_dedup_reset_caches", func(test *testing.T) { test.Skip("Go has no process-global extraction cache or reset_caches API") })
+	for _, name := range []string{"test_hashes", "test_content_fingerprint", "test_simhash", "test_sample_tokens"} {
+		test.Run(name, func(test *testing.T) {
+			test.Skip("Standalone hashing, Simhash, and token APIs are excluded by the port scope")
+		})
+	}
+}
+
+func Test_Python220_Tables(test *testing.T) {
+	tableCells := func(test *testing.T, input string, opts Options) [][]string {
+		test.Helper()
+		opts.Config = zeroConfig
+		result, err := Extract(strings.NewReader("<html><body><article><p>enough intro text here for extraction</p>"+input+"</article></body></html>"), opts)
+		if !assert.NoError(test, err) {
+			return nil
+		}
+		table := dom.QuerySelector(result.ContentNode, "table")
+		if !assert.NotNil(test, table) {
+			return nil
+		}
+		var rows [][]string
+		for _, row := range dom.QuerySelectorAll(table, "tr") {
+			var cells []string
+			for _, cell := range dom.Children(row) {
+				cells = append(cells, trim(etree.IterText(cell, " ")))
+			}
+			rows = append(rows, cells)
+		}
+		return rows
+	}
+	for _, sample := range []struct {
+		name, input string
+		expected    [][]string
+		recall      bool
+	}{
+		{"test_table_colspan_padding", "<table><tr><td colspan='2'>a</td><td>b</td></tr><tr><td>c</td><td>d</td><td>e</td></tr></table>", [][]string{{"a", "", "b"}, {"c", "d", "e"}}, false},
+		{"test_table_rowspan_aligned", "<table><tr><td rowspan='2'>x</td><td>a</td></tr><tr><td>b</td></tr></table>", [][]string{{"x", "a"}, {"", "b"}}, false},
+		{"test_table_rowspan_colspan_combined", "<table><tr><td rowspan='2' colspan='2'>big</td><td>c</td></tr><tr><td>x</td></tr></table>", [][]string{{"big", "", "c"}, {"", "", "x"}}, false},
+		{"test_table_rowspan_decrement_on_padding", "<table><tr><td>a</td><td rowspan='2'>b</td><td>c</td></tr><tr><td>x</td></tr><tr><td>d</td><td>e</td><td>f</td></tr></table>", [][]string{{"a", "b", "c"}, {"x", "", ""}, {"d", "e", "f"}}, false},
+		{"test_table_empty_cells_and_rows/leading-empty", "<table><tr><td></td><td>b</td></tr></table>", [][]string{{"", "b"}}, false},
+		{"test_table_empty_cells_and_rows/trailing-empty", "<table><tr><td>a</td><td></td></tr></table>", [][]string{{"a", ""}}, false},
+		{"test_table_empty_cells_and_rows/all-empty-row-dropped", "<table><tr><td>a</td><td>b</td></tr><tr><td></td><td></td></tr></table>", [][]string{{"a", "b"}}, false},
+		{"test_table_empty_cells_and_rows/empty-row-middle", "<table><tr><td>a</td><td>c</td></tr><tr><td></td><td></td></tr><tr><td>d</td><td>e</td></tr></table>", [][]string{{"a", "c"}, {"d", "e"}}, false},
+		{"test_table_empty_cells_and_rows/empty-tr", "<table><tr><td>a</td><td>c</td></tr><tr></tr><tr><td>d</td><td>e</td></tr></table>", [][]string{{"a", "c"}, {"d", "e"}}, false},
+		{"test_table_cell_block_elements_flattened/heading", "<table><tr><td><h2>Title</h2></td><td>b</td></tr></table>", [][]string{{"Title", "b"}}, false},
+		{"test_table_cell_block_elements_flattened/paragraph", "<table><tr><td><p>para</p></td><td>b</td></tr></table>", [][]string{{"para", "b"}}, false},
+		{"test_table_cell_block_elements_flattened/heading-plus-tail", "<table><tr><td><h2>Title</h2>txt</td><td>b</td></tr></table>", [][]string{{"Title txt", "b"}}, false},
+		{"test_table_cell_block_elements_flattened/list-recall", "<table><tr><td><ul><li>i1</li><li>i2</li></ul></td><td>b</td></tr></table>", [][]string{{"i1 i2", "b"}}, true},
+	} {
+		test.Run(sample.name, func(test *testing.T) {
+			opts := Options{EnableFallback: true}
+			if sample.recall {
+				opts.Focus = FavorRecall
+			}
+			assert.Equal(test, sample.expected, tableCells(test, sample.input, opts))
+		})
+	}
+	test.Run("test_table_colspan_content", func(test *testing.T) {
+		for _, count := range []int{1, 2} {
+			input := "<table><tr><td>a</td><td>b</td><td>c</td></tr>" + strings.Repeat("<tr><td>a</td><td colspan='2'><p>b</p><p>c</p></td></tr>", count) + "</table>"
+			rows := tableCells(test, input, Options{})
+			if assert.Len(test, rows, count+1) {
+				assert.Equal(test, []string{"a", "b", "c"}, rows[0])
+				for _, row := range rows[1:] {
+					assert.Equal(test, []string{"a", "b c", ""}, row)
+				}
+			}
+		}
+	})
+	test.Run("test_table_bad_span_attr_treated_as_colspan1", func(test *testing.T) {
+		for _, attribute := range []string{`span="2"`, `span="2.1"`, `span="-1"`, `span="abc"`} {
+			rows := tableCells(test, "<table><tr><td "+attribute+">a</td><td>b</td></tr><tr><td>c</td><td>d</td><td>e</td></tr></table>", Options{})
+			if assert.NotEmpty(test, rows) {
+				assert.Equal(test, []string{"a", "b", ""}, rows[0])
+			}
+		}
+	})
+	test.Run("test_colspan_zero_trust", func(test *testing.T) {
+		for _, sample := range []struct {
+			span     string
+			expected int
+		}{{"1", 1}, {"3", 3}, {"12", 12}, {"\u00b2", 1}, {"1\u00b2", 1}, {"2x", 1}, {"", 1}, {"-2", 1}} {
+			assert.Equal(test, sample.expected, tableSpan(python220Element(test, `<td colspan="`+sample.span+`">x</td>`), "colspan"), sample.span)
+		}
+	})
+	test.Run("test_table_huge_or_bad_colspan_no_crash", func(test *testing.T) {
+		for _, first := range []string{`<td colspan="9007199254740991">a</td>`, `<th colspan="9007199254740991">a</th>`, `<td colspan="2x">a</td>`} {
+			assert.NotNil(test, tableCells(test, "<table><tr>"+first+"<td>b</td></tr><tr><td>c</td><td>d</td><td>e</td></tr></table>", Options{}))
+		}
+	})
+	for _, sample := range []struct {
+		name, input   string
+		with, without []string
+	}{
+		{"test_table_nested_in_cell", "<table><tr><td>A</td></tr><tr><td><table><tr><td>inner</td></tr></table></td></tr><tr><td>AFTER</td></tr></table>", []string{"A", "AFTER"}, []string{"inner"}},
+		{"test_table_nested_tail_preserved", "<table><tr><td>before<table><tr><td>inner</td></tr></table>after-tail</td></tr></table>", []string{"before", "after-tail"}, []string{"inner"}},
+		{"test_table_nested_tail_with_prior_child", "<table><tr><td><del>struck</del><table><tr><td>inner</td></tr></table>after-tail</td></tr></table>", []string{"after-tail"}, []string{"inner"}},
+		{"test_table_comment_in_row", "<table><tr><!-- ignored --><td>visible</td></tr></table>", []string{"visible"}, nil},
+	} {
+		test.Run(sample.name, func(test *testing.T) {
+			table := handleTable(python220Element(test, sample.input), maps.Clone(tagCatalog), nil, defaultOpts)
+			if !assert.NotNil(test, table) {
+				return
+			}
+			text := dom.TextContent(table)
+			for _, expected := range sample.with {
+				assert.Contains(test, text, expected)
+			}
+			for _, unwanted := range sample.without {
+				assert.NotContains(test, text, unwanted)
+			}
+		})
+	}
+	test.Run("test_table_orphan_cells_no_tr", func(test *testing.T) {
+		table := handleTable(python220Element(test, "<table><td>a</td><td>b</td></table>"), maps.Clone(tagCatalog), nil, defaultOpts)
+		var texts []string
+		for _, cell := range dom.QuerySelectorAll(table, "td, th") {
+			texts = append(texts, etree.Text(cell))
+		}
+		assert.Equal(test, []string{"a", "b"}, texts)
+	})
+	test.Run("test_table_stray_cell_descendant", func(test *testing.T) {
+		table := handleTable(python220Element(test, "<table><tr><td><div><td>inner</td></div></td></tr></table>"), maps.Clone(tagCatalog), nil, defaultOpts)
+		var texts []string
+		for _, cell := range dom.QuerySelectorAll(table, "td, th") {
+			texts = append(texts, etree.Text(cell))
+		}
+		assert.Contains(test, texts, "inner")
+	})
+	test.Run("test_table_caption", func(test *testing.T) {
+		rows := tableCells(test, "<table><caption>My Caption</caption><tr><td>a</td><td>b</td></tr></table>", Options{EnableFallback: true})
+		if assert.GreaterOrEqual(test, len(rows), 2) {
+			assert.Contains(test, rows[0], "My Caption")
+			assert.Equal(test, []string{"a", "b"}, rows[1])
+		}
+		table := handleTable(python220Element(test, "<table><caption>  </caption><tr><td>x</td></tr></table>"), maps.Clone(tagCatalog), nil, defaultOpts)
+		if assert.NotNil(test, table) {
+			cell := dom.QuerySelector(table, "td, th")
+			if assert.NotNil(test, cell) {
+				assert.Equal(test, "x", etree.Text(cell))
+			}
+			assert.Empty(test, dom.QuerySelectorAll(table, "th"))
+		}
+	})
+	test.Run("test_table_nested_in_cell_pipeline", func(test *testing.T) {
+		outer := strings.Repeat("This is the outer row with plenty of text to survive readability. ", 2)
+		inner := strings.Repeat("Inner nested table cell with sufficient content for extraction. ", 2)
+		input := "<html><body><article><p>enough intro text here for extraction</p><table><tr><td>" + outer + "</td></tr><tr><td><table><tr><td>" + inner + "</td></tr></table></td></tr></table></article></body></html>"
+		result, err := Extract(strings.NewReader(input), Options{Config: zeroConfig, EnableFallback: true})
+		if assert.NoError(test, err) {
+			assert.Contains(test, result.ContentText, strings.TrimSpace(outer)[:20])
+			assert.Contains(test, result.ContentText, strings.TrimSpace(inner)[:20])
+			assert.Equal(test, 1, strings.Count(result.ContentText, strings.TrimSpace(inner)))
+		}
+	})
+}
+
+func Test_Python220_TableAndListLegacy(test *testing.T) {
+	extract := func(test *testing.T, input string, options Options) *ExtractResult {
+		test.Helper()
+		options.Config = zeroConfig
+		result, err := Extract(strings.NewReader(input), options)
+		if !assert.NoError(test, err) || !assert.NotNil(test, result) {
+			test.FailNow()
+		}
+		return result
+	}
+	test.Run("test_table_processing/comments", func(test *testing.T) {
+		node := python220Element(test, "<table><!-- c1 --><tr><td>cell text<!-- c2 --></td></tr></table>")
+		processed := handleTable(node, maps.Clone(tagCatalog), nil, defaultOpts)
+		if assert.NotNil(test, processed) {
+			assert.Contains(test, dom.TextContent(processed), "cell text")
+		}
+	})
+	test.Run("test_table_processing/multi_row_links", func(test *testing.T) {
+		input := `<html><body><article>
+        <p>Enough intro text to satisfy trafilatura's minimum extraction length requirements for this test.</p>
+        <table>
+            <tr><th>Key</th><th>Value</th></tr>
+            <tr><td><a href="/k1">Coord</a>:</td><td><a href="/v1">48 N</a></td></tr>
+            <tr><td><a href="/k2">State</a>:</td><td><a href="/v2">BW</a></td></tr>
+            <tr><td><a href="/k3">Region</a>:</td><td><a href="/v3">Stuttgart</a></td></tr>
+        </table>
+    </article></body></html>`
+		result := extract(test, input, Options{IncludeLinks: true, EnableFallback: true})
+		for _, sample := range []struct{ label, href, value string }{{"Coord", "/k1", "48 N"}, {"State", "/k2", "BW"}, {"Region", "/k3", "Stuttgart"}} {
+			link := dom.QuerySelector(result.ContentNode, `a[href="`+sample.href+`"]`)
+			if assert.NotNil(test, link) {
+				assert.Equal(test, sample.label, dom.TextContent(link))
+			}
+			assert.Contains(test, result.ContentText, sample.value)
+		}
+	})
+	test.Run("test_table_processing/headers_and_cells", func(test *testing.T) {
+		for _, sample := range []struct {
+			input   string
+			headers int
+			cells   []string
+		}{
+			{"<table><tr><th>head 1</th><th>head 2</th></tr><tr><td>1</td><td>2</td></tr></table>", 2, []string{"head 1", "head 2", "1", "2"}},
+			{"<table><tr><th>a</th><th>b</th><th>c</th></tr></table>", 3, []string{"a", "b", "c"}},
+			{"<table><tr><td>cell<br>1</td><td>cell<p>2</p></td></tr></table>", 0, []string{"cell 1", "cell 2"}},
+			{`<table><tr><td><a href="link.html">a</a></td></tr></table>`, 0, []string{"a"}},
+		} {
+			result := extract(test, "<html><body><article>"+sample.input+"</article></body></html>", Options{})
+			assert.Len(test, dom.GetElementsByTagName(result.ContentNode, "th"), sample.headers)
+			var values []string
+			for _, cell := range dom.QuerySelectorAll(result.ContentNode, "td, th") {
+				values = append(values, trim(etree.IterText(cell, " ")))
+			}
+			assert.Equal(test, sample.cells, values)
+		}
+		for _, label := range []string{strings.Repeat("abc", 100), strings.Repeat(" ", 100)} {
+			input := `<html><body><article><table><tr><td><a href="link.html">` + label + `</a></td></tr></table></article></body></html>`
+			assert.Empty(test, extract(test, input, Options{}).ContentText)
+		}
+	})
+	test.Run("test_table_cell_list_no_row_break", func(test *testing.T) {
+		input := "<html><body><article><p>enough intro text here for extraction</p><table><tr><td><ul><li>i1</li><li>i2</li></ul></td><td>b</td></tr></table></article></body></html>"
+		result := extract(test, input, Options{EnableFallback: true})
+		rows := dom.GetElementsByTagName(result.ContentNode, "tr")
+		if assert.Len(test, rows, 1) {
+			cells := dom.Children(rows[0])
+			if assert.Len(test, cells, 2) {
+				assert.Equal(test, "b", dom.TextContent(cells[1]))
+			}
+		}
+	})
+	test.Run("test_list_processing/basic_order", func(test *testing.T) {
+		input := "<html><body><article><p>P 1</p><ul><li>Item 1</li><li>Item 2</li></ul><p>P 2</p></article></body></html>"
+		result := extract(test, input, Options{})
+		assert.Equal(test, "<body><p>P 1</p><ul><li>Item 1</li><li>Item 2</li></ul><p>P 2</p></body>", etree.ToString(result.ContentNode))
+	})
+	test.Run("test_list_processing/link_only_items", func(test *testing.T) {
+		input := `<html><body><article>
+<p>If your eye is twitching and you do not have other symptoms, here are some common everyday causes worth knowing about.</p>
+<ul>
+<li><p><a href="https://example.org/stress">Stress</a></p></li>
+<li><p>Fatigue</p></li>
+<li><p><a href="https://example.org/strain">Eye strain</a></p></li>
+</ul>
+</article></body></html>`
+		result := extract(test, input, Options{IncludeLinks: true})
+		for _, sample := range []struct{ href, label string }{{"https://example.org/stress", "Stress"}, {"https://example.org/strain", "Eye strain"}} {
+			link := dom.QuerySelector(result.ContentNode, `a[href="`+sample.href+`"]`)
+			if assert.NotNil(test, link) {
+				assert.Equal(test, sample.label, dom.TextContent(link))
+			}
+		}
+		assert.Contains(test, result.ContentText, "Fatigue")
+	})
+	test.Run("test_recover_wild_text_dedup_scan_cap/default", func(test *testing.T) {
+		container := "The quick brown fox jumps over the lazy dog while the sun was setting slowly over the meadow today."
+		substring := "quick brown fox jumps over the lazy dog while the sun was setting slowly"
+		filler := strings.Repeat("Zebra quokka platypus wallaby echidna kookaburra numbat bilby quoll dingo marsupial. ", 4)
+		input := "<html><body><div>" + filler + "</div><div>" + container + "</div><div>" + substring + "</div></body></html>"
+		body := etree.Element("body")
+		recoverWildText(docFromStr(input), body, maps.Clone(tagCatalog), nil, Options{Config: DefaultConfig(), Focus: FavorRecall})
+		var values []string
+		for _, child := range dom.Children(body) {
+			values = append(values, trim(dom.TextContent(child)))
+		}
+		assert.NotContains(test, values, substring)
+	})
+	test.Run("test_recover_wild_text_dedup_scan_cap/monkeypatch", func(test *testing.T) {
+		test.Skip("Go's dedupeScanCap is constant; the Python-only monkeypatch branch cannot be invoked with the same input")
+	})
+}
+
+func Test_Python220_Recovery(test *testing.T) {
+	extractText := func(test *testing.T, input string, opts Options) string {
+		test.Helper()
+		result, err := Extract(strings.NewReader(input), opts)
+		if !assert.NoError(test, err) {
+			return ""
+		}
+		return result.ContentText + "\n" + result.CommentsText
+	}
+	test.Run("test_no_duplicate_content", func(test *testing.T) {
+		first := "<!doctype html><body><main><article><div><br>Line that has to have at least 125 characters for the bug to appear so here is some filler text text text text text text text</div></article></main></body></html>"
+		assert.Equal(test, 1, strings.Count(extractText(test, first, Options{EnableFallback: true}), "Line that has to have"))
+		second := "<html><body><div id='content'><p>Authoritative taxonomy of but let us leave it as it is 1 2 3</p></div><p>some text long enough not to skip and printed twice on this line some text long enough not to skip and printed twice on this line</p></body></html>"
+		assert.Equal(test, 1, strings.Count(extractText(test, second, Options{EnableFallback: true}), "Authoritative taxonomy"))
+		third := "<html><body><nav>menu chrome</nav><article><h1>The Example Chronicle</h1><p>First synthetic paragraph of adequate length for extraction to engage properly.</p><p>Second synthetic paragraph, also long enough to matter for the extractor.</p></article><footer>footer chrome</footer></body></html>"
+		for _, input := range []string{third, strings.ReplaceAll(third, "article>", "main>")} {
+			text := extractText(test, input, Options{EnableFallback: true})
+			assert.Equal(test, 1, strings.Count(text, "First synthetic paragraph"))
+			assert.Equal(test, 1, strings.Count(text, "Second synthetic paragraph"))
+		}
+	})
+	test.Run("test_no_duplicate_content_list_item", func(test *testing.T) {
+		paragraph := "This is a moderately long description paragraph exceeding the fifty character dedup threshold here."
+		input := "<html><body><article><dl><dt>Term</dt><dd><p>" + paragraph + "</p></dd></dl></article></body></html>"
+		assert.Equal(test, 1, strings.Count(extractText(test, input, Options{}), paragraph))
+	})
+	test.Run("test_no_duplicate_content_nonadjacent", func(test *testing.T) {
+		duplicate := strings.Repeat("X", 30) + " short duplicate description text for the list item here right now please."
+		wild := strings.Repeat("Y", 30) + " this is genuinely separate wild text living outside the article container elsewhere in the page body content over here, quite far removed from it."
+		input := "<html><body><p>" + wild + "</p><article><dl><dt>Term</dt><dd><p>" + duplicate + "</p></dd></dl></article></body></html>"
+		text := extractText(test, input, Options{})
+		assert.Equal(test, 1, strings.Count(text, duplicate))
+		assert.Equal(test, 1, strings.Count(text, wild))
+		assert.Contains(test, text, "Term")
+	})
+	test.Run("test_recover_wild_text_inline_formatting_dedup", func(test *testing.T) {
+		paragraph := "This paragraph has Hyper<b>link</b>ed formatting inside and needs to be comfortably longer than the fifty character dedup gate to be caught by the substring check."
+		input := "<html><body><article><dl><dt>Term one</dt><dd><p>" + paragraph + "</p></dd></dl></article></body></html>"
+		assert.Equal(test, 1, strings.Count(extractText(test, input, Options{}), "formatting inside"))
+	})
+	test.Run("test_recall_escalation", func(test *testing.T) {
+		var input strings.Builder
+		input.WriteString("<html><body>")
+		for index := range 3 {
+			fmt.Fprintf(&input, "<p>Wild paragraph number %d directly under body, with enough words to pass the paragraph checks in place.</p>", index)
+		}
+		for index := range 30 {
+			fmt.Fprintf(&input, "<div>Main content block %d living in a bare div element with plenty of meaningful words to matter here today.</div>", index)
+		}
+		input.WriteString("</body></html>")
+		text := extractText(test, input.String(), Options{})
+		assert.Equal(test, 3, strings.Count(text, "Wild paragraph"))
+		assert.Equal(test, 30, strings.Count(text, "Main content block"))
+	})
+	intro := "<p>" + strings.Repeat("Introductory paragraph with regular prose content that is moderately long and clearly meaningful, providing enough text to exceed the minimum extraction size threshold used by the extractor. ", 2) + "</p>"
+	forumJSON := `<script type="application/ld+json">{"@context":"https://schema.org","@type":"DiscussionForumPosting","headline":"Test thread"}</script>`
+	thread := func(jsonld, tag, introduction string, wrap bool) string {
+		var replies strings.Builder
+		for index := range 8 {
+			fmt.Fprintf(&replies, "<%s class='comment-body'>Reply number %d contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the commenter.</%s>", tag, index, tag)
+		}
+		wrapper := "div"
+		if wrap {
+			wrapper = "article"
+		}
+		return fmt.Sprintf("<html><head>%s</head><body><%s>%s</%s><div id='comments' class='comments-area'>%s</div></body></html>", jsonld, wrapper, introduction, wrapper, replies.String())
+	}
+	test.Run("test_recall_escalation_justext_comment_scoping", func(test *testing.T) {
+		for _, sample := range []struct {
+			name, jsonld string
+			fast         bool
+			replies      int
+		}{{"blog_excludes_comments", "", false, 0}, {"forum_keeps_posts", forumJSON, false, 8}, {"blog_excludes_comments_fast", "", true, 0}} {
+			test.Run(sample.name, func(test *testing.T) {
+				text := extractText(test, thread(sample.jsonld, "div", intro, true), Options{ExcludeComments: true, EnableFallback: !sample.fast})
+				assert.Contains(test, text, "Introductory paragraph")
+				assert.Equal(test, sample.replies, strings.Count(text, "Reply number"))
+			})
+		}
+	})
+	test.Run("test_recall_escalation_no_comment_doubling", func(test *testing.T) {
+		for _, tag := range []string{"p", "div"} {
+			test.Run(tag, func(test *testing.T) {
+				text := extractText(test, thread(forumJSON, tag, intro, true), Options{EnableFallback: true})
+				assert.Contains(test, text, "Introductory paragraph")
+				assert.Equal(test, 8, strings.Count(text, "Reply number"))
+			})
+		}
+	})
+	test.Run("test_dfp_long_opening_post_keeps_replies", func(test *testing.T) {
+		var longIntro strings.Builder
+		for index := range 16 {
+			fmt.Fprintf(&longIntro, "<p>Opening post paragraph %d lays out the question in full detail, with context, history and several worked examples that make the thread starter alone longer than the escalation length gate, so no rescue pass can be relied upon for the replies.</p>", index)
+		}
+		text := extractText(test, thread(forumJSON, "p", longIntro.String(), true), Options{EnableFallback: true})
+		assert.Contains(test, text, "Opening post paragraph")
+		assert.Equal(test, 8, strings.Count(text, "Reply number"))
+	})
+	test.Run("test_dfp_precision_keeps_posts", func(test *testing.T) {
+		text := extractText(test, thread(forumJSON, "p", intro, true), Options{EnableFallback: true, Focus: FavorPrecision})
+		assert.Equal(test, 8, strings.Count(text, "Reply number"))
+	})
+	test.Run("test_recall_escalation_blog_comment_leak", func(test *testing.T) {
+		for _, fast := range []bool{false, true} {
+			text := extractText(test, thread("", "div", intro, false), Options{EnableFallback: !fast})
+			assert.Contains(test, text, "Introductory paragraph")
+			assert.Equal(test, 0, strings.Count(text, "Reply number"))
+		}
+	})
+	test.Run("test_main_pass_excludes_comments_when_disabled", func(test *testing.T) {
+		var replies strings.Builder
+		for index := range 8 {
+			fmt.Fprintf(&replies, "<div>Reader comment number %d that must never appear when comments are excluded, long enough to matter.</div>", index)
+		}
+		input := "<html><body><article><p>Short intro under the escalation and rescue thresholds here.</p></article><div id='comments' class='comments-area'>" + replies.String() + "</div></body></html>"
+		for _, fast := range []bool{false, true} {
+			text := extractText(test, input, Options{EnableFallback: !fast, ExcludeComments: true})
+			assert.Contains(test, text, "Short intro")
+			assert.Equal(test, 0, strings.Count(text, "Reader comment number"))
+		}
+	})
+	test.Run("test_main_pass_excludes_details_wrapped_comments", func(test *testing.T) {
+		body := "<article>" + strings.Repeat("<p>Real article paragraph with enough content to be extracted normally here.</p>", 3) + "</article>"
+		var comments strings.Builder
+		comments.WriteString("<details id='comments'><summary>Comments</summary>")
+		for index := range 6 {
+			fmt.Fprintf(&comments, "<p>Reader comment number %d that must never leak into the body text.</p>", index)
+		}
+		comments.WriteString("</details>")
+		for _, fast := range []bool{false, true} {
+			text := extractText(test, "<html><body>"+body+comments.String()+"</body></html>", Options{EnableFallback: !fast, ExcludeComments: true})
+			assert.Contains(test, text, "Real article paragraph")
+			assert.Equal(test, 0, strings.Count(text, "Reader comment number"))
+		}
+		faq := "<details class='faq'><summary>More</summary><p>Kept expandable content paragraph that is genuine.</p></details>"
+		assert.Contains(test, extractText(test, "<html><body>"+body+faq+"</body></html>", Options{EnableFallback: true}), "Kept expandable content")
+	})
+}
 
 func Test_InputEncoding(test *testing.T) {
 	cases := []struct {
@@ -194,7 +1129,7 @@ func Test_ExoticTags(t *testing.T) {
 	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><main><div>1.<br/>2.<br/>3.<br/></div></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Contains(t, result.ContentText, "1. 2. 3.")
+	assert.Contains(t, result.ContentText, "1.\n2.\n3.")
 
 	// HTML5: <details>
 	opts = Options{Config: zeroConfig}
@@ -277,7 +1212,7 @@ func Test_HtmlProcessing(t *testing.T) {
 	opts = Options{Config: zeroConfig}
 	htmlString = `<html><body><main><p>1</p><p id="premium">2</p><p>3</p></main></body></html>`
 	result, _ = Extract(strings.NewReader(htmlString), opts)
-	assert.Equal(t, "1 3", result.ContentText)
+	assert.Equal(t, "1\n3", result.ContentText)
 
 	// Test tail of node deleted if set as text
 	node = strToNode(`<div><p></p>tail</div>`)
@@ -345,11 +1280,62 @@ func Test_LanguageClassifier(t *testing.T) {
 	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
 	assert.Equal(t, "es", result.Metadata.Language)
 
-	// Originally they use "Texte en français" here but it's too short which
-	// make whatlanggo confuse it with Afrikaans, so here I pick a longer sentence.
 	htmlInput = `<html><body><p>Après la pluie, le beau temps.</p></body></html>`
 	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
 	assert.Equal(t, "fr", result.Metadata.Language)
+}
+
+func Test_LanguageClassifier_Compatibility(test *testing.T) {
+	for _, sample := range []struct {
+		name, content, comments, language string
+	}{
+		{"empty", "", "", ""},
+		{"whitespace", " \t\n", "", ""},
+		{"nonlinguistic", "12345 !?", "", ""},
+		{"french_phrase", "Texte en français", "", "fr"},
+		{"english_sentence", "In sleep a king, but waking no such matter.", "", "en"},
+		{"spanish_phrase", "Texto en español", "", "es"},
+		{"german_sentence", "Hier ist ein Text auf Deutsch", "", "de"},
+		{"italian_sentence", "Questo testo non è affatto in lingua inglese.", "", "it"},
+		{"russian_sentence", "В этой статье рассказывается о новой городской библиотеке и мероприятиях для читателей.", "", "ru"},
+		{"japanese_sentence", "これは日本語で書かれた文章です。今日は新しい図書館について紹介します。", "", "ja"},
+		{"chinese_sentence", "这篇文章介绍了城市的新图书馆，以及读者可以参加的活动。", "", "zh"},
+		{"arabic_sentence", "تشرح هذه المقالة كيف يجمع الباحثون البيانات ويقارنون النتائج قبل نشر الدراسة.", "", "ar"},
+		{"longer_comments", "This is English.", "Die Kommentare sind aber etwas länger.", "de"},
+		{"longer_content", "Die Kommentare sind aber etwas länger.", "This is English.", "de"},
+		{"equal_lengths_choose_content", "Texte en français", "Texto en español ", "fr"},
+	} {
+		test.Run(sample.name, func(test *testing.T) {
+			test.Parallel()
+			assert.Equal(test, sample.language, languageClassifier(sample.content, sample.comments))
+		})
+	}
+}
+
+func Benchmark_LanguageClassifier(bench *testing.B) {
+	input, err := os.Open("test-files/mock/webpage.html.gz")
+	if err != nil {
+		bench.Fatal(err)
+	}
+	defer input.Close()
+	result, err := Extract(input, Options{EnableFallback: true})
+	if err != nil {
+		bench.Fatal(err)
+	}
+
+	for _, sample := range []struct{ name, text string }{
+		{"short_phrase", "Texte en français"},
+		{"saved_article", result.ContentText},
+	} {
+		bench.Run(sample.name, func(bench *testing.B) {
+			languageClassifier(sample.text, "")
+			bench.ReportAllocs()
+			bench.SetBytes(int64(len(sample.text)))
+			for bench.Loop() {
+				languageClassifier(sample.text, "")
+			}
+		})
+	}
 }
 
 func Test_Cache(t *testing.T) {
@@ -551,11 +1537,6 @@ func Test_Filters(t *testing.T) {
 	result, _ = Extract(strings.NewReader(str), opts)
 	assert.NotNil(t, result)
 
-	// TODO: In original Trafilatura, the value of p3 is set to "In sleep a king,
-	// but waking no such matter." which is part of Sonnet 87, classic English poem
-	// by Shakespear. Unfortunately, whatlanggo struggle to detect its language.
-	// However, when I added the entire closure of Sonnet 87, it works. Need to
-	// investigate later.
 	p3 := "<p>Thus have I had thee as a dream doth flatter, In sleep a king, but waking no such matter.</p>"
 	str = `<html lang="en-US"><body>` + strings.Repeat(p3, 50) + `</body></html>`
 
@@ -681,7 +1662,7 @@ func Test_External(t *testing.T) {
 
 	opts = Options{ExcludeTables: true, EnableFallback: true, Config: zeroConfig}
 	result, _ = ExtractDocument(doc, opts)
-	assert.NotEmpty(t, result.ContentText)
+	assert.Empty(t, result.ContentText)
 	assert.NotContains(t, result.ContentText, "Uncensored Hosting")
 	assert.NotContains(t, result.ContentText, "ChooseBetter")
 }

@@ -345,7 +345,29 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 				etree.Append(processedElement, image)
 			}
 		} else {
-			defineNewElement(processedChild, processedElement, inMap(childTag, inlineCarriedTags))
+			keepChildren := inMap(childTag, inlineCarriedTags)
+			if keepChildren && len(dom.Children(processedChild)) > 0 {
+				wrapsInline := childTag == "a"
+				for _, nested := range dom.Children(processedChild) {
+					wrapsInline = wrapsInline || inMap(dom.TagName(nested), inlineCarriedTags)
+				}
+				if !wrapsInline {
+					descendants := etree.IterDescendants(processedChild)
+					for _, nested := range dom.Children(processedChild) {
+						if inMap(dom.TagName(nested), mapXmlLbTags) && etree.Tail(nested) != "" {
+							etree.SetTail(nested, " "+strings.TrimLeftFunc(etree.Tail(nested), unicode.IsSpace))
+						} else if text := etree.Text(nested); textCharsTest(text) {
+							etree.SetText(nested, " "+text)
+						}
+						etree.StripTags(processedChild, dom.TagName(nested))
+					}
+					for _, nested := range descendants {
+						nested.Data = "done"
+					}
+					keepChildren = false
+				}
+			}
+			defineNewElement(processedChild, processedElement, keepChildren)
 		}
 		child.Data = "done"
 	}

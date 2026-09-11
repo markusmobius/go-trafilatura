@@ -1,0 +1,1259 @@
+{
+  "commit": "c1bc9531a2a978326112ca9987e1382745116136",
+  "inventory": [
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 737,
+      "assertions": 4,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1371,
+      "assertions": 14,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_short_elements",
+      "line": 2192,
+      "assertions": 1,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext",
+      "line": 2309,
+      "assertions": 2,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_escalation_retry_no_comment_capture",
+      "line": 2431,
+      "assertions": 2,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_loose_text_tail_not_squished",
+      "line": 2570,
+      "assertions": 1,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_mixed_content_extraction",
+      "line": 3217,
+      "assertions": 1,
+      "exclusion": "",
+      "native": []
+    },
+    {
+      "test": "unit_tests.py/test_nonstd_html_entities",
+      "line": 3227,
+      "assertions": 1,
+      "exclusion": "",
+      "native": []
+    }
+  ],
+  "operations": [
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><p>a<sup></sup>b</p></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "markdown",
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><p>a<sub></sub>b</p></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "markdown",
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><p>Fact<sup><img src=\"x.png\"/></sup> follows here.</p></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "markdown",
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><p>alpha<sup></sup>beta gamma.</p></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "markdown",
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><p>alpha<sup></sup>beta gamma.</p></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "markdown",
+        "favor_precision": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><p>This here is the text.</p></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><p>This here is the text.</p></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"article-body\"><div class=\"teaser-content\"><p>This here is a teaser text.</p></div><div><p>This here is the text.</p></div></div></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"article-body\"><div class=\"teaser-content\"><p>This here is a teaser text.</p></div><div><p>This here is the text.</p></div></div></body></html>"
+      ],
+      "keywords": {
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"article-body\"><div class=\"teaser-content\"><p>This here is a teaser text.</p></div><div><p>This here is the text.</p></div></div></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><div><p><a href=\"test.html\">1.</a><br/><a href=\"test2.html\">2.</a></p></div></article></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><div><p><a href=\"test.html\">1.</a><br/><a href=\"test2.html\">2.</a></p></div></article></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"article-body\"><p>content</p><p class=\"link\">Test</p></div></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": false,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"article-body\"><p>content</p><p class=\"link\">Test</p></div></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><aside><p>Here is the text.</p></aside></article></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": false,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><aside><p>Here is the text.</p></aside></article></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": true
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div><h2>Title</h2><small>Text.</small></div></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        },
+        "fast": false
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div><span>Text.</span></div></body></html>"
+      ],
+      "keywords": {
+        "favor_precision": true,
+        "fast": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div><span>Text.</span></div></body></html>"
+      ],
+      "keywords": {
+        "favor_recall": true,
+        "fast": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_short_elements",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><div class=\"entry-content\"><p>this is sample intro</p><h3 class=\"wp-block-heading\">intro 2</h3><p>table below</p><figure class=\"wp-block-table\"><table><tbody><tr><td>a</td><td>b</td><td></td></tr><tr><td>f</td><td>s</td><td>s</td></tr><tr><td>g</td><td></td><td>b</td></tr></tbody></table></figure><p>header table below</p><figure class=\"wp-block-table\"><table><thead><tr><th>b</th><th>s</th><th>h</th></tr></thead><tbody><tr><td>a</td><td>b</td><td></td></tr><tr><td>f</td><td>s</td><td>s</td></tr><tr><td>g</td><td></td><td>b</td></tr></tbody></table></figure><p>list below</p><ul><li>this is 1</li><li>this is 2</li><li>this is 3</li></ul><p>numbered list below</p><ol><li>this is 1</li><li>this is 2</li><li>this is 3</li></ol></div></body></html>"
+      ],
+      "keywords": {
+        "output_format": "txt",
+        "fast": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "250",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "1",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><p>Introductory paragraph with regular prose content that is moderately long and clearly meaningful, providing enough text to exceed the minimum extraction size threshold used by the extractor. Introductory paragraph with regular prose content that is moderately long and clearly meaningful, providing enough text to exceed the minimum extraction size threshold used by the extractor. </p><div class='sidebar'>Message number 0 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 1 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 2 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 3 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 4 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 5 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 6 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div><div class='sidebar'>Message number 7 contains substantial discussion content with plenty of genuine words and enough length to be recognized as real text by a paragraph density classifier, not boilerplate at all today, said the author.</div></body></html>"
+      ],
+      "keywords": {
+        "output_format": "txt",
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "250",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "1",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_escalation_retry_no_comment_capture",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><article><h1>Title of the page</h1><ul><li>Point number 0 of the short visible article summary text here.</li><li>Point number 1 of the short visible article summary text here.</li><li>Point number 2 of the short visible article summary text here.</li><li>Point number 3 of the short visible article summary text here.</li></ul><form><p>Continuation paragraph 0 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 1 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 2 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 3 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 4 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 5 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 6 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 7 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 8 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 9 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 10 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><p>Continuation paragraph 11 with substantial article prose that only the recall retry can recover from inside the form wrapper element.</p><div class='user-comment-area'><p>Reply 0 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 1 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 2 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 3 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 4 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 5 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 6 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p><p>Reply 7 ZQXJKVREPLY says something reasonably long about the topic at hand in this discussion thread below the article body.</p></div></form></article></body></html>"
+      ],
+      "keywords": {
+        "output_format": "txt",
+        "include_comments": true,
+        "fast": true,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "250",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "1",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_loose_text_tail_not_squished",
+      "operation": "extract",
+      "arguments": [
+        "<!DOCTYPE html><html lang=\"en-us\"><body><main><section>\n        <p>First</p>\n        This gets Squished\n        <div>\n            <h4>There should be a space</h4>\n            <p>Another sentence</p>\n            This also gets Squished\n        </div>\n        <div>\n            <h4>Where is the space</h4>\n            <p>This sentence has to be long enough. If it's long enough the duplication stops, but if it's not long enough then you'll get an extra first. This sentence has to be long enough.</p>\n        </div>\n    </section></main></body></html>"
+      ],
+      "keywords": {},
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_mixed_content_extraction",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><p>Text here</p><img src=\"img.jpg\"/><video src=\"video.mp4\"/></body></html>"
+      ],
+      "keywords": {
+        "fast": false,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    },
+    {
+      "test": "unit_tests.py/test_nonstd_html_entities",
+      "operation": "extract",
+      "arguments": [
+        "<html><body><p>Text &customentity; more text</p></body></html>"
+      ],
+      "keywords": {
+        "fast": false,
+        "config": {
+          "download_timeout": "30",
+          "max_file_size": "20000000",
+          "min_file_size": "10",
+          "sleep_time": "5.0",
+          "user_agents": "",
+          "cookie": "",
+          "max_redirects": "2",
+          "min_extracted_size": "0",
+          "min_extracted_comm_size": "1",
+          "min_output_size": "0",
+          "min_output_comm_size": "1",
+          "max_tree_size": "",
+          "extraction_timeout": "30",
+          "min_duplcheck_size": "100",
+          "max_repetitions": "2",
+          "extensive_date_search": "on",
+          "external_urls": "off"
+        }
+      },
+      "initial": {}
+    }
+  ],
+  "assertions": [
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 743,
+      "source": "extract(doc, output_format='markdown', config=ZERO_CONFIG) == 'ab'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 0
+          },
+          "ab"
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 743,
+      "source": "extract(doc, output_format='markdown', config=ZERO_CONFIG) == 'ab'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 1
+          },
+          "ab"
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 746,
+      "source": "extract(footnote, output_format='markdown', config=ZERO_CONFIG) == 'Fact follows here.'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 2
+          },
+          "Fact follows here."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 749,
+      "source": "extract(tailed, output_format='markdown', config=ZERO_CONFIG) == 'alphabeta gamma.'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 3
+          },
+          "alphabeta gamma."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 750,
+      "source": "extract(tailed, output_format='markdown', favor_precision=True, config=ZERO_CONFIG) == 'alphabeta gamma.'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 4
+          },
+          "alphabeta gamma."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1375,
+      "source": "extract(copy(my_document), favor_precision=True, config=ZERO_CONFIG, fast=True) is not None",
+      "expression": {
+        "op": "IsNot",
+        "args": [
+          {
+            "result": 5
+          },
+          null
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1376,
+      "source": "extract(copy(my_document), favor_recall=True, config=ZERO_CONFIG, fast=True) is not None",
+      "expression": {
+        "op": "IsNot",
+        "args": [
+          {
+            "result": 6
+          },
+          null
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1381,
+      "source": "'teaser text' in extract(copy(my_document), favor_recall=True, config=ZERO_CONFIG, fast=True)",
+      "expression": {
+        "op": "In",
+        "args": [
+          "teaser text",
+          {
+            "result": 7
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1382,
+      "source": "'teaser text' not in extract(copy(my_document), config=ZERO_CONFIG, fast=True)",
+      "expression": {
+        "op": "NotIn",
+        "args": [
+          "teaser text",
+          {
+            "result": 8
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1383,
+      "source": "'teaser text' not in extract(copy(my_document), favor_precision=True, config=ZERO_CONFIG, fast=True)",
+      "expression": {
+        "op": "NotIn",
+        "args": [
+          "teaser text",
+          {
+            "result": 9
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1389,
+      "source": "'1' not in result",
+      "expression": {
+        "op": "NotIn",
+        "args": [
+          "1",
+          {
+            "result": 10
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1391,
+      "source": "'1' not in result",
+      "expression": {
+        "op": "NotIn",
+        "args": [
+          "1",
+          {
+            "result": 11
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1397,
+      "source": "'content' in result and 'Test' in result",
+      "expression": {
+        "op": "And",
+        "args": [
+          {
+            "op": "In",
+            "args": [
+              "content",
+              {
+                "result": 12
+              }
+            ]
+          },
+          {
+            "op": "In",
+            "args": [
+              "Test",
+              {
+                "result": 12
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1399,
+      "source": "'content' in result and 'Test' not in result",
+      "expression": {
+        "op": "And",
+        "args": [
+          {
+            "op": "In",
+            "args": [
+              "content",
+              {
+                "result": 13
+              }
+            ]
+          },
+          {
+            "op": "NotIn",
+            "args": [
+              "Test",
+              {
+                "result": 13
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1403,
+      "source": "result != 'Here is the text.'",
+      "expression": {
+        "op": "NotEq",
+        "args": [
+          {
+            "result": 14
+          },
+          "Here is the text."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1405,
+      "source": "result == 'Here is the text.'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 15
+          },
+          "Here is the text."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1409,
+      "source": "len(result) > 0",
+      "expression": {
+        "op": "Gt",
+        "args": [
+          {
+            "op": "len",
+            "args": [
+              {
+                "result": 16
+              }
+            ]
+          },
+          0
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1412,
+      "source": "extract(copy(my_document), favor_precision=True, fast=True, config=ZERO_CONFIG) == ''",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 17
+          },
+          ""
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1413,
+      "source": "extract(copy(my_document), favor_recall=True, fast=True, config=ZERO_CONFIG) == 'Text.'",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "result": 18
+          },
+          "Text."
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_short_elements",
+      "line": 2209,
+      "source": "result.count('this is sample intro') == 1",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "op": "count",
+            "args": [
+              {
+                "result": 19
+              },
+              "this is sample intro"
+            ]
+          },
+          1
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext",
+      "line": 2323,
+      "source": "'Introductory paragraph' in result",
+      "expression": {
+        "op": "In",
+        "args": [
+          "Introductory paragraph",
+          {
+            "result": 20
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext",
+      "line": 2324,
+      "source": "result.count('Message number') == 8",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "op": "count",
+            "args": [
+              {
+                "result": 20
+              },
+              "Message number"
+            ]
+          },
+          8
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_escalation_retry_no_comment_capture",
+      "line": 2453,
+      "source": "'Continuation paragraph 5' in result",
+      "expression": {
+        "op": "In",
+        "args": [
+          "Continuation paragraph 5",
+          {
+            "result": 21
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_escalation_retry_no_comment_capture",
+      "line": 2454,
+      "source": "'ZQXJKVREPLY' in result",
+      "expression": {
+        "op": "In",
+        "args": [
+          "ZQXJKVREPLY",
+          {
+            "result": 21
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_loose_text_tail_not_squished",
+      "line": 2586,
+      "source": "'SquishedThere' not in result and 'SquishedWhere' not in result",
+      "expression": {
+        "op": "And",
+        "args": [
+          {
+            "op": "NotIn",
+            "args": [
+              "SquishedThere",
+              {
+                "result": 22
+              }
+            ]
+          },
+          {
+            "op": "NotIn",
+            "args": [
+              "SquishedWhere",
+              {
+                "result": 22
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_mixed_content_extraction",
+      "line": 3224,
+      "source": "result.strip() == expected",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "op": "strip",
+            "args": [
+              {
+                "result": 23
+              }
+            ]
+          },
+          "Text here"
+        ]
+      }
+    },
+    {
+      "test": "unit_tests.py/test_nonstd_html_entities",
+      "line": 3234,
+      "source": "result.strip() == expected",
+      "expression": {
+        "op": "Eq",
+        "args": [
+          {
+            "op": "strip",
+            "args": [
+              {
+                "result": 24
+              }
+            ]
+          },
+          "Text &customentity; more text"
+        ]
+      }
+    }
+  ],
+  "unmapped": []
+}

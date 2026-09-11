@@ -105,7 +105,7 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.True(t, strings.HasPrefix(metadata.Description, "Report claims higher education institutions"))
 	assert.Equal(t, "The Guardian", metadata.Sitename)
 	assert.Equal(t, []string{"Education"}, metadata.Categories)
-	assert.Contains(t, metadata.Tags, "Higher education")
+	assert.Contains(t, metadata.Tags[0], "Higher education")
 	// meta name="keywords"
 	assert.Equal(t, "http://www.theguardian.com/education/2020/jan/20/thousands-of-uk-academics-treated-as-second-class-citizens", metadata.URL)
 
@@ -116,8 +116,7 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, "A team of researchers affiliated with several institutions in The Netherlands has found evidence in small a cutting tool of Neanderthals using birch tar. In their paper published in Proceedings of the National Academy of Sciences, the group describes the tool and what it revealed about Neanderthal technology.", metadata.Description)
 	assert.Equal(t, "Phys.org", metadata.Sitename)
 	// assert.Equal(t, []string{"Archeology", "Fossils"}, metadata.Categories)
-	assert.Equal(t, []string{"Science", "Physics News", "Science news", "Technology News",
-		"Physics", "Materials", "Nanotech", "Technology"}, metadata.Tags)
+	assert.Equal(t, []string{"Science, Physics News, Science news, Technology News, Physics, Materials, Nanotech, Technology, Science"}, metadata.Tags)
 	assert.Equal(t, url, metadata.URL)
 
 	url = "https://gregoryszorc.com/blog/2020/01/13/mercurial%27s-journey-to-and-reflections-on-python-3/"
@@ -154,7 +153,7 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, "Deutsche Welle", metadata.Author) // "actually 'Ben Knight'
 	assert.Equal(t, "The German capital has launched a five-year project to mark its part in European colonialism. Streets which still honor leaders who led the Reich's imperial expansion will be renamed — and some locals aren't happy.", metadata.Description)
 	assert.Equal(t, "DW.COM", metadata.Sitename) // DW - Deutsche Welle
-	assert.Contains(t, metadata.Tags, "Africa")
+	assert.Contains(t, metadata.Tags[0], "Africa")
 	assert.Equal(t, url, metadata.URL)
 
 	url = "https://www.theplanetarypress.com/2020/01/management-of-intact-forestlands-by-indigenous-peoples-key-to-protecting-climate/"
@@ -180,8 +179,8 @@ func Test_Metadata_RealPages(t *testing.T) {
 	assert.Equal(t, "Jill Serjeant", metadata.Author)
 	assert.Equal(t, "2020-01-20", metadata.Date.Format("2006-01-02"))
 	// assert.Equal(t, "“Parasite,” the Korean language social satire about the wealth gap in South Korea, was the first film in a foreign language to win the top prize of best cast ensemble in the 26 year-history of the SAG awards.", metadata.Description)
-	assert.Contains(t, metadata.Tags, "Film")
-	assert.Contains(t, metadata.Tags, "South Korea")
+	assert.Contains(t, metadata.Tags[0], "Film")
+	assert.Contains(t, metadata.Tags[0], "South Korea")
 	assert.Equal(t, "https://www.reuters.com/article/us-awards-sag-idUSKBN1ZI0EH", metadata.URL)
 	assert.Contains(t, metadata.Categories, "Media Industry")
 	assert.Equal(t, "Reuters", metadata.Sitename)
@@ -267,13 +266,13 @@ func Test_Metadata_RealPages(t *testing.T) {
 	metadata = testGetMetadataFromURL(url, opts)
 	assert.Equal(t, url, metadata.URL)
 	assert.Contains(t, metadata.Author, "Korinna Hennig")
-	assert.Contains(t, metadata.Tags, "Ältere Menschen")
+	assert.Contains(t, metadata.Tags[0], "Ältere Menschen")
 
 	url = "https://www.dailymail.co.uk/news/article-9831365/UKs-daily-Covid-cases-fall-SEVENTH-day-Infections-plummet-50-23-511.html"
 	metadata = testGetMetadataFromURL(url)
 	assert.Equal(t, url, metadata.URL)
-	assert.Equal(t, metadata.Author, "Luke Andrews; James Tapsfield")
-	assert.Contains(t, metadata.Tags, "news")
+	assert.Equal(t, "Luke Andrews Health Reporter James Tapsfield Political Editor", metadata.Author)
+	assert.Contains(t, metadata.Tags[0], "news")
 
 	url = "https://www.mercurynews.com/2023/01/16/letters-1119/"
 	metadata = testGetMetadataFromURL(url)

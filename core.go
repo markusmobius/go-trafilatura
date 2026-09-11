@@ -22,6 +22,8 @@
 package trafilatura
 
 import (
+	"bufio"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -76,9 +78,31 @@ type ExtractResult struct {
 
 // Extract parses a reader and find the main readable content.
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
+	if r == nil {
+		return nil, fmt.Errorf("HTML reader is nil")
+	}
+	if opts.InputEncoding != "" {
+		if encoding, _ := charset.Lookup(opts.InputEncoding); encoding == nil {
+			return nil, fmt.Errorf("unsupported charset: %q", opts.InputEncoding)
+		}
+	}
+	buffered := bufio.NewReader(r)
+	header, err := buffered.Peek(2)
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	r = buffered
+	if len(header) == 2 && header[0] == 0x1f && header[1] == 0x8b {
+		compressed, err := gzip.NewReader(buffered)
+		if err != nil {
+			return nil, err
+		}
+		defer compressed.Close()
+		r = compressed
+	}
+
 	// Parse HTML
 	var doc *html.Node
-	var err error
 	if opts.InputEncoding == "" {
 		doc, err = dom.Parse(r)
 	} else {
@@ -102,6 +126,9 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 
 // ExtractDocument parses the specified document and find the main readable content.
 func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
+	if doc == nil {
+		return nil, fmt.Errorf("HTML document is nil")
+	}
 	doc = dom.Clone(doc, true)
 
 	//  Set default config
@@ -204,11 +231,42 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 
 	return &ExtractResult{
 		ContentNode:  postBody,
-		ContentText:  tmpBodyText,
+		ContentText:  plainText(postBody),
 		CommentsNode: commentsBody,
-		CommentsText: tmpComments,
+		CommentsText: plainText(commentsBody),
 		Metadata:     metadata,
 	}, nil
+}
+
+func plainText(root *html.Node) string {
+	var text strings.Builder
+	var visit func(*html.Node)
+	visit = func(node *html.Node) {
+		if node == nil {
+			return
+		}
+		block := inMap(dom.TagName(node), textBlockTags)
+		if block {
+			text.WriteByte('\n')
+		}
+		if node.Type == html.TextNode {
+			text.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			visit(child)
+		}
+		if block {
+			text.WriteByte('\n')
+		}
+	}
+	visit(root)
+	var lines []string
+	for _, line := range strings.Split(text.String(), "\n") {
+		if line = trim(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func forumThreadPage(doc *html.Node) bool {

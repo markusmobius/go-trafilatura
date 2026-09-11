@@ -59,6 +59,37 @@ func jsonItems(value any) []any {
 	return []any{value}
 }
 
+func decodeJSON(input string, output any) error {
+	err := json.Unmarshal([]byte(input), output)
+	if err == nil {
+		return nil
+	}
+	var escaped strings.Builder
+	quoted, backslash, changed := false, false, false
+	for index := 0; index < len(input); index++ {
+		character := input[index]
+		if quoted && !backslash && character < 0x20 {
+			escaped.WriteString(`\u00`)
+			escaped.WriteByte("0123456789abcdef"[character>>4])
+			escaped.WriteByte("0123456789abcdef"[character&0xf])
+			changed = true
+		} else {
+			escaped.WriteByte(character)
+		}
+		if backslash {
+			backslash = false
+		} else if quoted && character == '\\' {
+			backslash = true
+		} else if character == '"' {
+			quoted = !quoted
+		}
+	}
+	if !changed {
+		return err
+	}
+	return json.Unmarshal([]byte(escaped.String()), output)
+}
+
 func walkJSONContent(value any, bodies, teasers *[]string) {
 	for _, item := range jsonItems(value) {
 		object, ok := item.(map[string]any)
@@ -111,7 +142,7 @@ func collectJSONContent(doc *html.Node) (bodies, teasers []string) {
 			continue
 		}
 		var value any
-		if json.Unmarshal([]byte(text), &value) == nil {
+		if decodeJSON(text, &value) == nil {
 			walkJSONContent(value, &bodies, &teasers)
 		}
 	}
@@ -242,7 +273,32 @@ func baseline(doc *html.Node) (*html.Node, string) {
 	return body, text
 }
 
-func html2txt(doc *html.Node) string {
+func html2txt(input any) string {
+	var doc *html.Node
+	switch value := input.(type) {
+	case *html.Node:
+		doc = value
+	case string:
+		tokenizer := html.NewTokenizer(strings.NewReader(value))
+		for {
+			tokenType := tokenizer.Next()
+			if tokenType == html.ErrorToken {
+				return ""
+			}
+			if tokenType == html.StartTagToken || tokenType == html.SelfClosingTagToken {
+				tag, _ := tokenizer.TagName()
+				if !strIn(string(tag), "html", "head", "body") {
+					return ""
+				}
+				break
+			}
+		}
+		var err error
+		doc, err = html.Parse(strings.NewReader(value))
+		if err != nil {
+			return ""
+		}
+	}
 	if doc == nil {
 		return ""
 	}

@@ -22,15 +22,541 @@
 package trafilatura
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strconv"
 	"strings"
 	"testing"
+	"unicode/utf8"
 
+	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-htmldate"
+	"github.com/markusmobius/go-trafilatura/internal/selector"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
+
+func Test_Python220_Metadata(test *testing.T) {
+	runPython220Assertions(test, "test-files/python-2.2.0-metadata.json")
+}
+
+func Test_Python220_Extraction(test *testing.T) {
+	runPython220Assertions(test, "test-files/python-2.2.0-extraction.json")
+}
+
+func Test_Python220_CodeAndFAQ(test *testing.T) {
+	runPython220Assertions(test, "test-files/python-2.2.0-structures.json")
+}
+
+func runPython220Assertions(test *testing.T, fixture string) {
+	var suite struct {
+		Commit    string
+		Inventory []struct {
+			Test       string
+			Line       int
+			Assertions int
+			Exclusion  string
+			GoTests    []string `json:"go_tests"`
+			Native     []struct {
+				Line           int
+				Source, Reason string
+				GoTests        []string `json:"go_tests"`
+			}
+		}
+		Operations []struct {
+			Test      string
+			Operation string
+			Arguments []any
+			Keywords  map[string]any
+			Initial   map[string]any
+		}
+		Assertions []struct {
+			Test       string
+			Line       int
+			Source     string
+			Expression any
+		}
+		Unmapped []struct {
+			Test      string
+			Line      int
+			Assertion string
+		}
+	}
+	data, err := os.ReadFile(fixture)
+	if !assert.NoError(test, err) || !assert.NoError(test, json.Unmarshal(data, &suite)) {
+		return
+	}
+	assert.Equal(test, "c1bc9531a2a978326112ca9987e1382745116136", suite.Commit)
+	results := make(map[int]any)
+	var evaluate func(*testing.T, any) any
+	stringsOf := func(value any) []string {
+		var result []string
+		if values, ok := value.([]any); ok {
+			for _, item := range values {
+				result = append(result, fmt.Sprint(item))
+			}
+		}
+		return result
+	}
+	stringOf := func(value any) string {
+		if value == nil {
+			return ""
+		}
+		if node, ok := value.(*html.Node); ok {
+			return dom.TextContent(node)
+		}
+		return fmt.Sprint(value)
+	}
+	truthOf := func(value any) bool {
+		switch value := value.(type) {
+		case nil:
+			return false
+		case bool:
+			return value
+		case string:
+			return value != ""
+		case float64:
+			return value != 0
+		case []any:
+			return len(value) != 0
+		case map[string]any:
+			return len(value) != 0
+		default:
+			return true
+		}
+	}
+	textOf := func(test *testing.T, value any) string {
+		test.Helper()
+		switch value.(type) {
+		case string, *html.Node:
+			return stringOf(value)
+		default:
+			test.Fatalf("Upstream expects a string result; Go returned %T (%v)", value, value)
+		}
+		return ""
+	}
+	nullable := func(value string) any {
+		if value == "" {
+			return nil
+		}
+		return value
+	}
+	metadataValue := func(metadata Metadata) any {
+		encoded, err := json.Marshal(metadata)
+		assert.NoError(test, err)
+		var fields map[string]any
+		assert.NoError(test, json.Unmarshal(encoded, &fields))
+		result := make(map[string]any)
+		for field, value := range fields {
+			if text, ok := value.(string); ok && text == "" {
+				value = nil
+			}
+			result[strings.ToLower(field)] = value
+		}
+		result["date"] = nil
+		if !metadata.Date.IsZero() {
+			result["date"] = metadata.Date.Format("2006-01-02")
+		}
+		return result
+	}
+	evaluate = func(test *testing.T, expression any) any {
+		if values, ok := expression.([]any); ok {
+			result := make([]any, len(values))
+			for index, value := range values {
+				result[index] = evaluate(test, value)
+			}
+			return result
+		}
+		object, ok := expression.(map[string]any)
+		if !ok {
+			return expression
+		}
+		if literal, ok := object["literal"]; ok {
+			return literal
+		}
+		if identity, ok := object["result"].(float64); ok {
+			index := int(identity)
+			if index < 0 || index >= len(suite.Operations) {
+				test.Fatalf("Invalid upstream operation index: %v", identity)
+			}
+			if result, exists := results[index]; exists {
+				return result
+			}
+			request := suite.Operations[index]
+			arguments := evaluate(test, request.Arguments).([]any)
+			var result any
+			var initial Metadata
+			if base, exists := request.Initial["base"]; exists {
+				fields, _ := evaluate(test, base).(map[string]any)
+				combined := make(map[string]any)
+				for name, value := range fields {
+					if name != "date" {
+						combined[name] = value
+					}
+				}
+				for name, value := range request.Initial["fields"].(map[string]any) {
+					combined[name] = evaluate(test, value)
+				}
+				encoded, err := json.Marshal(combined)
+				assert.NoError(test, err)
+				assert.NoError(test, json.Unmarshal(encoded, &initial))
+			}
+			switch request.Operation {
+			case "extract", "extract_dom":
+				opts := Options{EnableFallback: request.Keywords["fast"] != true, ExcludeComments: request.Keywords["include_comments"] == false, ExcludeTables: request.Keywords["include_tables"] == false, IncludeLinks: request.Keywords["include_links"] == true, IncludeImages: request.Keywords["include_images"] == true}
+				for key := range request.Keywords {
+					switch key {
+					case "config", "fast", "favor_precision", "favor_recall", "include_comments", "include_formatting", "include_images", "include_links", "include_tables", "output_format", "target_language", "with_metadata", "deduplicate", "url":
+					default:
+						test.Fatalf("No Go option adapter for %q", key)
+					}
+				}
+				opts.Deduplicate = request.Keywords["deduplicate"] == true
+				opts.HtmlDateMode = Extensive
+				opts.TargetLanguage = stringOf(request.Keywords["target_language"])
+				if address, ok := request.Keywords["url"].(string); ok {
+					opts.OriginalURL, err = url.Parse(address)
+					assert.NoError(test, err)
+				}
+				if request.Keywords["favor_recall"] == true {
+					opts.Focus = FavorRecall
+				}
+				if request.Keywords["favor_precision"] == true {
+					opts.Focus = FavorPrecision
+				}
+				if config, ok := request.Keywords["config"].(map[string]any); ok {
+					opts.Config = DefaultConfig()
+					if extensive, exists := config["extensive_date_search"]; exists && strings.EqualFold(stringOf(extensive), "off") {
+						opts.HtmlDateMode = Fast
+					}
+					for key, target := range map[string]*int{"min_output_size": &opts.Config.MinOutputSize, "min_extracted_size": &opts.Config.MinExtractedSize, "min_output_comm_size": &opts.Config.MinOutputCommentSize, "min_extracted_comm_size": &opts.Config.MinExtractedCommentSize, "min_duplicate_check_size": &opts.Config.MinDuplicateCheckSize, "max_repetitions": &opts.Config.MaxDuplicateCount} {
+						if value, exists := config[key]; exists {
+							parsed, err := strconv.Atoi(stringOf(value))
+							if !assert.NoError(test, err) {
+								test.FailNow()
+							}
+							*target = parsed
+						}
+					}
+				}
+				extracted, err := Extract(strings.NewReader(stringOf(arguments[0])), opts)
+				if err == nil {
+					result = strings.TrimSpace(extracted.ContentText + "\n" + extracted.CommentsText)
+					if request.Operation == "extract_dom" && (request.Keywords["output_format"] == "xml" || request.Keywords["output_format"] == "markdown" || request.Keywords["include_formatting"] == true) {
+						result = extracted.ContentNode
+					}
+				}
+			case "is_image_file":
+				result = isImageFile(stringOf(arguments[0]))
+			case "handle_image":
+				var node *html.Node
+				if arguments[0] != nil {
+					node = dom.QuerySelector(docFromStr(stringOf(arguments[0])), "img")
+				}
+				if image := handleImage(node); image != nil {
+					result = image
+				}
+			case "handle_textelem":
+				if node := handleTextElem(python220Element(test, stringOf(arguments[0])), nil, nil, defaultOpts); node != nil {
+					result = node
+				}
+			case "load_fixture":
+				data, err := os.ReadFile(filepath.Join("test-files", "mock", stringOf(arguments[0])))
+				if !assert.NoError(test, err) {
+					test.FailNow()
+				}
+				result = string(data)
+			case "load_mock_page":
+				address := stringOf(arguments[0])
+				filename, exists := rwMockFiles[address]
+				if !exists {
+					test.Fatalf("Upstream saved page is not mapped: %s", address)
+				}
+				data, err := os.ReadFile(filepath.Join("test-files", "mock", filename))
+				if !assert.NoError(test, err) {
+					test.FailNow()
+				}
+				originalURL, err := url.Parse(address)
+				if !assert.NoError(test, err) {
+					test.FailNow()
+				}
+				extracted, err := Extract(strings.NewReader(string(data)), Options{OriginalURL: originalURL, EnableFallback: true, IncludeLinks: request.Keywords["links"] == true, TargetLanguage: stringOf(request.Keywords["langcheck"])})
+				if err == nil {
+					result = strings.TrimSpace(extracted.ContentText + "\n" + extracted.CommentsText)
+					if request.Keywords["xml_flag"] == true {
+						result = dom.OuterHTML(extracted.ContentNode)
+					}
+				}
+			case "extract_metadata":
+				opts := Options{HtmlDateMode: Extensive}
+				if extensive, exists := request.Keywords["extensive"].(bool); exists && !extensive {
+					opts.HtmlDateMode = Fast
+				}
+				if len(arguments) > 1 && arguments[1] != nil {
+					opts.OriginalURL, err = url.Parse(stringOf(arguments[1]))
+					assert.NoError(test, err)
+				}
+				if address, ok := request.Keywords["default_url"].(string); ok {
+					opts.OriginalURL, err = url.Parse(address)
+					assert.NoError(test, err)
+				}
+				opts.BlacklistedAuthors = stringsOf(request.Keywords["author_blacklist"])
+				if config, ok := request.Keywords["date_config"].(map[string]any); ok {
+					opts.HtmlDateOptions = &htmldate.Options{UseOriginalDate: config["original_date"] == true, SkipExtensiveSearch: config["extensive_search"] != true}
+				}
+				var previous htmldate.Options
+				if opts.HtmlDateOptions != nil {
+					previous = *opts.HtmlDateOptions
+				}
+				var document *html.Node
+				if input := stringOf(arguments[0]); strings.TrimSpace(input) != "" {
+					document = docFromStr(input)
+				}
+				result = metadataValue(extractMetadata(document, opts))
+				if opts.HtmlDateOptions != nil {
+					assert.Equal(test, previous, *opts.HtmlDateOptions, "Python metadata_tests.py:406: date options must not be mutated")
+				}
+			case "extract_meta_json", "extract_json", "process_parent", "extract_json_parse_error", "extract_json_author":
+				switch request.Operation {
+				case "extract_meta_json":
+					result = metadataValue(extractJsonLd(Options{}, docFromStr(stringOf(arguments[0])), initial))
+				case "extract_json":
+					result = metadataValue(extractJSONMetadata(arguments[0], initial))
+				case "process_parent":
+					result = metadataValue(processJSONMetadata(arguments[0], initial))
+				case "extract_json_parse_error":
+					result = metadataValue(recoverJSONMetadata(stringOf(arguments[0]), initial))
+				case "extract_json_author":
+					pattern := rxJSONAuthor
+					if strings.Contains(stringOf(arguments[1]), "[Pp]erson") {
+						pattern = rxJSONPerson
+					}
+					result = nullable(extractJSONAuthors(stringOf(arguments[0]), pattern))
+				}
+			case "extract_title":
+				result = nullable(extractDomTitle(docFromStr(stringOf(arguments[0]))))
+			case "extract_url":
+				result = nullable(extractDomURL(docFromStr(stringOf(arguments[0]))))
+			case "extract_metainfo":
+				attribute := "class"
+				if strings.Contains(fmt.Sprint(arguments[1]), "@type") {
+					attribute = "type"
+				}
+				rule := func(node *html.Node) bool { return dom.TagName(node) == "p" && dom.HasAttribute(node, attribute) }
+				result = nullable(extractDomMetaSelectors(docFromStr(stringOf(arguments[0])), 200, []selector.Rule{rule}))
+			case "normalize_tags":
+				result = normalizeTags(stringOf(arguments[0]))
+			case "normalize_json":
+				result = normalizeJSONText(stringOf(arguments[0]))
+			case "normalize_authors":
+				result = nullable(normalizeAuthors(stringOf(arguments[0]), stringOf(arguments[1])))
+			case "check_authors":
+				result = nullable(removeBlacklistedAuthors(stringOf(arguments[0]), Options{BlacklistedAuthors: stringsOf(arguments[1])}))
+			default:
+				test.Fatalf("No Go adapter for upstream operation %q", request.Operation)
+			}
+			results[index] = result
+			return result
+		}
+		name, ok := object["op"].(string)
+		if !ok {
+			result := make(map[string]any)
+			for key, value := range object {
+				result[key] = evaluate(test, value)
+			}
+			return result
+		}
+		if name == "And" || name == "Or" {
+			for _, argument := range object["args"].([]any) {
+				value := truthOf(evaluate(test, argument))
+				if name == "And" && !value {
+					return false
+				}
+				if name == "Or" && value {
+					return true
+				}
+			}
+			return name == "And"
+		}
+		arguments := evaluate(test, object["args"]).([]any)
+		switch name {
+		case "field":
+			if fields, ok := arguments[0].(map[string]any); ok {
+				return fields[stringOf(arguments[1])]
+			}
+			if node, ok := arguments[0].(*html.Node); ok && arguments[1] == "attrib" {
+				attributes := make(map[string]any)
+				for _, attribute := range node.Attr {
+					attributes[attribute.Key] = attribute.Val
+				}
+				return attributes
+			}
+			if values, ok := arguments[0].([]any); ok {
+				index := int(arguments[1].(float64))
+				if index < 0 || index >= len(values) {
+					test.Fatalf("Upstream indexed element %d but Go returned %v", index, values)
+				}
+				return values[index]
+			}
+			test.Fatalf("Cannot project %v from %T", arguments[1], arguments[0])
+		case "Eq", "Is":
+			return reflect.DeepEqual(arguments[0], arguments[1])
+		case "NotEq", "IsNot":
+			return !reflect.DeepEqual(arguments[0], arguments[1])
+		case "Gt", "GtE", "Lt", "LtE":
+			left, leftOK := arguments[0].(float64)
+			right, rightOK := arguments[1].(float64)
+			if !leftOK || !rightOK {
+				test.Fatalf("Unsupported upstream ordered comparison: %T %s %T", arguments[0], name, arguments[1])
+			}
+			switch name {
+			case "Gt":
+				return left > right
+			case "GtE":
+				return left >= right
+			case "Lt":
+				return left < right
+			case "LtE":
+				return left <= right
+			}
+		case "In", "NotIn":
+			contains := false
+			switch container := arguments[1].(type) {
+			case string:
+				contains = strings.Contains(container, stringOf(arguments[0]))
+			case *html.Node:
+				expected := stringOf(arguments[0])
+				switch {
+				case expected == "quote" || expected == "<quote>":
+					contains = dom.QuerySelector(container, "blockquote") != nil
+				case expected == "lb":
+					contains = dom.QuerySelector(container, "br") != nil
+				case expected == "<p>":
+					contains = dom.QuerySelector(container, "p") != nil
+				case expected == "<main/>":
+					contains = len(dom.Children(container)) == 0 && dom.TextContent(container) == ""
+				case expected == `rend="#b"` || expected == `rend="#i"` || expected == `rend="#t"` || expected == `rend="#u"` || expected == "<del>":
+					query := map[string]string{`rend="#b"`: "b, strong", `rend="#i"`: "i, em", `rend="#t"`: "tt, kbd", `rend="#u"`: "u", "<del>": "del, s, strike"}[expected]
+					contains = dom.QuerySelector(container, query) != nil
+				case strings.HasPrefix(expected, "<"):
+					fragment := python220Element(test, expected)
+					contains = strings.Contains(python220CanonicalHTML(container), python220CanonicalHTML(fragment))
+				case strings.HasPrefix(expected, "### "):
+					for _, heading := range dom.QuerySelectorAll(container, "h3") {
+						contains = contains || dom.TextContent(heading) == strings.TrimPrefix(expected, "### ")
+					}
+				default:
+					contains = strings.Contains(dom.TextContent(container), expected)
+				}
+			case []any:
+				for _, value := range container {
+					contains = contains || reflect.DeepEqual(value, arguments[0])
+				}
+			case map[string]any:
+				_, contains = container[stringOf(arguments[0])]
+			}
+			return contains == (name == "In")
+		case "Not":
+			return !truthOf(arguments[0])
+		case "len":
+			switch value := arguments[0].(type) {
+			case string:
+				return float64(utf8.RuneCountInString(value))
+			case []any:
+				return float64(len(value))
+			case map[string]any:
+				return float64(len(value))
+			default:
+				test.Fatalf("Upstream expects a value with a length; Go returned %T (%v)", value, value)
+			}
+		case "startswith":
+			return strings.HasPrefix(textOf(test, arguments[0]), textOf(test, arguments[1]))
+		case "endswith":
+			return strings.HasSuffix(textOf(test, arguments[0]), textOf(test, arguments[1]))
+		case "count":
+			return float64(strings.Count(textOf(test, arguments[0]), textOf(test, arguments[1])))
+		case "str":
+			if arguments[0] == nil {
+				return "None"
+			}
+			if value, ok := arguments[0].(bool); ok {
+				if value {
+					return "True"
+				}
+				return "False"
+			}
+			return stringOf(arguments[0])
+		case "strip":
+			return strings.TrimSpace(textOf(test, arguments[0]))
+		case "replace":
+			return strings.ReplaceAll(textOf(test, arguments[0]), textOf(test, arguments[1]), textOf(test, arguments[2]))
+		case "get":
+			if node, ok := arguments[0].(*html.Node); ok {
+				return nullable(dom.GetAttribute(node, stringOf(arguments[1])))
+			}
+			test.Fatalf("Cannot get an attribute from %T", arguments[0])
+		default:
+			test.Fatalf("No Go assertion adapter for %q", name)
+		}
+		return nil
+	}
+	for _, entry := range suite.Inventory {
+		if len(entry.GoTests) > 0 {
+			test.Logf("Native mapping: %s -> %s", entry.Test, strings.Join(entry.GoTests, ", "))
+			continue
+		}
+		test.Run(entry.Test, func(test *testing.T) {
+			if entry.Exclusion != "" {
+				test.Skip(entry.Exclusion)
+			}
+			for _, check := range entry.Native {
+				if len(check.GoTests) > 0 {
+					test.Logf("Native mapping: %s:line_%d -> %s", entry.Test, check.Line, strings.Join(check.GoTests, ", "))
+					continue
+				}
+				test.Run(fmt.Sprintf("line_%d", check.Line), func(test *testing.T) { test.Skip(check.Reason) })
+			}
+			for _, check := range suite.Assertions {
+				if check.Test != entry.Test {
+					continue
+				}
+				test.Run(fmt.Sprintf("line_%d", check.Line), func(test *testing.T) {
+					actual := evaluate(test, check.Expression)
+					if !assert.True(test, truthOf(actual), "%s:%d: %s", check.Test, check.Line, check.Source) {
+						if expression, ok := check.Expression.(map[string]any); ok {
+							if name := expression["op"]; name == "Eq" || name == "Is" {
+								operands := evaluate(test, expression["args"]).([]any)
+								test.Logf("Go value: %#v; upstream expected: %#v", operands[0], operands[1])
+							}
+						}
+					}
+				})
+			}
+			for index, request := range suite.Operations {
+				if request.Test == entry.Test {
+					if _, evaluated := results[index]; !evaluated {
+						test.Run(fmt.Sprintf("operation_%d", index), func(test *testing.T) { evaluate(test, map[string]any{"result": float64(index)}) })
+					}
+				}
+			}
+		})
+	}
+	for _, entry := range suite.Unmapped {
+		if entry.Test == "metadata_tests.py/test_date_config" && entry.Line == 406 {
+			continue
+		}
+		test.Run(fmt.Sprintf("%s/line_%d", entry.Test, entry.Line), func(test *testing.T) {
+			if entry.Test == "metadata_tests.py/test_author_blacklist" && (entry.Line == 101 || entry.Line == 102) {
+				test.Skip("Go always returns metadata and has no with_metadata toggle")
+			}
+			test.Fatalf("Unmapped upstream assertion: %s", entry.Assertion)
+		})
+	}
+}
 
 func Test_Metadata(t *testing.T) {
 	rawHTML := `
@@ -147,7 +673,7 @@ func Test_Metadata_normalizeAuthors(t *testing.T) {
 	isEqual(t, "John Doe", na("", "John Doe* "))
 	isEqual(t, "John Doe", na("", "John Doe of John Doe"))
 	isEqual(t, "John Doe", na("", "John Doe — John Doe"))
-	isEqual(t, "John Doe", na("", `John "The King" Doe`))
+	isEqual(t, "John  Doe", na("", `John "The King" Doe`))
 }
 
 func Test_Metadata_Authors(t *testing.T) {
@@ -354,6 +880,45 @@ func Test_Metadata_Descriptions(t *testing.T) {
 	assert.Equal(t, "A Northern Territory action plan, which includes plans to support development and employment on Aboriginal land, has received an update. ...", metadata.Description)
 }
 
+func Test_Metadata_DescriptionEntities(test *testing.T) {
+	testCases := []struct {
+		name     string
+		content  string
+		expected string
+	}{
+		{"decimal control", "before&amp;#8;after", "beforeafter"},
+		{"unterminated control", "before&amp;#8...after", "before...after"},
+		{"hex control", "before&amp;#x8;after", "beforeafter"},
+		{"vertical tab", "before&amp;#11;after", "beforeafter"},
+		{"form feed", "before&amp;#12;after", "before after"},
+		{"whitespace", "before&amp;#9;&amp;#10;&amp;#13;after", "before after"},
+		{"valid entities", "price &amp;#x20AC;5 &amp;amp; tax", "price \u20ac5 & tax"},
+		{"nonprinting Unicode", "a&amp;#x200d;b", "ab"},
+		{"null replacement", "before&amp;#0;after", "before\ufffdafter"},
+		{"noncharacter", "before&amp;#xFDD0;after", "beforeafter"},
+	}
+	for _, attribute := range []string{`name="description"`, `property="og:description"`, `itemprop="description"`} {
+		for _, testCase := range testCases {
+			test.Run(attribute+"/"+testCase.name, func(test *testing.T) {
+				input := `<html><head><meta ` + attribute + ` content="` + testCase.content + `"></head><body></body></html>`
+				metadata := testGetMetadataFromHTML(input)
+				assert.Equal(test, testCase.expected, metadata.Description)
+			})
+		}
+	}
+
+	metadata := testGetMetadataFromFile("comparison/zahlenzauberin.wordpress.com.ferien.html")
+	assert.Equal(test, "Dank Kabelanschluss kann ich, auch in Sachsen ,Bayern 2 hören. Da läuft gerade ein spannendes nah dran zum Thema: Freude, Falle, Frust: Der Mutterliebe zarte Sorgen Raben- versus Gluckenmütter …", metadata.Description)
+
+	for _, attribute := range []string{`name="keywords"`, `property="article:tag"`, `property="og:article:tag"`} {
+		test.Run(attribute, func(test *testing.T) {
+			input := `<html><head><meta ` + attribute + ` content="zero&#x200d;width"></head><body></body></html>`
+			metadata := testGetMetadataFromHTML(input)
+			assert.Equal(test, []string{"zero\u200dwidth"}, metadata.Tags)
+		})
+	}
+}
+
 func Test_Metadata_Dates(t *testing.T) {
 	var rawHTML string
 	isEqual := func(rawHTML string, expected string, customOpts ...Options) {
@@ -423,7 +988,7 @@ func Test_Metadata_Tags(t *testing.T) {
 	rawHTML = `<html><head>
 		<meta name="keywords" content="sodium, salt, paracetamol, blood, pressure, high, heart, &amp;quot, intake, warning, study, &amp;quot, medicine, dissolvable, cardiovascular" />
 	</head></html>`
-	isEqual(rawHTML, "sodium", "salt", "paracetamol", "blood", "pressure", "high", "heart", "intake", "warning", "study", "medicine", "dissolvable", "cardiovascular")
+	isEqual(rawHTML, "sodium, salt, paracetamol, blood, pressure, high, heart, intake, warning, study, medicine, dissolvable, cardiovascular")
 }
 
 func Test_Metadata_Sitename(t *testing.T) {
@@ -521,7 +1086,7 @@ func Test_Metadata_MetaImages(t *testing.T) {
 	isEqual(rawHTML, "https://example.org/example.jpg")
 
 	rawHTML = `<html><head><meta property="og:image:url" content="example.jpg"></html>`
-	isEqual(rawHTML, "http://example.org/example.jpg")
+	isEqual(rawHTML, "example.jpg")
 
 	rawHTML = `<html><head><meta property="og:image" content="https://example.org/example-opengraph.jpg" /><body/></html>`
 	isEqual(rawHTML, "https://example.org/example-opengraph.jpg")
@@ -530,15 +1095,15 @@ func Test_Metadata_MetaImages(t *testing.T) {
 	isEqual(rawHTML, "https://example.org/example-twitter.jpg")
 
 	rawHTML = `<html><head><meta property="twitter:image:src" content="example-twitter.jpg"></html>`
-	isEqual(rawHTML, "http://example.org/example-twitter.jpg")
+	isEqual(rawHTML, "example-twitter.jpg")
 
 	for _, name := range []string{"image", "og:image", "twitter:image", "twitter:image:src"} {
 		rawHTML = `<html><head><meta name="` + name + `" content="example.jpg"></head></html>`
-		isEqual(rawHTML, "http://example.org/example.jpg")
+		isEqual(rawHTML, "example.jpg")
 	}
 
 	rawHTML = `<html><head><meta name="image" content="other.jpg"><meta property="og:image" content="preferred.jpg"></head></html>`
-	isEqual(rawHTML, "http://example.org/preferred.jpg")
+	isEqual(rawHTML, "preferred.jpg")
 
 	// Without image
 	rawHTML = `<html><head><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" /></html>`

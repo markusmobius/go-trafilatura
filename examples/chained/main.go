@@ -7,8 +7,8 @@ import (
 	fp "path/filepath"
 	"time"
 
+	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
-	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura"

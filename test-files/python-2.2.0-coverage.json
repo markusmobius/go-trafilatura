@@ -1,0 +1,4264 @@
+{
+  "commit": "c1bc9531a2a978326112ca9987e1382745116136",
+  "status_definitions": {
+    "imported": "Original recorded assertion expressions; Go API and DOM vocabulary adapters still apply.",
+    "mixed": "Original recorded assertions plus source-line mappings for native translations or exclusions.",
+    "translated": "Native behavioral translation; not a claim of identical Python API, serializer, input representation, or assertion count.",
+    "excluded": "No supported Go contract in the agreed port scope; reason is recorded."
+  },
+  "excluded_modules": {
+    "cli_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope.",
+    "downloads_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope.",
+    "feeds_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope.",
+    "sitemaps_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope.",
+    "spider_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope.",
+    "xml_tei_tests.py": "Page acquisition/CLI or Python XML/TEI serialization is outside the agreed scope."
+  },
+  "tests": [
+    {
+      "test": "baseline_tests.py/test_baseline",
+      "line": 19,
+      "assertion_lines": [
+        22,
+        23,
+        24,
+        25,
+        28,
+        29,
+        30,
+        31,
+        35,
+        53,
+        66,
+        82,
+        98,
+        103,
+        107
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_strategy_fallthrough",
+      "line": 110,
+      "assertion_lines": [
+        114
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_jsonld_shapes",
+      "line": 117,
+      "assertion_lines": [
+        127
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_jsonld_content",
+      "line": 130,
+      "assertion_lines": [
+        138,
+        141,
+        145,
+        148,
+        151,
+        157
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_teaser_does_not_shadow_longer_body",
+      "line": 160,
+      "assertion_lines": [
+        174
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_teaser_used_when_body_shorter",
+      "line": 177,
+      "assertion_lines": [
+        182
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_description_teaser_tier",
+      "line": 186,
+      "assertion_lines": [
+        192,
+        195,
+        197
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_jsonld_double_embed",
+      "line": 200,
+      "assertion_lines": [
+        211
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_control_chars_tree_input",
+      "line": 226,
+      "assertion_lines": [
+        231
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_nested_paragraph_not_duplicated",
+      "line": 234,
+      "assertion_lines": [
+        240
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_paragraph_dedup_keeps_short_repeats",
+      "line": 243,
+      "assertion_lines": [
+        250
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_dedup_keeps_cross_boundary_paragraph",
+      "line": 253,
+      "assertion_lines": [
+        265,
+        266
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_article_nested_not_duplicated",
+      "line": 269,
+      "assertion_lines": [
+        275
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_schema_properties",
+      "line": 278,
+      "assertion_lines": [
+        296,
+        309,
+        327
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_discourse_preload",
+      "line": 330,
+      "assertion_lines": [
+        346,
+        347
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_discourse_preload_malformed",
+      "line": 350,
+      "assertion_lines": [
+        357
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_build_body_dedupe_cap",
+      "line": 360,
+      "assertion_lines": [
+        371,
+        375
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_howto",
+      "line": 378,
+      "assertion_lines": [
+        396,
+        414
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_element_input_not_mutated",
+      "line": 417,
+      "assertion_lines": [
+        422,
+        423
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_baseline_article_dominance",
+      "line": 426,
+      "assertion_lines": [
+        432,
+        437
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "baseline_tests.py/test_html2txt",
+      "line": 440,
+      "assertion_lines": [
+        442,
+        443,
+        444,
+        445,
+        446,
+        447,
+        448,
+        451,
+        452,
+        453,
+        456,
+        457,
+        459,
+        467,
+        470,
+        475
+      ],
+      "note": "Native baseline translation, including the existing long article fixture. Go's parsed-DOM API replaces Python raw/dynamic inputs; Python-only cap monkeypatching is explicitly skipped.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Baseline",
+        "Test_Baseline"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_trim",
+      "line": 135,
+      "assertion_lines": [
+        137,
+        138,
+        141,
+        144,
+        146,
+        148,
+        150,
+        155
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ],
+      "note": "trim/textfilter assertions are native. Nullable sanitize and process-global cache assertions are explicitly skipped."
+    },
+    {
+      "test": "unit_tests.py/test_reset_caches",
+      "line": 158,
+      "assertion_lines": [
+        164,
+        166
+      ],
+      "status": "excluded",
+      "note": "Python process-global cache/reset APIs do not exist in Go; per-extraction deduplication is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_input",
+      "line": 169,
+      "assertion_lines": [
+        172,
+        174,
+        175,
+        177,
+        181,
+        185,
+        189,
+        193,
+        197,
+        201,
+        207,
+        208,
+        211,
+        212,
+        214,
+        215,
+        216,
+        219,
+        223,
+        229,
+        232,
+        234,
+        236,
+        239,
+        241,
+        242,
+        244,
+        249,
+        252
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ],
+      "note": "Reader/parser API translation. Encoding-candidate lists, repair_faulty_html strings, dynamic input types, source coercion, and Python output-format validation have no Go API. Nil and gzip expectations are retained."
+    },
+    {
+      "test": "unit_tests.py/test_document_isolation",
+      "line": 255,
+      "assertion_lines": [
+        258,
+        259,
+        260
+      ],
+      "status": "excluded",
+      "note": "Python Document constructor defaults have no matching Go constructor; Go allocates extraction state per call."
+    },
+    {
+      "test": "unit_tests.py/test_xmltocsv",
+      "line": 263,
+      "assertion_lines": [
+        267,
+        283,
+        286,
+        287
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_tojson",
+      "line": 290,
+      "assertion_lines": [
+        294,
+        296,
+        297
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_python_output",
+      "line": 300,
+      "assertion_lines": [
+        305
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_exotic_tags",
+      "line": 308,
+      "assertion_lines": [
+        312,
+        317,
+        323,
+        325,
+        326,
+        334,
+        336,
+        342,
+        344,
+        365,
+        389,
+        392
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 10,
+      "imported_lines": [
+        312,
+        323,
+        336,
+        342,
+        344,
+        365,
+        389,
+        392
+      ],
+      "native_or_excluded": [
+        {
+          "line": 317,
+          "source": "etree.tostring(res).startswith(b'<html>\\n<text>\\n<body>\\n<div>\\n\\n<hi rend=\"uppercase\">Hello</hi>\\n<p>Teletype text</p>')",
+          "reason": "Excluded: Python TEI serialization and validation.",
+          "go_tests": []
+        },
+        {
+          "line": 325,
+          "source": "handle_quotes(etree.Element('quote'), options) is None",
+          "reason": "Native helper assertions: Test_ExoticTags.",
+          "go_tests": [
+            "Test_ExoticTags"
+          ]
+        },
+        {
+          "line": 326,
+          "source": "handle_table(etree.Element('table'), TAG_CATALOG, options) is None",
+          "reason": "Native helper assertions: Test_ExoticTags.",
+          "go_tests": [
+            "Test_ExoticTags"
+          ]
+        },
+        {
+          "line": 334,
+          "source": "etree.tostring(converted) == b'<p>1st part. 2nd part.</p>'",
+          "reason": "Native helper assertions: Test_ExoticTags.",
+          "go_tests": [
+            "Test_ExoticTags"
+          ]
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_formatting",
+      "line": 400,
+      "assertion_lines": [
+        406,
+        410,
+        417,
+        418,
+        419,
+        425,
+        432,
+        439,
+        451,
+        477,
+        481,
+        485,
+        488,
+        492,
+        496,
+        499,
+        506,
+        510,
+        516,
+        529,
+        535,
+        538,
+        541,
+        547,
+        551,
+        562,
+        567,
+        575,
+        582,
+        591,
+        607,
+        610,
+        623
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 18,
+      "imported_lines": [
+        406,
+        410,
+        477,
+        481,
+        485,
+        488,
+        492,
+        496,
+        499,
+        516,
+        535,
+        547,
+        551,
+        562,
+        575,
+        582,
+        591,
+        623
+      ],
+      "native_or_excluded": [
+        {
+          "line": 417,
+          "source": "my_result == '### Title\\n\\n**This here is in bold font.**Non-bold here'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 418,
+          "source": "extract(my_string, output_format='markdown', config=ZERO_CONFIG) == my_result",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 419,
+          "source": "'<hi rend=\"#b\">' in etree.tostring(bare_extraction(my_string, output_format='markdown', config=ZERO_CONFIG).body, encoding='unicode')",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 425,
+          "source": "' '.join(meta_result.split()) == '--- title: Test --- ABC.'",
+          "reason": "Excluded: Python Markdown/YAML metadata serialization.",
+          "go_tests": []
+        },
+        {
+          "line": 432,
+          "source": "my_result.endswith('Paragraph 1\\n\\nParagraph 2')",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 439,
+          "source": "my_result == '### Title\\n\\nHere is a code sample:\\n\\n`import trafilatura`'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 451,
+          "source": "my_result == '### Title\\n\\nHere is a code sample:\\n\\n```\\nimport something\\nsomething.run(\"somewhere\")\\n```\\nSometimes code is wrapped using `pre` and `code`:\\n\\n```\\nimport trafilatura\\ntrafilatura.extract(\"\")\\n```\\nLess often code is wrapped using just `pre`:\\n\\n```\\ntrafilatura.extract(\"\")\\n```'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 506,
+          "source": "etree.tostring(converted) == b'<p><hi>Here is the text.</hi>And a tail.</p>'",
+          "reason": "Native formatting/container assertions: Test_Formatting.",
+          "go_tests": [
+            "Test_Formatting"
+          ]
+        },
+        {
+          "line": 510,
+          "source": "'<main>\\n    <p>There is text here.</p>\\n  </main>' in my_result",
+          "reason": "Native formatting/container assertions: Test_Formatting.",
+          "go_tests": [
+            "Test_Formatting"
+          ]
+        },
+        {
+          "line": 529,
+          "source": "my_result == '- Number 0\\n- Number [1](test.html)\\n- [Number 2](test.html) n2\\n- Number 3\\n- Number 4 n4\\n\\nTest'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 538,
+          "source": "my_result == '**bold**, *italics*, `tt`, ~~deleted~~, __underlined__, link and additional text to bypass detection.'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 541,
+          "source": "my_result == '**bold**, *italics*, `tt`, ~~deleted~~, __underlined__, [link](test.html) and additional text to bypass detection.'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 567,
+          "source": "my_result == '**bold**, *italics*, `tt`, ~~deleted~~, __underlined__, link and additional text to bypass detection.'",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 607,
+          "source": "\"python code below:\\n```\\ndef test:\\n    print('hello')\\n    print('world')\\n    \\n```\" == my_result",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        },
+        {
+          "line": 610,
+          "source": "\"python code below:\\n```\\ndef test:\\n    print('hello')\\n    print('world')\\n    \\n```\" == my_result",
+          "reason": "Markdown serialization excluded; inline/code/list DOM behavior is checked by Test_Python220_Structures, Test_Python220_CodeAndFAQ, and Test_Formatting.",
+          "go_tests": []
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_markdown_metadata_yaml_safe",
+      "line": 626,
+      "assertion_lines": [
+        629,
+        630,
+        631,
+        632,
+        633,
+        634,
+        635,
+        636,
+        637,
+        638,
+        652,
+        664,
+        665,
+        666
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_blockquote_inline_content",
+      "line": 669,
+      "assertion_lines": [
+        671,
+        672,
+        676
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_yoast_faq_block",
+      "line": 682,
+      "assertion_lines": [
+        700,
+        702,
+        705
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 3,
+      "imported_lines": [
+        700,
+        702,
+        705
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_include_formatting_markdown",
+      "line": 710,
+      "assertion_lines": [
+        713,
+        714,
+        715
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_markdown_list_item_inline_spacing",
+      "line": 718,
+      "assertion_lines": [
+        721
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_markdown_sup_sub_keep_boundary",
+      "line": 724,
+      "assertion_lines": [
+        728,
+        729,
+        733,
+        734
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_markdown_empty_sup_sub_are_dropped",
+      "line": 737,
+      "assertion_lines": [
+        743,
+        746,
+        749,
+        750
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 5,
+      "imported_lines": [
+        743,
+        746,
+        749,
+        750
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_extract_with_metadata",
+      "line": 753,
+      "assertion_lines": [
+        767,
+        768,
+        782,
+        783,
+        786,
+        788,
+        800
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ],
+      "note": "Metadata and content assertions use Extract with Python-equivalent date settings; Python raw_text/fingerprint serialization is excluded."
+    },
+    {
+      "test": "unit_tests.py/test_external",
+      "line": 806,
+      "assertion_lines": [
+        812,
+        815,
+        821,
+        828,
+        832,
+        836,
+        837,
+        840,
+        841,
+        845
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 6,
+      "imported_lines": [
+        832,
+        836,
+        837,
+        840,
+        841,
+        845
+      ],
+      "native_or_excluded": [
+        {
+          "line": 812,
+          "source": "mylen == 0",
+          "reason": "Native fallback sanitization assertions: Test_External.",
+          "go_tests": [
+            "Test_External"
+          ]
+        },
+        {
+          "line": 815,
+          "source": "mylen > 0",
+          "reason": "Native fallback sanitization assertions: Test_External.",
+          "go_tests": [
+            "Test_External"
+          ]
+        },
+        {
+          "line": 821,
+          "source": "len(mytree) == 1",
+          "reason": "Native fallback sanitization assertions: Test_External.",
+          "go_tests": [
+            "Test_External"
+          ]
+        },
+        {
+          "line": 828,
+          "source": "'graphic' in myelems and 'ref' in myelems",
+          "reason": "Native fallback sanitization assertions: Test_External.",
+          "go_tests": [
+            "Test_External"
+          ]
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_wrong_language_discarded",
+      "line": 849,
+      "assertion_lines": [
+        852
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_sanitize_tree_absolutizes_links",
+      "line": 855,
+      "assertion_lines": [
+        861
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_images",
+      "line": 864,
+      "assertion_lines": [
+        867,
+        868,
+        869,
+        871,
+        872,
+        873,
+        874,
+        875,
+        876,
+        878,
+        879,
+        880,
+        881,
+        883,
+        886,
+        887,
+        888,
+        895,
+        896,
+        897,
+        898,
+        899,
+        900,
+        906,
+        910,
+        914,
+        918,
+        923,
+        937,
+        943
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 19,
+      "imported_lines": [
+        867,
+        868,
+        869,
+        871,
+        872,
+        873,
+        874,
+        875,
+        876,
+        878,
+        879,
+        880,
+        881,
+        883,
+        888,
+        897,
+        923,
+        937,
+        943
+      ],
+      "native_or_excluded": [
+        {
+          "line": 886,
+          "source": "'![Example image](test.jpg)' not in extract(teststring)",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 887,
+          "source": "'![Example image](test.jpg)' in extract(teststring, include_images=True, fast=True)",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 895,
+          "source": "img('<img data-src=\"test.jpg\" alt=\"text\" title=\"a title\"/>') == '![a title text](test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 896,
+          "source": "img('<p><img data-src=\"test.jpg\" alt=\"text\" title=\"a title\"/></p>') == '![a title text](test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 898,
+          "source": "img('<div><p><img data-src=\"test.jpg\" alt=\"text\" title=\"a title\"/></p></div>') == '![a title text](test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 899,
+          "source": "img('<div><p><img data-src-small=\"test.jpg\" alt=\"text\" title=\"a title\"/></p></div>') == '![a title text](test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 900,
+          "source": "img('<div><p><img src=\"https://a.b/test.jpg\" alt=\"text\" title=\"a title\"/></p></div>') == '![a title text](https://a.b/test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 906,
+          "source": "img('<div><p><img src=\"//a.b/test.jpg\" alt=\"text\" title=\"a title\"/></p></div>', url=url) == '![a title text](http://a.b/test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 910,
+          "source": "img('<div><p><img src=\"/a.b/test.jpg\" alt=\"text\" title=\"a title\"/></p></div>', url=url) == '![a title text](http://a.b/a.b/test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 914,
+          "source": "img('<div><p><img src=\"./a.b/test.jpg\" alt=\"text\" title=\"a title\"/></p></div>', url=url) == '![a title text](http://a.b/c/a.b/test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 918,
+          "source": "img('<div><p><img src=\"../a.b/test.jpg\" alt=\"text\" title=\"a title\"/></p></div>', url=url) == '![a title text](http://a.b/a.b/test.jpg)'",
+          "reason": "Image/URL DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_links",
+      "line": 948,
+      "assertion_lines": [
+        951,
+        952,
+        955,
+        960,
+        961,
+        965,
+        972,
+        979,
+        982,
+        983,
+        984,
+        989,
+        995,
+        996
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 7,
+      "imported_lines": [
+        955,
+        960,
+        979,
+        982,
+        984,
+        995,
+        996
+      ],
+      "native_or_excluded": [
+        {
+          "line": 951,
+          "source": "handle_textelem(etree.Element('ref'), [], options) is None",
+          "reason": "Native empty-link and formatting assertions: Test_Links.",
+          "go_tests": [
+            "Test_Links"
+          ]
+        },
+        {
+          "line": 952,
+          "source": "handle_formatting(html.fromstring('<a href=\"testlink.html\">Test link text.</a>'), options) is not None",
+          "reason": "Native empty-link and formatting assertions: Test_Links.",
+          "go_tests": [
+            "Test_Links"
+          ]
+        },
+        {
+          "line": 961,
+          "source": "'[Test link text.](testlink.html) This part of the text has to be long enough.' in extract(copy(mydoc), include_links=True, fast=True, config=ZERO_CONFIG)",
+          "reason": "Link/URL/license DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 965,
+          "source": "'[Test link text.](https://www.example.com/testlink.html) This part of the text has to be long enough.' in extract(copy(mydoc), url='https://www.example.com/', include_links=True, fast=True, config=ZERO_CONFIG)",
+          "reason": "Link/URL/license DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 972,
+          "source": "'[Test link text.] This part of the text has to be long enough.' in extract(copy(mydoc), include_links=True, fast=True, config=ZERO_CONFIG)",
+          "reason": "Link/URL/license DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 983,
+          "source": "'[link](testlink.html)' in extract(teststring, include_links=True, fast=True, config=ZERO_CONFIG)",
+          "reason": "Link/URL/license DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        },
+        {
+          "line": 989,
+          "source": "'license=\"CC BY-SA license\"' in extract(mydoc, include_links=True, fast=True, output_format='xml', config=ZERO_CONFIG, with_metadata=True)",
+          "reason": "Link/URL/license DOM translation: Test_Python220_ImagesAndLinks.",
+          "go_tests": [
+            "Test_Python220_ImagesAndLinks"
+          ]
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_tei",
+      "line": 999,
+      "assertion_lines": [
+        1007,
+        1008,
+        1009,
+        1015,
+        1016,
+        1018,
+        1019,
+        1022,
+        1023,
+        1030,
+        1033,
+        1035,
+        1037,
+        1042,
+        1044,
+        1046,
+        1051,
+        1056,
+        1061,
+        1066,
+        1073,
+        1078,
+        1081,
+        1084,
+        1085,
+        1100,
+        1113,
+        1130,
+        1142,
+        1154,
+        1155,
+        1198
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_htmlprocessing",
+      "line": 1201,
+      "assertion_lines": [
+        1203,
+        1206,
+        1207,
+        1213,
+        1228,
+        1232,
+        1234,
+        1235,
+        1242,
+        1245,
+        1250,
+        1254,
+        1258,
+        1259,
+        1262,
+        1263,
+        1265,
+        1266,
+        1270,
+        1271,
+        1274,
+        1275,
+        1278,
+        1279,
+        1282,
+        1283,
+        1286,
+        1289,
+        1292,
+        1295,
+        1299,
+        1302,
+        1307,
+        1309,
+        1316,
+        1321,
+        1326,
+        1332,
+        1336
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 7,
+      "imported_lines": [
+        1234,
+        1258,
+        1259,
+        1262,
+        1263,
+        1265,
+        1266
+      ],
+      "native_or_excluded": [
+        {
+          "line": 1203,
+          "source": "xml.xmltotxt(None, include_formatting=False) == ''",
+          "reason": "Excluded: Python-only xmltotxt/replace_element_text serialization.",
+          "go_tests": []
+        },
+        {
+          "line": 1206,
+          "source": "trafilatura.htmlprocessing.tree_cleaning(etree.Element('html'), options) is not None",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1207,
+          "source": "trafilatura.htmlprocessing.prune_html(etree.Element('unwanted')) is not None",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1213,
+          "source": "myconverted.xpath('.//ref') and myconverted.xpath('.//graphic') and myconverted.xpath('.//hi[@rend=\"#t\"]') and myconverted.xpath('.//table')",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1228,
+          "source": "srcs == ['a.jpg', 'b.jpg', 'c.jpg']",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1232,
+          "source": "myconverted.xpath('.//graphic') and (not myconverted.xpath('.//table'))",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1235,
+          "source": "'<ab rend=\"h1\" type=\"header\">Test headline</ab>' in extract(copy(mydoc), output_format='xmltei', config=ZERO_CONFIG, fast=True)",
+          "reason": "Excluded: Python TEI serialization and validation.",
+          "go_tests": []
+        },
+        {
+          "line": 1242,
+          "source": "etree.tostring(element) == b'<test/>'",
+          "reason": "Native etree manipulation assertions: Test_HtmlProcessing.",
+          "go_tests": [
+            "Test_HtmlProcessing"
+          ]
+        },
+        {
+          "line": 1245,
+          "source": "etree.tostring(element) == b'<test/>'",
+          "reason": "Native etree manipulation assertions: Test_HtmlProcessing.",
+          "go_tests": [
+            "Test_HtmlProcessing"
+          ]
+        },
+        {
+          "line": 1250,
+          "source": "b'<p>A B C</p>' in etree.tostring(mydoc)",
+          "reason": "Native etree manipulation assertions: Test_HtmlProcessing.",
+          "go_tests": [
+            "Test_HtmlProcessing"
+          ]
+        },
+        {
+          "line": 1254,
+          "source": "b'<p>A B tail C</p>' in etree.tostring(mydoc)",
+          "reason": "Native etree manipulation assertions: Test_HtmlProcessing.",
+          "go_tests": [
+            "Test_HtmlProcessing"
+          ]
+        },
+        {
+          "line": 1270,
+          "source": "node.text == 'tail'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1271,
+          "source": "node.tail is None",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1274,
+          "source": "node.text == 'text in tail'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1275,
+          "source": "node.tail is None",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1278,
+          "source": "line_break.text is None",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1279,
+          "source": "line_break.tail == 'tail'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1282,
+          "source": "node.text == 'some text'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1283,
+          "source": "node.tail == 'tail'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1286,
+          "source": "processed.tail == 'outer'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1289,
+          "source": "processed.tail == 'tail' and processed.text == 'text'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1292,
+          "source": "processed.tail == '' and processed.text == 'tail'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1295,
+          "source": "processed.tail == 'tail' and processed.text == 'text'",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1299,
+          "source": "node.text_content() == 'span span tail p tail '",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1302,
+          "source": "node.text_content() == ' span tail p tail '",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1307,
+          "source": "trafilatura.htmlprocessing.link_density_test_tables(linkless_table) is False",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1309,
+          "source": "trafilatura.htmlprocessing.link_density_test_tables(html.fromstring('<table><cell>short ' + '<ref target=\"/x\">link</ref> ' * 5 + '</cell></table>')) is False",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1316,
+          "source": "xml.replace_element_text(etree.Element('ref'), include_formatting=False) == ''",
+          "reason": "Excluded: Python-only xmltotxt/replace_element_text serialization.",
+          "go_tests": []
+        },
+        {
+          "line": 1321,
+          "source": "'None' not in code_md and 'print(1)' in code_md",
+          "reason": "Excluded: Python-only xmltotxt/replace_element_text serialization.",
+          "go_tests": []
+        },
+        {
+          "line": 1326,
+          "source": "processed is not None and (not processed.findall('.//lb'))",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1332,
+          "source": "hi is not None and 'pre' in hi.text and (' mid' in hi.text)",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        },
+        {
+          "line": 1336,
+          "source": "hi is not None and ' tail' in hi.text",
+          "reason": "Native DOM/helper assertions: Test_Python220_HTML and Test_Python220_Internals.",
+          "go_tests": [
+            "Test_Python220_HTML",
+            "Test_Python220_Internals"
+          ]
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_extraction_options",
+      "line": 1339,
+      "assertion_lines": [
+        1345,
+        1346,
+        1347,
+        1348,
+        1349,
+        1350,
+        1353,
+        1354,
+        1360,
+        1363,
+        1366,
+        1367,
+        1368
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ],
+      "note": "Native size, metadata, language, and date checks. Python-only serializer errors, try_justext internals, external readability internals, and with_metadata=False are excluded."
+    },
+    {
+      "test": "unit_tests.py/test_precision_recall",
+      "line": 1371,
+      "assertion_lines": [
+        1375,
+        1376,
+        1381,
+        1382,
+        1383,
+        1389,
+        1391,
+        1397,
+        1399,
+        1403,
+        1405,
+        1409,
+        1412,
+        1413
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 14,
+      "imported_lines": [
+        1375,
+        1376,
+        1381,
+        1382,
+        1383,
+        1389,
+        1391,
+        1397,
+        1399,
+        1403,
+        1405,
+        1409,
+        1412,
+        1413
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_url_blacklist",
+      "line": 1416,
+      "assertion_lines": [
+        1419,
+        1420
+      ],
+      "status": "excluded",
+      "note": "Go Options has no URL blacklist option."
+    },
+    {
+      "test": "unit_tests.py/test_recover_wild_text_default_tags",
+      "line": 1423,
+      "assertion_lines": [
+        1430
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ],
+      "note": "Go's function returns void; its no-crash behavior is checked, not Python's non-null return value."
+    },
+    {
+      "test": "unit_tests.py/test_link_density_tables_threshold",
+      "line": 1452,
+      "assertion_lines": [
+        1453
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_link_density_tables_textless_links_kept",
+      "line": 1456,
+      "assertion_lines": [
+        1462
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_link_density_short_link_list_kept",
+      "line": 1465,
+      "assertion_lines": [
+        1474,
+        1475
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_link_density_large_link_farm_pruned",
+      "line": 1478,
+      "assertion_lines": [
+        1487,
+        1488
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_link_density_whole_card_links_kept",
+      "line": 1491,
+      "assertion_lines": [
+        1502,
+        1503
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_overall_discard_legacy_tokens",
+      "line": 1506,
+      "assertion_lines": [
+        1518,
+        1519
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_overall_discard_matches_both_attributes",
+      "line": 1522,
+      "assertion_lines": [
+        1532,
+        1533,
+        1534
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_xpath_alt_rejects_empty_group",
+      "line": 1537,
+      "assertion_lines": [
+        1544
+      ],
+      "status": "excluded",
+      "note": "Python XPath regex compilation has no equivalent API; Go uses native selector predicates."
+    },
+    {
+      "test": "unit_tests.py/test_precision_discard_link_token_only",
+      "line": 1549,
+      "assertion_lines": [
+        1560,
+        1561,
+        1562,
+        1563,
+        1564,
+        1565,
+        1566
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_body_xpath_fulltext_class",
+      "line": 1569,
+      "assertion_lines": [
+        1583,
+        1585
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_basic_cleaning_cookie_banner_scope",
+      "line": 1588,
+      "assertion_lines": [
+        1606,
+        1607,
+        1609
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_HTML"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_is_in_table_cell",
+      "line": 1612,
+      "assertion_lines": [
+        1617,
+        1618
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_table_colspan_content",
+      "line": 1633,
+      "assertion_lines": [
+        1638
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_processing",
+      "line": 1641,
+      "assertion_lines": [
+        1645,
+        1652,
+        1665,
+        1689,
+        1708,
+        1709,
+        1713,
+        1719,
+        1738,
+        1739,
+        1765,
+        1766,
+        1770,
+        1774,
+        1788,
+        1802,
+        1808,
+        1813,
+        1828,
+        1843,
+        1858,
+        1863,
+        1876,
+        1880,
+        1889,
+        1892,
+        1895,
+        1899,
+        1903,
+        1909,
+        1912,
+        1913
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_TableProcessing",
+        "Test_Python220_TableAndListLegacy"
+      ],
+      "note": "Existing helper translations plus original missing cases in Test_Python220_TableAndListLegacy. Markdown separators/whitespace are represented by cell/header DOM assertions, not serializer parity."
+    },
+    {
+      "test": "unit_tests.py/test_table_image_in_cell",
+      "line": 1945,
+      "assertion_lines": [
+        1953
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_combined_links_formatting_images_tables",
+      "line": 1968,
+      "assertion_lines": [
+        1971
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_combined_flags_toggle_off",
+      "line": 1995,
+      "assertion_lines": [
+        1998
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ],
+      "note": "Image/link toggles are native; Go always preserves HTML formatting, so the formatting-off option is explicitly skipped."
+    },
+    {
+      "test": "unit_tests.py/test_table_colspan_padding",
+      "line": 2006,
+      "assertion_lines": [
+        2008
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_bad_span_attr_treated_as_colspan1",
+      "line": 2012,
+      "assertion_lines": [
+        2014
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_huge_or_bad_colspan_no_crash",
+      "line": 2020,
+      "assertion_lines": [
+        2022
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_colspan_zero_trust",
+      "line": 2029,
+      "assertion_lines": [
+        2031
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_rowspan_aligned",
+      "line": 2034,
+      "assertion_lines": [
+        2036
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_rowspan_colspan_combined",
+      "line": 2041,
+      "assertion_lines": [
+        2046
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_rowspan_decrement_on_padding",
+      "line": 2049,
+      "assertion_lines": [
+        2059
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_empty_cells_and_rows",
+      "line": 2079,
+      "assertion_lines": [
+        2081
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_cell_list_no_row_break",
+      "line": 2084,
+      "assertion_lines": [
+        2087
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_TableAndListLegacy"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_cell_block_elements_flattened",
+      "line": 2104,
+      "assertion_lines": [
+        2106
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_cell_keeps_nested_formatting",
+      "line": 2119,
+      "assertion_lines": [
+        2121
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_include_images_does_not_truncate",
+      "line": 2124,
+      "assertion_lines": [
+        2137,
+        2138
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content",
+      "line": 2141,
+      "assertion_lines": [
+        2146,
+        2148,
+        2159
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_list_item",
+      "line": 2162,
+      "assertion_lines": [
+        2173
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_nonadjacent",
+      "line": 2176,
+      "assertion_lines": [
+        2187,
+        2188,
+        2189
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_no_duplicate_content_short_elements",
+      "line": 2192,
+      "assertion_lines": [
+        2209
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        2209
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_recover_wild_text_inline_formatting_dedup",
+      "line": 2212,
+      "assertion_lines": [
+        2224
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_recover_wild_text_dedup_scan_cap",
+      "line": 2227,
+      "assertion_lines": [
+        2236,
+        2248,
+        2250
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_TableAndListLegacy"
+      ],
+      "note": "Default-cap input is tested. Monkeypatching Go's constant to Python's two test caps is unavailable and explicitly skipped."
+    },
+    {
+      "test": "unit_tests.py/test_prune_boilerplate_table_after_nested",
+      "line": 2253,
+      "assertion_lines": [
+        2263,
+        2264
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_prune_keep_teasers",
+      "line": 2267,
+      "assertion_lines": [
+        2275,
+        2276
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation",
+      "line": 2279,
+      "assertion_lines": [
+        2293,
+        2294
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext",
+      "line": 2309,
+      "assertion_lines": [
+        2323,
+        2324
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        2323,
+        2324
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_justext_comment_scoping",
+      "line": 2355,
+      "assertion_lines": [
+        2367,
+        2368
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_no_comment_doubling",
+      "line": 2372,
+      "assertion_lines": [
+        2384,
+        2385
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_dfp_long_opening_post_keeps_replies",
+      "line": 2396,
+      "assertion_lines": [
+        2404,
+        2405
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_dfp_precision_keeps_posts",
+      "line": 2408,
+      "assertion_lines": [
+        2415
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_recall_escalation_blog_comment_leak",
+      "line": 2419,
+      "assertion_lines": [
+        2427,
+        2428
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_escalation_retry_no_comment_capture",
+      "line": 2431,
+      "assertion_lines": [
+        2453,
+        2454
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        2453,
+        2454
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_main_pass_excludes_comments_when_disabled",
+      "line": 2457,
+      "assertion_lines": [
+        2470,
+        2471
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_main_pass_excludes_details_wrapped_comments",
+      "line": 2474,
+      "assertion_lines": [
+        2489,
+        2490,
+        2494
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Recovery"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_compare_extraction_justext_ratio",
+      "line": 2497,
+      "assertion_lines": [
+        2516,
+        2521
+      ],
+      "status": "excluded",
+      "note": "The bundled Python readability and jusText implementations are not ported; Go uses external fallback packages."
+    },
+    {
+      "test": "unit_tests.py/test_list_item_block_child_single_bullet",
+      "line": 2524,
+      "assertion_lines": [
+        2526
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_list_item_image_gets_bullet",
+      "line": 2529,
+      "assertion_lines": [
+        2532
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_inline_marker_flanking_whitespace",
+      "line": 2544,
+      "assertion_lines": [
+        2546
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_inline_marker_edge_cases",
+      "line": 2549,
+      "assertion_lines": [
+        2551,
+        2552
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_ordered_list_numbering",
+      "line": 2557,
+      "assertion_lines": [
+        2559,
+        2560,
+        2561
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_nested_list_indentation",
+      "line": 2564,
+      "assertion_lines": [
+        2566,
+        2567
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_loose_text_tail_not_squished",
+      "line": 2570,
+      "assertion_lines": [
+        2586
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        2586
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_heading_level_zero_trust",
+      "line": 2605,
+      "assertion_lines": [
+        2611
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_table_nested_in_cell",
+      "line": 2614,
+      "assertion_lines": [
+        2618
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_nested_in_cell_pipeline",
+      "line": 2621,
+      "assertion_lines": [
+        2628,
+        2629,
+        2631
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_nested_tail_preserved",
+      "line": 2634,
+      "assertion_lines": [
+        2639
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_nested_tail_with_prior_child",
+      "line": 2642,
+      "assertion_lines": [
+        2646
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_comment_in_row",
+      "line": 2649,
+      "assertion_lines": [
+        2652
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_caption",
+      "line": 2655,
+      "assertion_lines": [
+        2658,
+        2660,
+        2662,
+        2666,
+        2667
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_orphan_cells_no_tr",
+      "line": 2670,
+      "assertion_lines": [
+        2673
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_stray_cell_descendant",
+      "line": 2676,
+      "assertion_lines": [
+        2683
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Tables"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_table_colgroup_no_crash",
+      "line": 2695,
+      "assertion_lines": [
+        2698
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_aria_layout_table_reclassified",
+      "line": 2702,
+      "assertion_lines": [
+        2713,
+        2714,
+        2718
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_sanitize_tree_th_dedup",
+      "line": 2721,
+      "assertion_lines": [
+        2738,
+        2739,
+        2740,
+        2744
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_list_item_attr_whitelist",
+      "line": 2747,
+      "assertion_lines": [
+        2751,
+        2752,
+        2753
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_image_tail_not_duplicated",
+      "line": 2756,
+      "assertion_lines": [
+        2759
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_list_item_link_with_inline_formatting",
+      "line": 2762,
+      "assertion_lines": [
+        2765,
+        2773
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_paragraph_link_with_inline_formatting",
+      "line": 2782,
+      "assertion_lines": [
+        2784
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_nested_inline_formatting",
+      "line": 2793,
+      "assertion_lines": [
+        2796,
+        2798,
+        2800
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_blockquote_bare_inline",
+      "line": 2803,
+      "assertion_lines": [
+        2805
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_del_and_code_in_non_paragraph_contexts",
+      "line": 2808,
+      "assertion_lines": [
+        2811,
+        2813,
+        2815,
+        2817
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_hi_del_nesting_with_direct_text",
+      "line": 2820,
+      "assertion_lines": [
+        2823
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Structures"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_list_processing",
+      "line": 2826,
+      "assertion_lines": [
+        2830,
+        2840,
+        2841,
+        2867,
+        2878,
+        2891,
+        2895,
+        2899,
+        2903,
+        2906,
+        2909,
+        2913,
+        2914,
+        2925,
+        2926,
+        2927,
+        2931,
+        2932,
+        2936,
+        2937,
+        2941
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_ListProcessing",
+        "Test_Python220_TableAndListLegacy"
+      ],
+      "note": "Existing helper translations plus original basic-order and link-only-item cases. List markers/indentation and description-item rend attributes use native HTML semantics."
+    },
+    {
+      "test": "unit_tests.py/test_code_blocks",
+      "line": 2944,
+      "assertion_lines": [
+        2952,
+        2965,
+        2968,
+        2984,
+        2991,
+        2996,
+        3001,
+        3006,
+        3009,
+        3011
+      ],
+      "fixture": "python-2.2.0-structures.json",
+      "recorded_cases": 10,
+      "imported_lines": [
+        2952,
+        2965,
+        2968,
+        2984,
+        2991,
+        2996,
+        3001,
+        3006,
+        3009,
+        3011
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_markdown_escaping",
+      "line": 3014,
+      "assertion_lines": [
+        3019,
+        3024,
+        3029,
+        3034,
+        3039,
+        3042,
+        3043,
+        3044,
+        3049,
+        3052,
+        3053,
+        3054,
+        3059,
+        3064,
+        3073,
+        3078,
+        3083,
+        3087,
+        3092,
+        3097,
+        3101,
+        3103
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_markdown_link_angle_bracket_targets",
+      "line": 3106,
+      "assertion_lines": [
+        3134,
+        3136,
+        3139,
+        3140,
+        3143,
+        3147,
+        3149
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_xmltotxt_no_mutation",
+      "line": 3152,
+      "assertion_lines": [
+        3157,
+        3158
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_math_conversion",
+      "line": 3161,
+      "assertion_lines": [
+        3164,
+        3166,
+        3169,
+        3172,
+        3175
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_inline_edge_cases",
+      "line": 3178,
+      "assertion_lines": [
+        3181,
+        3183,
+        3188
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_heading_inline_formatting",
+      "line": 3197,
+      "assertion_lines": [
+        3204,
+        3205,
+        3206,
+        3207,
+        3209,
+        3210,
+        3212
+      ],
+      "status": "excluded",
+      "note": "Python output serializers and their private rendering helpers are excluded; extracted HTML structure is tested separately."
+    },
+    {
+      "test": "unit_tests.py/test_mixed_content_extraction",
+      "line": 3217,
+      "assertion_lines": [
+        3224
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        3224
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_nonstd_html_entities",
+      "line": 3227,
+      "assertion_lines": [
+        3234
+      ],
+      "fixture": "python-2.2.0-extraction.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        3234
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "unit_tests.py/test_large_doc_performance",
+      "line": 3237,
+      "assertion_lines": [
+        3245
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_lang_detection",
+      "line": 3249,
+      "assertion_lines": [
+        3260
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_config_loading",
+      "line": 3263,
+      "assertion_lines": [
+        3269,
+        3272,
+        3278,
+        3279,
+        3280,
+        3282,
+        3295,
+        3297
+      ],
+      "status": "excluded",
+      "note": "Python config-file, deprecation, and conflicting dynamic-option APIs are excluded; Go uses typed options."
+    },
+    {
+      "test": "unit_tests.py/test_settings_element_lists",
+      "line": 3300,
+      "assertion_lines": [
+        3315,
+        3320,
+        3325
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Internals"
+      ]
+    },
+    {
+      "test": "unit_tests.py/test_is_probably_readerable",
+      "line": 3328,
+      "assertion_lines": [
+        3332,
+        3358,
+        3359,
+        3360,
+        3361,
+        3365,
+        3366,
+        3367,
+        3368,
+        3372,
+        3373,
+        3374,
+        3375,
+        3379,
+        3380,
+        3381,
+        3382,
+        3386,
+        3387,
+        3388,
+        3389,
+        3392,
+        3393,
+        3396,
+        3397,
+        3408,
+        3409,
+        3420,
+        3421,
+        3424,
+        3425,
+        3436
+      ],
+      "status": "excluded",
+      "note": "The bundled Python readability and jusText implementations are not ported; Go uses external fallback packages."
+    },
+    {
+      "test": "unit_tests.py/test_html_conversion",
+      "line": 3439,
+      "assertion_lines": [
+        3473,
+        3483,
+        3497,
+        3507,
+        3517,
+        3522
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_InputsAndOptions"
+      ],
+      "note": "End-to-end extracted HTML nodes, title, and image assertions are translated. Python's internal XML converter, document wrapper, fingerprint, and pretty-print serialization are excluded."
+    },
+    {
+      "test": "unit_tests.py/test_deprecations",
+      "line": 3525,
+      "assertion_lines": [
+        3528,
+        3529,
+        3530,
+        3537,
+        3538,
+        3539,
+        3552
+      ],
+      "status": "excluded",
+      "note": "Python config-file, deprecation, and conflicting dynamic-option APIs are excluded; Go uses typed options."
+    },
+    {
+      "test": "unit_tests.py/test_incompatible_options",
+      "line": 3555,
+      "assertion_lines": [
+        3560,
+        3561,
+        3566,
+        3571,
+        3578
+      ],
+      "status": "excluded",
+      "note": "Python config-file, deprecation, and conflicting dynamic-option APIs are excluded; Go uses typed options."
+    },
+    {
+      "test": "metadata_tests.py/test_titles",
+      "line": 28,
+      "assertion_lines": [
+        68,
+        72,
+        74,
+        76
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 17,
+      "imported_lines": [
+        68,
+        72,
+        74,
+        76
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_author_blacklist",
+      "line": 79,
+      "assertion_lines": [
+        85,
+        91,
+        94,
+        96,
+        98,
+        99,
+        101,
+        102
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 6,
+      "imported_lines": [
+        85,
+        91,
+        94,
+        96,
+        98,
+        99
+      ],
+      "native_or_excluded": [],
+      "unmapped": [
+        {
+          "test": "metadata_tests.py/test_author_blacklist",
+          "line": 101,
+          "assertion": "Extractor(config=use_config(), author_blacklist={'X'}).with_metadata is True"
+        },
+        {
+          "test": "metadata_tests.py/test_author_blacklist",
+          "line": 102,
+          "assertion": "Extractor(config=use_config()).with_metadata is False"
+        }
+      ],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_author_from_meta",
+      "line": 105,
+      "assertion_lines": [
+        132
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 12,
+      "imported_lines": [
+        132
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_author_from_markup",
+      "line": 135,
+      "assertion_lines": [
+        207
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 33,
+      "imported_lines": [
+        207
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_url",
+      "line": 210,
+      "assertion_lines": [
+        228,
+        231,
+        239
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 8,
+      "imported_lines": [
+        228,
+        231,
+        239
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_description",
+      "line": 249,
+      "assertion_lines": [
+        252,
+        256
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        252,
+        256
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_dates",
+      "line": 262,
+      "assertion_lines": [
+        286
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 5,
+      "imported_lines": [
+        286
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_sitename",
+      "line": 289,
+      "assertion_lines": [
+        309
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 7,
+      "imported_lines": [
+        309
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_meta",
+      "line": 312,
+      "assertion_lines": [
+        315,
+        316,
+        321,
+        322,
+        323,
+        324,
+        325,
+        326,
+        327,
+        333,
+        338,
+        339,
+        340,
+        343,
+        348,
+        350,
+        352,
+        353,
+        354,
+        355
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 20,
+      "imported_lines": [
+        315,
+        316,
+        321,
+        322,
+        323,
+        324,
+        325,
+        326,
+        327,
+        333,
+        338,
+        339,
+        340,
+        343,
+        348,
+        350,
+        352,
+        353,
+        354,
+        355
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_catstags",
+      "line": 358,
+      "assertion_lines": [
+        360,
+        361,
+        398
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 9,
+      "imported_lines": [
+        360,
+        361,
+        398
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_date_config",
+      "line": 401,
+      "assertion_lines": [
+        405,
+        406
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        405
+      ],
+      "native_or_excluded": [],
+      "unmapped": [
+        {
+          "test": "metadata_tests.py/test_date_config",
+          "line": 406,
+          "assertion": "'url' not in cfg"
+        }
+      ],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_extract_title_fallbacks",
+      "line": 409,
+      "assertion_lines": [
+        411,
+        412,
+        414
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 3,
+      "imported_lines": [
+        411,
+        412,
+        414
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_json_minify",
+      "line": 417,
+      "assertion_lines": [
+        420
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 0,
+      "imported_lines": [],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "excluded",
+      "note": "Python regex preprocessing has no separate Go API; escaped-name behavior is tested through JSON extraction."
+    },
+    {
+      "test": "metadata_tests.py/test_extract_meta_json_control_char",
+      "line": 423,
+      "assertion_lines": [
+        435,
+        436
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        435,
+        436
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_extract_json_multiple_blocks",
+      "line": 439,
+      "assertion_lines": [
+        446
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        446
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_extract_json_null_author",
+      "line": 449,
+      "assertion_lines": [
+        454,
+        455
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        454,
+        455
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_extract_json_parse_error",
+      "line": 458,
+      "assertion_lines": [
+        466,
+        473
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 2,
+      "imported_lines": [
+        466,
+        473
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_process_parent_keeps_good_sitename",
+      "line": 476,
+      "assertion_lines": [
+        481
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 1,
+      "imported_lines": [
+        481
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_license",
+      "line": 484,
+      "assertion_lines": [
+        490,
+        494,
+        499,
+        510,
+        515,
+        520,
+        523,
+        526
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 8,
+      "imported_lines": [
+        490,
+        494,
+        499,
+        510,
+        515,
+        520,
+        523,
+        526
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_images",
+      "line": 529,
+      "assertion_lines": [
+        556
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 7,
+      "imported_lines": [
+        556
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "metadata_tests.py/test_document_as_dict",
+      "line": 559,
+      "assertion_lines": [
+        589,
+        590,
+        591,
+        592,
+        593,
+        594,
+        595,
+        596,
+        597
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 9,
+      "imported_lines": [
+        589,
+        590,
+        591,
+        592,
+        593,
+        594,
+        595,
+        596,
+        597
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": [],
+      "note": "Metadata fields are projected from Go's typed struct, not a Python Document serialization API."
+    },
+    {
+      "test": "json_metadata_tests.py/test_json_extraction",
+      "line": 23,
+      "assertion_lines": [
+        28,
+        29,
+        34,
+        39,
+        40,
+        45,
+        46,
+        51,
+        52,
+        57,
+        58,
+        67,
+        68,
+        77,
+        78,
+        79,
+        88,
+        89,
+        90,
+        99,
+        131,
+        132,
+        175,
+        176,
+        203,
+        204,
+        241,
+        242,
+        273,
+        274,
+        387,
+        437,
+        550,
+        600,
+        655,
+        713,
+        732,
+        764,
+        795,
+        849,
+        880,
+        915,
+        937,
+        958,
+        1017,
+        1061,
+        1080
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 47,
+      "imported_lines": [
+        28,
+        29,
+        34,
+        39,
+        40,
+        45,
+        46,
+        51,
+        52,
+        57,
+        58,
+        67,
+        68,
+        77,
+        78,
+        79,
+        88,
+        89,
+        90,
+        99,
+        131,
+        132,
+        175,
+        176,
+        203,
+        204,
+        241,
+        242,
+        273,
+        274,
+        387,
+        437,
+        550,
+        600,
+        655,
+        713,
+        732,
+        764,
+        795,
+        849,
+        880,
+        915,
+        937,
+        958,
+        1017,
+        1061,
+        1080
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "json_metadata_tests.py/test_normalize_authors",
+      "line": 1083,
+      "assertion_lines": [
+        1085,
+        1086,
+        1087,
+        1088,
+        1089,
+        1090,
+        1091,
+        1092,
+        1093,
+        1094,
+        1095,
+        1096,
+        1097,
+        1098,
+        1099,
+        1100,
+        1101,
+        1102,
+        1103,
+        1104,
+        1106,
+        1107
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 22,
+      "imported_lines": [
+        1085,
+        1086,
+        1087,
+        1088,
+        1089,
+        1090,
+        1091,
+        1092,
+        1093,
+        1094,
+        1095,
+        1096,
+        1097,
+        1098,
+        1099,
+        1100,
+        1101,
+        1102,
+        1103,
+        1104,
+        1106,
+        1107
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "json_metadata_tests.py/test_normalize_json",
+      "line": 1110,
+      "assertion_lines": [
+        1112,
+        1113,
+        1114,
+        1115
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 4,
+      "imported_lines": [
+        1112,
+        1113,
+        1114,
+        1115
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "json_metadata_tests.py/test_extract_json_shapes",
+      "line": 1118,
+      "assertion_lines": [
+        1122,
+        1124,
+        1129,
+        1131
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 4,
+      "imported_lines": [
+        1122,
+        1124,
+        1129,
+        1131
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "json_metadata_tests.py/test_json_metadata_robustness",
+      "line": 1139,
+      "assertion_lines": [
+        1142,
+        1143,
+        1144,
+        1146,
+        1148,
+        1149,
+        1151,
+        1153,
+        1158
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 9,
+      "imported_lines": [
+        1142,
+        1143,
+        1144,
+        1146,
+        1148,
+        1149,
+        1151,
+        1153,
+        1158
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "json_metadata_tests.py/test_extract_json_processes_list_once",
+      "line": 1161,
+      "assertion_lines": [
+        1175
+      ],
+      "fixture": "python-2.2.0-metadata.json",
+      "recorded_cases": 0,
+      "imported_lines": [],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "excluded",
+      "note": "Monkeypatch counts Python process_parent invocations; Go has a different traversal implementation."
+    },
+    {
+      "test": "filters_tests.py/test_filters",
+      "line": 21,
+      "assertion_lines": [
+        25,
+        26,
+        28,
+        33,
+        34,
+        37,
+        40,
+        41,
+        48,
+        50,
+        55,
+        57,
+        60,
+        63,
+        65,
+        66,
+        70,
+        74,
+        82,
+        91,
+        101,
+        109,
+        110,
+        111,
+        115,
+        119,
+        126,
+        133,
+        141,
+        150,
+        159,
+        160,
+        161,
+        171
+      ],
+      "note": "Language-enabled branch; zero-size Python config is matched. XPath element selectors become CSS; comment XPath, URL blacklist, and config-file APIs are explicitly excluded.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Filters"
+      ]
+    },
+    {
+      "test": "filters_tests.py/test_prune_xpath",
+      "line": 183,
+      "assertion_lines": [
+        207,
+        208,
+        209,
+        210,
+        211,
+        213,
+        214,
+        215,
+        216
+      ],
+      "note": "Language-enabled branch; zero-size Python config is matched. XPath element selectors become CSS; comment XPath, URL blacklist, and config-file APIs are explicitly excluded.",
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Filters"
+      ]
+    },
+    {
+      "test": "deduplication_tests.py/test_hashes",
+      "line": 31,
+      "assertion_lines": [
+        34,
+        35
+      ],
+      "status": "excluded",
+      "note": "Standalone hashes, fingerprints, tokens, Simhash, and process-global cache/reset APIs are excluded."
+    },
+    {
+      "test": "deduplication_tests.py/test_content_fingerprint",
+      "line": 38,
+      "assertion_lines": [
+        43,
+        49,
+        54
+      ],
+      "status": "excluded",
+      "note": "Standalone hashes, fingerprints, tokens, Simhash, and process-global cache/reset APIs are excluded."
+    },
+    {
+      "test": "deduplication_tests.py/test_simhash",
+      "line": 57,
+      "assertion_lines": [
+        69,
+        72,
+        73,
+        74,
+        77,
+        78,
+        79,
+        80,
+        81,
+        84,
+        85,
+        86,
+        87
+      ],
+      "status": "excluded",
+      "note": "Standalone hashes, fingerprints, tokens, Simhash, and process-global cache/reset APIs are excluded."
+    },
+    {
+      "test": "deduplication_tests.py/test_lrucache",
+      "line": 90,
+      "assertion_lines": [
+        101,
+        102,
+        103,
+        104,
+        110,
+        111,
+        112,
+        113,
+        119,
+        120,
+        121,
+        124,
+        125,
+        126,
+        129,
+        131
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Deduplication"
+      ]
+    },
+    {
+      "test": "deduplication_tests.py/test_dedup",
+      "line": 134,
+      "assertion_lines": [
+        139,
+        140,
+        141,
+        142,
+        149,
+        150,
+        151,
+        152
+      ],
+      "status": "translated",
+      "go_tests": [
+        "Test_Python220_Deduplication"
+      ],
+      "note": "The four paragraph-level process_node assertions are translated. Cross-document process-global cache accumulation is not a Go API and is explicitly skipped."
+    },
+    {
+      "test": "deduplication_tests.py/test_dedup_reset_caches",
+      "line": 155,
+      "assertion_lines": [
+        161,
+        163
+      ],
+      "status": "excluded",
+      "note": "Standalone hashes, fingerprints, tokens, Simhash, and process-global cache/reset APIs are excluded."
+    },
+    {
+      "test": "deduplication_tests.py/test_sample_tokens",
+      "line": 168,
+      "assertion_lines": [
+        183,
+        184,
+        185,
+        186,
+        187,
+        192,
+        193,
+        194,
+        195,
+        200,
+        201,
+        202
+      ],
+      "status": "excluded",
+      "note": "Standalone hashes, fingerprints, tokens, Simhash, and process-global cache/reset APIs are excluded."
+    },
+    {
+      "test": "realworld_tests.py/test_extract",
+      "line": 204,
+      "assertion_lines": [
+        209,
+        214,
+        217,
+        225,
+        233,
+        243,
+        246,
+        254,
+        259,
+        268,
+        273,
+        281,
+        286,
+        297,
+        305,
+        314,
+        320,
+        327,
+        336,
+        345,
+        353,
+        360,
+        368,
+        376,
+        384,
+        396,
+        399,
+        407,
+        415,
+        423,
+        433,
+        444,
+        453,
+        465,
+        475,
+        483,
+        488,
+        496,
+        508,
+        519,
+        531,
+        537,
+        540,
+        552,
+        562,
+        571,
+        583,
+        593,
+        601,
+        614,
+        626,
+        636,
+        644,
+        654,
+        663,
+        673,
+        674,
+        676,
+        678,
+        679,
+        680,
+        681,
+        684,
+        694,
+        707,
+        714,
+        719,
+        731,
+        740,
+        747,
+        756,
+        766,
+        780,
+        790,
+        800,
+        810,
+        820,
+        829,
+        838,
+        840,
+        841,
+        843,
+        845,
+        846,
+        847,
+        848,
+        851,
+        858,
+        870,
+        883,
+        892,
+        900,
+        909,
+        918,
+        929,
+        942,
+        955,
+        967,
+        978,
+        989,
+        997
+      ],
+      "fixture": "python-2.2.0-realworld.json",
+      "recorded_cases": 98,
+      "imported_lines": [
+        209,
+        214,
+        217,
+        225,
+        233,
+        243,
+        246,
+        254,
+        259,
+        268,
+        273,
+        281,
+        286,
+        297,
+        305,
+        314,
+        320,
+        327,
+        336,
+        345,
+        353,
+        360,
+        368,
+        376,
+        384,
+        396,
+        399,
+        407,
+        415,
+        423,
+        433,
+        444,
+        453,
+        465,
+        475,
+        483,
+        488,
+        496,
+        508,
+        519,
+        531,
+        537,
+        540,
+        552,
+        562,
+        571,
+        583,
+        593,
+        601,
+        614,
+        626,
+        636,
+        644,
+        654,
+        663,
+        673,
+        674,
+        676,
+        679,
+        680,
+        681,
+        684,
+        694,
+        707,
+        714,
+        719,
+        731,
+        740,
+        747,
+        756,
+        766,
+        780,
+        790,
+        800,
+        810,
+        820,
+        829,
+        838,
+        841,
+        843,
+        846,
+        847,
+        848,
+        851,
+        858,
+        870,
+        883,
+        892,
+        900,
+        909,
+        918,
+        929,
+        942,
+        955,
+        967,
+        978,
+        989,
+        997
+      ],
+      "native_or_excluded": [
+        {
+          "line": 678,
+          "source": "'Flauschjacke: **Bershka**' in result",
+          "reason": "Excluded: formatted-text serializer variant; the same saved page has an imported unformatted assertion."
+        },
+        {
+          "line": 840,
+          "source": "'Einblicke in die **Vision zuk\u00fcnftiger Softwaregenerationen**.\\n' in result",
+          "reason": "Excluded: formatted-text serializer variant; the same saved page has an imported unformatted assertion."
+        },
+        {
+          "line": 845,
+          "source": "'von **The unbelievable Machine Company (*um)** zur Verf\u00fcgung gestellt.\\n' in result",
+          "reason": "Excluded: formatted-text serializer variant; the same saved page has an imported unformatted assertion."
+        }
+      ],
+      "unmapped": [],
+      "status": "mixed",
+      "unaccounted_lines": []
+    },
+    {
+      "test": "realworld_tests.py/test_extract_links_formatting",
+      "line": 1005,
+      "assertion_lines": [
+        1007,
+        1009
+      ],
+      "fixture": "python-2.2.0-realworld.json",
+      "recorded_cases": 0,
+      "imported_lines": [],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "translated",
+      "note": "The two Markdown syntax assertions are translated to link/emphasis DOM assertions in Test_Python220_RealWorldFormatting.",
+      "go_tests": [
+        "Test_Python220_RealWorldFormatting"
+      ]
+    },
+    {
+      "test": "realworld_tests.py/test_pages",
+      "line": 1012,
+      "assertion_lines": [
+        1015,
+        1016,
+        1020,
+        1021,
+        1022,
+        1029,
+        1030,
+        1034,
+        1035,
+        1041,
+        1042,
+        1046,
+        1047,
+        1051,
+        1059,
+        1060,
+        1061,
+        1065,
+        1067,
+        1073,
+        1074,
+        1075,
+        1079,
+        1080,
+        1081,
+        1084,
+        1085,
+        1086,
+        1087,
+        1088,
+        1089,
+        1090,
+        1093,
+        1094,
+        1095,
+        1096,
+        1098,
+        1101,
+        1108,
+        1109,
+        1110,
+        1111,
+        1112,
+        1113,
+        1115,
+        1121,
+        1122,
+        1123,
+        1127,
+        1129,
+        1132,
+        1137,
+        1143,
+        1144,
+        1145,
+        1146,
+        1149,
+        1153,
+        1154,
+        1155,
+        1156,
+        1157,
+        1158,
+        1162,
+        1163,
+        1164,
+        1168,
+        1169,
+        1170,
+        1177,
+        1178,
+        1179,
+        1180,
+        1181,
+        1188,
+        1189,
+        1190,
+        1191,
+        1193,
+        1197,
+        1198,
+        1199,
+        1201,
+        1202,
+        1203,
+        1207,
+        1208,
+        1209,
+        1210,
+        1211,
+        1212,
+        1216,
+        1217,
+        1218,
+        1222,
+        1223,
+        1224,
+        1228,
+        1232,
+        1233,
+        1237,
+        1239,
+        1240,
+        1241,
+        1245,
+        1246,
+        1247,
+        1248,
+        1252,
+        1253,
+        1254,
+        1255,
+        1259,
+        1260,
+        1261,
+        1262,
+        1263,
+        1264,
+        1268,
+        1273,
+        1275,
+        1276,
+        1278,
+        1279,
+        1280,
+        1285,
+        1286,
+        1287,
+        1292
+      ],
+      "fixture": "python-2.2.0-realworld.json",
+      "recorded_cases": 129,
+      "imported_lines": [
+        1015,
+        1016,
+        1020,
+        1021,
+        1022,
+        1029,
+        1030,
+        1034,
+        1035,
+        1041,
+        1042,
+        1046,
+        1047,
+        1051,
+        1059,
+        1060,
+        1061,
+        1065,
+        1067,
+        1073,
+        1074,
+        1075,
+        1079,
+        1080,
+        1081,
+        1084,
+        1085,
+        1086,
+        1087,
+        1088,
+        1089,
+        1090,
+        1093,
+        1094,
+        1095,
+        1096,
+        1098,
+        1101,
+        1108,
+        1109,
+        1110,
+        1111,
+        1112,
+        1113,
+        1115,
+        1121,
+        1122,
+        1123,
+        1127,
+        1129,
+        1132,
+        1137,
+        1143,
+        1144,
+        1145,
+        1146,
+        1149,
+        1153,
+        1154,
+        1155,
+        1156,
+        1157,
+        1158,
+        1162,
+        1163,
+        1164,
+        1168,
+        1169,
+        1170,
+        1177,
+        1178,
+        1179,
+        1180,
+        1181,
+        1188,
+        1189,
+        1190,
+        1191,
+        1193,
+        1197,
+        1198,
+        1199,
+        1201,
+        1202,
+        1203,
+        1207,
+        1208,
+        1209,
+        1210,
+        1211,
+        1212,
+        1216,
+        1217,
+        1218,
+        1222,
+        1223,
+        1224,
+        1228,
+        1232,
+        1233,
+        1237,
+        1239,
+        1240,
+        1241,
+        1245,
+        1246,
+        1247,
+        1248,
+        1252,
+        1253,
+        1254,
+        1255,
+        1259,
+        1260,
+        1261,
+        1262,
+        1263,
+        1264,
+        1268,
+        1273,
+        1275,
+        1276,
+        1278,
+        1279,
+        1280,
+        1285,
+        1286,
+        1287,
+        1292
+      ],
+      "native_or_excluded": [],
+      "unmapped": [],
+      "status": "imported",
+      "unaccounted_lines": []
+    }
+  ]
+}

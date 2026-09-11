@@ -24,21 +24,22 @@ The supplied-HTML extraction implementation tracks the applicable changes throug
 
 [UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. This is an upstream compatibility target, not a new Go module version.
 
+The latest recorded runs (September 11, 2026), on Go 1.26.0 and Go 1.27.1 with Readeck v2.1.2, have 968 passing checks, 14 failing checks, and 41 skips. The failures comprise **eight fallback-related checks and six language-detection checks**. Another 56 native coverage mappings are reported separately, not as passes or skips. Ordinary `go test` remains red; CI rejects changes outside the reviewed compatibility differences. These counts are not a document-extraction error rate. See the [test breakdown](UPSTREAM.md#current-results), [Readability migration](UPSTREAM.md#readeck-v2-migration), and [skip accounting](UPSTREAM.md#skipped-checks).
+
 ## Philosophy and Scope
 
 **Bring your own HTML.** The primary use case is processing HTML already obtained by your application or scraper. `Extract` accepts an `io.Reader`; `ExtractDocument` accepts a parsed HTML DOM and leaves the caller's document unchanged. `OriginalURL` supplies context for metadata and relative URLs; it is not a request to download the page.
 
-We follow upstream improvements to extraction, cleaning, metadata, tables, images, links, comments, and recovery. We do **not** aim for scraper, crawler, downloader, feed-discovery, or sitemap-discovery parity. The existing CLI download, batch, feed, and sitemap conveniences remain available for compatibility, but those subsystems are not expanded as part of extraction updates.
+We follow upstream improvements to extraction, cleaning, metadata (including JSON-LD), tables, images, links, comments, and recovery. The compatibility target deliberately stops short of reproducing the whole Python package:
 
-Intentional differences remain:
+- **Acquisition:** crawler, downloader, feed, and sitemap parity is out of scope because the primary caller already supplies HTML. Existing CLI acquisition conveniences remain available, but are not expanded by this extraction update.
+- **Fallback extractors:** we use [Readeck Go-Readability v2.1.2][readability] (`codeberg.org/readeck/go-readability/v2`) and `go-domdistiller`, not Python's Readability fork and jusText. Different selected content is an accepted tradeoff, not something to force into Python parity. Library fallbacks are off by default (`EnableFallback`); the CLI enables them unless `--no-fallback` is set. Use Python's `fast=True` for extractor-only comparisons.
+- **Language detection:** `whatlanggo` is the sole detector, rather than Python's optional `py3langid`. It is a best-effort labeler and can misclassify short or repetitive text. With `TargetLanguage` set, wrong or empty labels can reject otherwise valid content. Lingua was evaluated and removed because its runtime and memory cost were too high for this workload.
+- **Output and APIs:** results contain an HTML DOM, plain text, and metadata; the CLI supports HTML, text, and JSON. Python's Markdown, XML/TEI, CSV, YAML headers, configuration-file loading, deprecated wrappers, and process-global cache APIs are not reproduced. Standalone Simhash/fingerprint/token APIs are also excluded; per-extraction paragraph deduplication remains supported.
 
-- JSON-LD is parsed structurally. Malformed JSON may be rejected instead of recovered through upstream's permissive decoding or regular-expression fallbacks. The Go parser also retains its article and publisher precedence rules.
-- Optional fallbacks use `go-readability` and `go-domdistiller`, not Python's readability fork and jusText. Custom `FallbackCandidates` remain supported. Library fallbacks are off by default; use Python's `fast=True` for comparable extractor-only tests.
-- Results contain an HTML DOM and plain text, with metadata always returned. The CLI supports HTML, text, and JSON; Python's Markdown, XML/TEI, CSV, and YAML-header serializers are not part of this port's compatibility target.
-- HTML parsing, whitespace, language detection, and date extraction use Go implementations and dependencies. Their behavior can differ from the corresponding Python libraries.
-- Standalone Simhash, fingerprinting, token-sampling, Python configuration files, and Python-specific APIs or tooling are outside this port's API surface. Existing paragraph deduplication is supported.
+HTML parsing and date extraction also use Go dependencies, so exact output identity is not guaranteed. These implementation boundaries do not exclude fixes to supported extraction or metadata behavior. The [detailed compatibility document](UPSTREAM.md#scope) explains each omission, the fallback and language choices, and the remaining test-coverage gaps.
 
-Balanced extraction can now retry in recall mode when a short result covers little of the page. Recovery also understands additional embedded JSON content, and schema-identified discussion-forum posts are treated as main content. These changes can intentionally change results on existing inputs; the [compatibility record](UPSTREAM.md) describes the tested boundaries.
+Balanced extraction can retry in recall mode when a short result covers little of the page. Recovery also understands embedded JSON content, and schema-identified discussion-forum posts are treated as main content; the selected fallback engine can still affect the final result.
 
 ## Usage as a Go Package
 
@@ -69,6 +70,12 @@ result, err := trafilatura.Extract(reader, trafilatura.Options{
 Use the encoding of the bytes passed to `Extract`, not the page's original encoding if your scraper has already decoded it. For example, HTML converted to UTF-8 should use `"utf-8"`, even if its original charset declaration says otherwise. Other supported HTML charset labels, such as `"windows-1252"` and `"shift_jis"`, decode the input without detection. Unsupported labels return an error.
 
 This option is strictly opt-in: omitting it or using `""` keeps the existing automatic-detection path unchanged. Both paths retain NFC Unicode normalization and soft-hyphen removal. An explicit label takes precedence over declarations in the input; use it only when the encoding is known. `ExtractDocument` ignores this option because its input is already parsed.
+
+### Language Detection
+
+Text-language identification uses the [RadhiFadlillah/whatlanggo](https://github.com/RadhiFadlillah/whatlanggo) fork exclusively, not Python's optional `py3langid`. It classifies the longer of extracted body and comment text and uses the resulting ISO code for `Metadata.Language`. Short or repetitive text can be mislabeled, and some predictions have no ISO 639-1 code.
+
+When `TargetLanguage` is set, a mismatching or empty detected code rejects the extraction; HTML language tags are also checked separately. With `TargetLanguage` unset, an incorrect prediction does not discard the document, but its language metadata may be wrong or absent. Known French, English, and Italian failures remain covered by enabled tests. See the [language-detection limitations](UPSTREAM.md#language-detection-limitations); the small test sample is not a production accuracy estimate.
 
 ## Usage as a CLI Application
 
@@ -139,6 +146,14 @@ Common examples:
   go-trafilatura feed -o extract https://example.org
   ```
 
+## Development
+
+Run the complete suite with `go test -mod=readonly ./... -count=1 -timeout 5m`, or `make test`. The Makefile accepts `GO`, `TEST_TIMEOUT`, and `TEST_ARGS` overrides. Tests do not regenerate source; `make generate` is a separate operation requiring re2go and a POSIX shell.
+
+For the same reviewed-difference check used by CI, run `python scripts/check_tests.py` with Python 3.12 or newer. This uses only the Python standard library, runs every Go test, and checks exact failing leaves and assertion counts against [test-files/known-differences.json](test-files/known-differences.json). Unexpected failures, fixed/skipped/missing known differences, crashes, and incomplete native coverage fail the check; reference assertions remain enabled. `--log /path/to/results.jsonl` retains the unmodified Go test events.
+
+[CI](.github/workflows/ci.yml) checks Linux and Windows on both supported Go versions, including formatting, module tidiness, builds, and `go vet`. It does not silently upgrade the minimum-version job to the preferred toolchain. See the [cleanup and CI notes](UPSTREAM.md#repository-cleanup-and-ci) for the reporting boundaries.
+
 ## Performance
 
 Extraction time depends on document size and structure, character-encoding detection, metadata processing, and optional fallback extractors. Use `ExtractDocument` when you already have a parsed DOM, or supply a [known input encoding](#known-input-encoding) to avoid statistical charset detection.
@@ -171,7 +186,7 @@ The table below compares this port with **Python Trafilatura [v2.2.0][last-versi
 
 These phrase-level annotation scores measure content retention and boilerplate removal, not metadata quality or exact output identity. After removing whitespace differences, 838 of 960 extracted bodies matched. All 22 representative structural comparisons matched after normalizing the two DOM vocabularies and whitespace.
 
-The measurements were collected during the v2.2.0 update using Go 1.24.2 and Python 3.12. The newer supported Go toolchains have since passed the regression suite; the scores above are not a new benchmark on those toolchains. See [UPSTREAM.md](UPSTREAM.md#verification) for the pinned versions, methodology, and compatibility boundaries.
+The measurements were collected during the v2.2.0 update using Go 1.24.2 and Python 3.12. The newer supported Go toolchains and updated date dependencies passed the then-existing regression suite; the subsequently synchronized Python tests expose additional differences. The scores above are not a new benchmark on those versions or on the corrected upstream phrase annotation. See [UPSTREAM.md](UPSTREAM.md#verification) for the pinned versions, methodology, and compatibility boundaries, including the [date-dependency comparison](UPSTREAM.md#date-dependency-update).
 
 Comparable v2.2.0 timings are not reported here: interleaved timing runs varied even for unchanged control extractors. The older Python timings and fallback-mode rows have therefore not been carried into this table. Go and Python also use different fallback engines, so fallback results must be evaluated separately.
 
@@ -210,5 +225,5 @@ Like the original, `go-trafilatura` is distributed under the [Apache License 2.0
 [k-web]: https://www.dwds.de/d/k-web
 [re2go]: https://re2c.org/manual/manual_go.html
 [dom-distiller]: https://github.com/markusmobius/go-domdistiller/
-[readability]: https://github.com/go-shiori/go-readability
+[readability]: https://codeberg.org/readeck/go-readability
 [benchmark]: https://github.com/markusmobius/content-extractor-benchmark

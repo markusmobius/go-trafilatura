@@ -1,17 +1,74 @@
 # Upstream Compatibility
 
-This record covers all 53 commits in `v2.0.0..v2.2.0` of [adbar/trafilatura](https://github.com/adbar/trafilatura).
+This is the detailed companion to the [README](README.md#philosophy-and-scope): what is included, what is intentionally omitted, and where the implementations differ. It also records all 53 commits in `v2.0.0..v2.2.0` of [adbar/trafilatura](https://github.com/adbar/trafilatura).
 
 - Baseline: v2.0.0, `c6e834030779f0fb59aa3888c2f3222101bbdd0f` (December 3, 2024).
 - Intermediate release: v2.1.0, `2f4702d2117b0f95fabdd4ea35c9c2a4f3f39d04` (June 7, 2026).
 - Target: v2.2.0, `c1bc9531a2a978326112ca9987e1382745116136` (July 31, 2026).
-- Post-v2.2.0 commits are not included. Existing Go entry points and dependency versions are retained.
+- Post-v2.2.0 commits are not included. Existing Go entry points are retained; subsequent dependency maintenance is recorded below.
+
+For decisions and limitations, see [scope and omissions](#scope), [fallback extractors](#fallback-extractors), [language detection](#language-detection-limitations), and [test/skip accounting](#current-results). The [commit ledger](#commit-ledger) and [historical verification](#verification) retain the implementation audit.
 
 ## Scope
 
-The primary contract is extraction from supplied HTML or a parsed DOM, not page acquisition. The [README](README.md#philosophy-and-scope) explains the philosophy and intentional differences. Existing CLI network conveniences are retained, but downloader, crawler, feed, and sitemap changes are excluded from this update. No pages were fetched for regression testing; all extraction comparisons used saved HTML.
+The primary contract is extraction from supplied HTML or a parsed DOM, not page acquisition. Main text, comments, cleaning, structural formatting, tables, images, links, metadata/JSON-LD, baseline recovery, and recall escalation are in scope. `OriginalURL` supplies context; the library does not fetch that URL. Regression comparisons use saved or synthetic HTML, not live-site contents.
 
-The port preserves its structured JSON-LD parser, HTML-oriented output, Go date/language dependencies, and Go fallback extractors. Python serializer fixes are applied only where they also change the extracted structure. They do not introduce Markdown, XML/TEI, CSV, or YAML output. Standalone Simhash/token APIs and Python configuration/deprecation machinery are not implemented here.
+### Intentional Omissions
+
+| Area | Retained Go Behavior | Omission And Reason |
+| --- | --- | --- |
+| Page acquisition | Supplied HTML/DOM input; existing CLI URL, batch, feed, and sitemap conveniences. | No upstream crawler, downloader, feed-discovery, sitemap-discovery, or acquisition-CLI parity. The main application already obtains HTML; this update is not a scraper-stack replacement. |
+| Serialization | HTML DOM and plain text with metadata; CLI HTML, text, and JSON. | No Python Markdown, XML/TEI, CSV, or YAML metadata headers, schemas, and validators. Structure-preservation fixes are ported without adding those output formats. |
+| Metadata/output switches | Metadata is always returned; essential-metadata filtering is supported. | No `with_metadata=False` mode, Python `Document`/dictionary wrapper compatibility, or Markdown formatting-off switch. These do not match the established Go result API. |
+| Hashing and deduplication | Optional per-extraction paragraph/body deduplication. | No standalone Simhash, fingerprint, or token-sampling APIs, nor Python's process-global cross-document deduplication cache. Those are separate corpus-processing contracts. |
+| Configuration and state | Typed `Options`/`Config`, with extraction-local state. | No Python configuration-file loader, deprecated argument aliases, mutable module-global settings, or cache-reset API. Go callers configure their own calls rather than emulate Python module state. |
+| Pruning and URL filtering | CSS `PruneSelector`, normal comment removal, and URL context. | No general XPath/comment-node selector API or URL-blacklist option. CSS element pruning is the supported selector contract; callers can filter URLs before or after extraction. |
+| Python-only infrastructure | Go build, tests, and comparison tools. | Python packaging, documentation integrations, CI configuration, monkeypatch hooks, and interpreter-specific repair utilities are not exported as Go APIs. Their supported runtime effects are tested where applicable. |
+
+JSON-LD is not an omission. The current port uses structured decoding, ordered schema/graph handling, and targeted malformed-JSON recovery. Older descriptions of retained article-priority traversal or strict-only decoding no longer describe the implementation. Go HTML and date dependencies can still differ from Python on malformed input, parser repair, or date interpretation; that is not a blanket exemption from fixing supported behavior.
+
+### Interpretation
+
+An omitted API, a deliberate dependency substitution, a detector limitation, and a missing test are different things. The skip ledger below distinguishes them. Accepted fallback differences do not establish that every fallback result is ideal; they mean exact Python fallback output is not the compatibility requirement.
+
+## Fallback Extractors
+
+The choice of Go Readability and `go-domdistiller` is deliberate and predates this update. The current Readability backend is [Readeck Go-Readability v2.1.2](https://codeberg.org/readeck/go-readability), module `codeberg.org/readeck/go-readability/v2`, replacing the deprecated `github.com/go-shiori/go-readability`. Python uses its bundled Readability fork and jusText. We retain the Go candidate cascade rather than tune outputs solely to satisfy Python-reference assertions. Custom `FallbackCandidates` remain supported.
+
+| Setting | Go | Python Reference |
+| --- | --- | --- |
+| Library default | Fallbacks disabled; opt in with `EnableFallback: true`. | Fallbacks enabled; `fast=True` disables them. |
+| Go CLI default | Fallbacks enabled; `--no-fallback` disables them. | CLI behavior is not a parity target. |
+| Secondary algorithms | Readeck Go-Readability v2 and Dom Distiller. | Bundled Readability and jusText. |
+| Candidate selection | Existing Go ordering, acceptance, and stopping rules, with a Dom Distiller recall-rescue candidate. | Readability comparison plus jusText-specific triggers and replacement rules. |
+
+### Pre-Migration Investigation
+
+Different engines can select different regions before common cleaning runs. The September 10 investigation of the old Go-Shiori backend found a default retry threshold of 500 text characters, with each attempt starting from a fresh DOM copy and progressively relaxing filters. The pinned Python fork is configured with a 250-character serialized-output retry threshold and retries its already-pruned tree. Ancestor scoring and candidate selection also differ. The thresholds measure different representations; simply changing 500 to 250 would not reproduce the Python algorithm. These implementation details describe the backend before the Readeck migration.
+
+That investigation traced seven failing checks to four fallback scenarios before the dependency was replaced:
+
+| Checks | Scenario | Observed Difference |
+| ---: | --- | --- |
+| 3 | Short forum introduction followed by replies. | Go's main extractor retains the 381-character introduction; Go Readability replaces it with 1,735 characters of replies only. Python retains the introduction, then jusText recovers all eight replies alongside it. |
+| 1 | Blog with comments outside an article wrapper. | Go Readability replaces the clean introduction with a region including eight comments. The no-fallback path excludes them. Python's fallback sequence also excludes them. |
+| 2 | Visitor counter on the same saved page. | Go's clean main extraction is replaced by a broader Readability region containing the counter. The legacy and imported tests both check this page; Python selects a region without the counter. |
+| 1 | Table-exclusion fixture. | Python Readability selects a `tbody`; excluding table content leaves empty output. Go selects a broader region and retains surrounding non-table prose. This is not simply failure to remove tables. |
+
+These were accepted consequences of the backend choice, not seven independently established defects in the port's main extractor. No fixture-specific pruning, candidate stitching, or threshold adjustment was made to close those gaps. For extractor-only comparisons, disable Go fallbacks and use Python's `fast=True`.
+
+### Readeck v2 Migration
+
+The library fallback, chained example, and comparison tool now use Readeck v2.1.2. `FromDocument` still clones the input DOM and returns an `Article` with a public `Node`; the comparison tool uses `RenderText` instead of the removed `TextContent` field and reports rendering errors through its existing error path. Public extraction APIs, fallback ordering and acceptance rules, custom candidates, Dom Distiller, and whatlanggo are unchanged by this migration.
+
+At the dependency-only migration stage, the full suite changed from 879 passing / 15 failing / 98 skipped leaves to **878 / 16 / 98**. No expectations were changed during that migration; the subsequent cleanup is recorded under [current results](#current-results):
+
+- The imported table-exclusion check (`unit_tests.py/test_external/line_841`) began passing: output is empty, matching Python. The legacy `Test_External` expected the opposite and failed at that stage; its stale expectation was subsequently reconciled with the reference.
+- The saved RNZ article (`realworld_tests.py/test_extract/line_314`) now fails. Readeck returns no candidate; the main extractor and Dom Distiller also yield no article, so baseline recovery returns 4,030 characters of navigation-heavy text without the required article phrases. With fallbacks disabled, the same baseline result is returned. The old backend recovered the article; this is lost fallback recovery, not replacement of a clean main result.
+- The existing love-hina page failure remained, with an additional unwanted comment link. RNZ added failed assertions to the same already-failing `Test_Extract` group, so the increase in failed assertions was larger than the one-leaf increase. The cleanup now reports each saved page as its own subtest.
+- The three forum checks and one blog-comment check still fail. Language and legacy spacing results were unchanged by the dependency migration.
+
+Every package compiles with v2.1.2, focused input/DOM and imported external-extraction checks pass, and the comparison command completed on all 960 saved documents using `RenderText`. Historical benchmark tables below were not rerun with identical controls and are not Readeck v2 measurements.
 
 ## Commit Ledger
 
@@ -75,7 +132,7 @@ The port preserves its structured JSON-LD parser, HTML-oriented output, Go date/
 
 ## Regression Coverage
 
-Tests were extended in the existing files rather than introducing a parallel test framework:
+The initial update extended the existing Go tests:
 
 - [html-processing_test.go](html-processing_test.go): pruning tails, cleaning, DOCTYPE parsing, code detection, linked images, fenced frames, link density, and selector boundaries.
 - [trafilatura_test.go](trafilatura_test.go): image URLs, nested formatting, table alignment and nesting, Unicode span/deduplication bounds, recovery, fallback guards, comment/forum routing, recall escalation, and caller-DOM preservation.
@@ -83,13 +140,162 @@ Tests were extended in the existing files rather than introducing a parallel tes
 - [metadata_test.go](metadata_test.go) and [metadata-json_test.go](metadata-json_test.go): titles, image metadata, full author names, nested license text, safe JSON values, and publisher replacement.
 - [realworld_test.go](realworld_test.go): retained the existing saved-page suite and updated one obsolete expectation that deliberately allowed boilerplate now removed by both implementations.
 
+## Python Test Synchronization
+
+The subsequent test-only synchronization uses the exact v2.2.0 source commit above. It adds original source assertions alongside the existing tests; it does not change extraction algorithms or relax expected values to make Go pass. This is **not literal identity with the entire Python test suite**: native API/DOM translations and unsupported Python features remain explicitly distinguished.
+
+[scripts/comparison/import-python-tests.py](scripts/comparison/import-python-tests.py) reads the pinned test source with `git show`, records extraction operations and original assertions, and emits four JSON fixtures. The Go runner evaluates those assertions against Go results. Normal Go tests need neither Python nor a reference checkout. The original gzip fixture is also imported byte-for-byte. Existing saved pages are reused; the test synchronization does not download pages.
+
+The current fixtures contain 465 recorded operations and 575 original assertion cases: metadata 208/241, real-world 141/227, extraction 25/27, and structures 91/80. These include the four JSON-normalization assertions added during cleanup; the initial synchronization snapshot below retains its historical counts.
+
+[test-files/python-2.2.0-coverage.json](test-files/python-2.2.0-coverage.json) inventories all 181 test functions in the baseline, unit, metadata, JSON metadata, filters, deduplication, and real-world modules. It records original assertion lines, imported cases, native test locations, and exclusions. A native translation is not evidence of identical Python input representation, API semantics, serializer output, or assertion count. The inventory accounts for scope; it is not a claim that every upstream assertion runs verbatim.
+
+Important adaptations and exclusions:
+
+- Directly recorded assertions retain their expected strings, lists, and comparisons. Inputs that upstream first parses as an lxml tree are serialized for the Go adapter; internal-tree helper cases use an XML-to-Go-node adapter to avoid HTML table repair. Unordered `all`/`any` predicate collections are sorted for reproducibility without changing their checks.
+- Go zero-valued scalar metadata becomes Python `None`, and dates become ISO date strings. List `nil` versus `[]`, page-type casing, keyword splitting, and text whitespace are not normalized away. Python `Document` assertions are limited to fields represented by Go metadata.
+- XML names such as `ref`, `graphic`, `row`, `cell`, and `hi` map to HTML nodes. Equivalent bold/italic HTML tags are canonicalized in structural comparisons. Markdown table/list/image/link assertions use native DOM translations rather than adding a Markdown renderer; metadata wrappers, serializer syntax, and formatting-off behavior are excluded.
+- Python `fast`, extraction sizes, focus, links/images/comments, deduplication, and date options are mapped explicitly. XPath element pruning uses equivalent CSS selectors. Comment-node XPath, URL-blacklist options, dynamic input types, config-file loading, and unsupported metadata/output toggles are documented exclusions.
+- Python's private JSON/author entry points use the existing Go metadata/parser helpers. Differences in their accepted schema/context are visible but are not automatically public-API regressions. The Go fallback engines remain Readability and Dom Distiller rather than Python's bundled readability and jusText.
+- Acquisition/CLI and XML/TEI test modules, standalone hash/fingerprint/token APIs, process-global cache resets, and Python monkeypatch-only constant changes are excluded. Existing native tests still cover supported per-extraction deduplication and bounded recovery.
+
+Run from the repository root:
+
+```sh
+go test -mod=readonly ./... -count=1 -timeout 5m
+go test -mod=readonly . -run '^Test_Python220_' -count=1 -timeout 5m
+```
+
+### Current Results
+
+The latest recorded full runs on Windows, September 11, 2026, using Go 1.26.0 and Go 1.27.1 with Readeck v2.1.2, compile every package but report **14 failures out of 982 executed leaf checks (1.43%)**. There are 968 passing checks and another 41 skipped checks, excluded from the failure-rate denominator. Parent test groups are not counted again. The 56 native coverage mappings are separate records, not additional pass/skip results.
+
+| Failing Area | Leaf Checks | Observed Differences |
+| --- | ---: | --- |
+| Fallback-related checks | 8 | Three forum checks, one blog-comment check, and imported plus legacy checks for each of love-hina and RNZ; see the [fallback breakdown](#fallback-extractors). |
+| Known language-detector limitations | 6 | Two original Python language cases and four added diagnostic checks. Some repeat the same French/English inputs; see [language detection](#language-detection-limitations). |
+
+Across `Test_Python220_*`, there are 739 passing and 8 failing leaves: **8 of 747 executed checks fail (1.07%)**, with 41 skipped. The 15 additional classifier cases pass 11 and fail 4 (26.67%). The remaining Go checks pass 218 and fail 2 out of 220 (0.91%). These are Go check counts, not counts of unique documents, independent defects, or directly imported Python assertions. Several checks exercise the same input. The initial synchronization snapshot below predates the later fixes and does not describe the current suite.
+
+### Repository Cleanup and CI
+
+Three stale legacy expectations in [trafilatura_test.go](trafilatura_test.go) were corrected from independent reference evidence, without changing extraction: `"1\n3"` for paywall text, the `"1.\n2.\n3."` substring for div/line-break text, and empty output after table exclusion. The complete div output remains `"1.\n2.\n3.\n2.\n3."` in both implementations; even its repeated lines are not a Go/Python difference.
+
+The saved-page suite now has 85 named subtests, preserving its existing assertions: 83 pass and two fail. Replacing its one old leaf with 85 raises the denominator by 84; importing the four original normalization assertions adds another four. Thus the change from 894 to 982 executed checks is reporting granularity and added coverage, not an extraction-quality improvement. Removing 56 bookkeeping skips and one stale normalization exclusion leaves 41 genuine skips. The unused private `schemaInArticle` helper was removed; exported `SchemaData` remains available.
+
+[scripts/check_tests.py](scripts/check_tests.py) runs the unchanged Go suite and checks [test-files/known-differences.json](test-files/known-differences.json), which lists exact failing leaf names, expected assertion-failure counts, and reasons. New failures, changed counts, unexpectedly passing/skipped/missing known differences, build errors, crashes, and incomplete runs fail the check. It also verifies that every imported native mapping is reported and its target Go tests actually execute. A passing check means only the reviewed differences remain, not that every assertion passes or that all behavior within a failing assertion is identical. The nine checker unit tests cover these failure modes.
+
+[CI](.github/workflows/ci.yml) runs this check on Linux and Windows with Go 1.26.0 and Go 1.27.1, using `GOTOOLCHAIN=local`. It also checks formatting, module tidiness, builds, and `go vet`, and preserves raw Go test events as artifacts. The checker needs only Python's standard library, not Trafilatura or the reference environment. Ordinary `go test` and `make test` still exit unsuccessfully for the 14 known differences. `make test` no longer generates source; `make generate` remains explicit, and `GO`, `TEST_TIMEOUT`, and `TEST_ARGS` are configurable.
+
+### Skipped Checks
+
+All 41 skips are explicit entries in the Go test port, not runtime skips caused by missing dependencies:
+
+| Category | Skips | Meaning |
+| --- | ---: | --- |
+| Excluded serialization/output variants | 24 | Python-specific output syntax, metadata headers, or serializer helpers outside the supported result contract. |
+| API, scope, or Python-instrumentation differences | 17 | Unsupported API/state contracts and implementation-specific tests. |
+| **Total** | **41** | Excluded from the 982 executed-check denominator. |
+
+The runner logs 56 native coverage mappings separately in [metadata_test.go](metadata_test.go), without creating synthetic passing or skipped tests. Their entries break down as follows:
+
+| Native Coverage | Markers |
+| --- | ---: |
+| HTML/DOM helpers | 24 |
+| Image, link, URL, and license behavior | 16 |
+| etree node manipulation | 4 |
+| Fallback sanitization | 4 |
+| Exotic tags, formatting, and empty links | 7 |
+| Saved-page link/emphasis formatting | 1 |
+
+The nine referenced groups are `Test_Python220_HTML`, `Test_Python220_Internals`, `Test_Python220_ImagesAndLinks`, `Test_HtmlProcessing`, `Test_External`, `Test_ExoticTags`, `Test_Formatting`, `Test_Links`, and `Test_Python220_RealWorldFormatting`. All ran and passed in the recorded full suite. Their execution does not claim one-to-one Python assertion identity.
+
+The 24 serialization/output skips consist of 12 Markdown-formatting assertions, three formatted-text saved-page variants, three XML-to-text helper cases, two TEI checks, two XML/Markdown saved-page parameterizations, one YAML-metadata case, and one formatting-off case. Supported links, images, lists, tables, and emphasis are tested as Go DOM behavior rather than serializer syntax.
+
+The remaining 17 entries are:
+
+| Reason | Skips | Why / Coverage Boundary |
+| --- | ---: | --- |
+| Standalone hashing/token APIs | 4 | Outside the extraction API; paragraph deduplication remains supported. |
+| Metadata-off behavior | 3 | Go always returns metadata. |
+| Global cache/state APIs | 3 | Go uses extraction-local deduplication and has no Python-style reset or process-global string-cache API. |
+| Monkeypatch/instrumentation branches | 3 | Two tests change compile-time deduplication limits; one counts calls to Python's `process_parent`. Default-limit behavior and metadata results are tested separately. |
+| JSON minifier helper | 1 | Python's regex minifier has no direct Go counterpart; its exclusion remains explicit. |
+| Configuration-file loading | 1 | Go uses `Options`/`Config`; the supported tree-size limit is tested through those options. |
+| URL-blacklist option | 1 | No corresponding Go option. |
+| Comment-node XPath pruning | 1 | CSS `PruneSelector` selects elements, not comment nodes; ordinary comment removal is tested. |
+
+**Normalization gap closed:** the importer now records all four original `test_normalize_json` assertions and runs them against [normalizeJSONText](metadata-json.go#L53); all pass. The minifier-specific test retains an explicit implementation distinction. General JSON-LD coverage alone is not proof that its exact regression is covered end to end.
+
+Entire acquisition/CLI and XML/TEI modules are excluded by the agreed scope and are not counted among these 41 registered skips. The [coverage inventory](test-files/python-2.2.0-coverage.json) lists those modules and accounts for the 181 source test functions in the seven synchronized modules. It is an inventory of translations and exclusions, not a claim that the whole Python suite runs unchanged in Go.
+
+### Language Detection Limitations
+
+The sole text-language detector is `github.com/RadhiFadlillah/whatlanggo`, pinned to `v0.0.0-20240916001553-aac1f0f737fc`. There is no optional Lingua backend. Python's reference uses optional `py3langid`, so language identification is a dependency difference rather than a claim of exact model parity.
+
+Go classifies the longer of the extracted body and comments by Unicode code-point count; equal lengths choose the body. Python's helper chooses comments on a tie. Go also assigns language metadata when no target is requested. Classification happens after extraction and does not control DOM selection, paragraph scoring, or fallback choice.
+
+Known cases remain visible in [trafilatura_test.go](trafilatura_test.go):
+
+- The short French phrase is classified as Afrikaans (`af`) instead of French (`fr`). Its original test does not filter by language, so extraction still succeeds with a wrong label.
+- "In sleep a king, but waking no such matter." produces an empty ISO language code. The English-targeted extraction test therefore rejects a valid English document.
+- The added Italian sentence is labeled Portuguese (`pt`) instead of Italian (`it`). Another Italian fixture is labeled Estonian (`et`). The existing negative English-filter checks still pass for those inputs, despite the incorrect labels.
+
+An isolated audit of the existing tests recorded 13 decisions at the statistical language-filter check: three correct acceptances, nine correct rejections, and one false rejection. The one-in-13 failure rate describes these small, repeated test inputs only. Most saved-page extraction assertions do not verify the predicted language and cannot establish detector accuracy.
+
+No confidence threshold, language whitelist, or phrase-specific exception is added. The existing policy is preserved: a nonempty `TargetLanguage` rejects a mismatching or empty detected ISO code. Without a target, an incorrect prediction affects language metadata rather than discarding the content. HTML language-tag checks remain separate. Passing a negative English-filter test does not demonstrate an accurate label: Italian mislabeled as Portuguese still correctly fails an English-only filter.
+
+Lingua v1.4.0 was evaluated and removed for resource cost. It fixed some short-text labels but also misclassified a repeated Italian fixture as English. It was not an unqualified accuracy improvement on these cases.
+
+| Warmed End-To-End Sample | whatlanggo | Lingua | Added Time |
+| --- | ---: | ---: | ---: |
+| 16 saved pages, default options | 12.13 ms/document | 36.83 ms/document | +204% |
+| Same pages, fallbacks enabled | 17.39 ms/document | 46.66 ms/document | +168% |
+
+These are averages of two interleaved warmed runs on 16 evenly spaced saved pages, on Windows with Go 1.27.1. Body/comment hashes matched between builds. File reads and model initialization are excluded; this is not a universal workload or accuracy estimate. A separate first French classification took about 2.94 seconds and retained an additional 732 MiB of Go heap after garbage collection. That is model-cache growth, not per-document memory. Lingua and its trial-only dependencies are absent from the production module graph; independently required shared dependencies are retained.
+
+### Initial Synchronization Results
+
+At the initial test-only synchronization on September 10, 2026, the full Go 1.27.1 run compiled every package and passed every then-existing test, but returned a failure for the new compatibility suite. The 571 directly imported assertion cases produced:
+
+| Imported Fixture | Passed | Failed |
+| --- | ---: | ---: |
+| Metadata | 188 | 49 |
+| Extraction | 27 | 0 |
+| Mixed structural/unit cases | 74 | 6 |
+| Saved-page content and metadata | 222 | 5 |
+| **Total** | **511** | **60** |
+
+Native translations add 13 failing leaf test cases. Across all `Test_Python220_*` groups, there are 670 passing, 73 failing, and 98 skipped leaves. Those totals include operation-only smoke checks and source-line markers pointing to separately executed native tests; they are not counts of distinct upstream assertions or independent defects.
+
+| Failing Area | Leaf Cases | Observed Differences |
+| --- | ---: | --- |
+| Imported metadata | 49 | Page-type casing, schema/graph precedence, malformed JSON and author normalization, canonical URLs, image values, and keyword/list representation. |
+| Imported mixed unit cases | 6 | Five plain-text spacing/line-break expectations and one fallback case that retains content Python discards. |
+| Imported saved pages | 5 | Two content assertions and three tag-list assertions, including empty-list representation and comma-separated keywords. |
+| Native baseline | 3 | Raw control characters in JSON recovery and plain-text/Atom `html2txt` behavior. |
+| Native internals | 2 | Header-cell normalization and flattening text nested in inline elements. |
+| Native inputs/options | 3 | A nil reader panics, gzip is not decompressed automatically, and short French text is classified differently. |
+| Native filters | 1 | The original short Shakespeare sentence is rejected as non-English. |
+| Native recovery | 4 | Forum introductions are dropped in three cases; a wrapper-less blog retains replies in another. |
+
+The remaining imported extraction cases and native cleaning/selectors, tables, image/link, structure, and deduplication groups pass. Some failed checks intentionally expose existing API or dependency differences; they should not all be labeled regressions from this update. No production fixes were made as part of this test synchronization.
+
+The Python control ran the seven original modules with saved local fixtures: **239 passed, 1 skipped**. The skip was the optional PyYAML Markdown-metadata test. Language detection was enabled. The reference used Python 3.12.13, Trafilatura 2.2.0, lxml 6.1.3, htmldate 1.10.0, courlan 1.4.0, jusText 3.0.2, py3langid 0.4.0, NumPy 2.5.2, and pytest 9.1.1. Python test-function counts are not directly comparable with Go assertion/subtest counts.
+
+`go vet -mod=readonly ./...`, Go formatting, editor diagnostics, and the importer's read-only `--check` pass. The new suite has not been rerun with the race detector or Go 1.26.8; the historical runs below predate these test additions. Regeneration instructions are in the [comparison tooling README](scripts/comparison/README.md#python-test-fixtures).
+
+The 960-page evaluation inventory is unchanged between upstream 2.0.0 and 2.2.0. One Go phrase annotation was corrected to include the upstream trailing comma. The historical scores below were not recomputed after that correction.
+
 ## Verification
 
-Initial parity verification used Windows, Go 1.24.2, and a separate Python 3.12 environment with Trafilatura 2.2.0 installed from the pinned source. Python dependencies included lxml 6.1.3 and htmldate 1.10.0; Go dependencies remain those in [go.mod](go.mod). Neither the reference checkout nor temporary comparison tooling is part of this repository.
+This section records historical verification **before** the source-synchronized tests above were added. Its passing runs do not describe the current red compatibility suite.
 
-Subsequent toolchain maintenance raised the minimum Go version to 1.26.0 and selected Go 1.27.1 for development. The complete package suite passes on Go 1.26.8 and Go 1.27.1, and the race-enabled suite passes on Go 1.27.1. Dependency versions are unchanged. The corpus scores and timing observations below remain from the initial Go 1.24.2 measurements.
+Initial parity verification used Windows, Go 1.24.2, and a separate Python 3.12 environment with Trafilatura 2.2.0 installed from the pinned source. Python dependencies included lxml 6.1.3 and htmldate 1.10.0; the Go date dependencies were `go-htmldate` v1.9.3 and `go-dateparser` v1.2.4. Neither the reference checkout nor temporary comparison tooling is part of this repository.
 
-- All Go package and saved-page tests pass with `go test ./...`.
+Subsequent toolchain maintenance raised the minimum Go version to 1.26.0 and selected Go 1.27.1 for development. The then-existing package suite passed on Go 1.26.8 and Go 1.27.1, and the race-enabled suite passed on Go 1.27.1. That toolchain-only update retained dependency versions; the later date-module update is documented below. The corpus scores and timing observations below remain from the initial Go 1.24.2 measurements.
+
+- All then-existing Go package and saved-page tests passed with `go test ./...`.
 - 22 representative comparisons matched after normalizing the two DOM vocabularies and whitespace: body/comments, link targets, image sources, headings, and table cells. They cover cleaning, inline nesting, code, images, tables, recovery, comments/forums, JSON rescue, and recall escalation, with fallbacks disabled.
 - On the existing 960-page corpus, 838 bodies matched Python after removing whitespace differences. The remaining 122 are not claimed to have identical output.
 - The isolated corpus comparison below uses balanced mode, no fallbacks, comments excluded, tables included, and the same saved HTML/annotations. Failed extraction is counted as empty text, not omitted. The updated Go run and Python both reject one page under these options.
@@ -119,10 +325,26 @@ The existing local corpus benchmark remains available without temporary tooling:
 go run ./scripts/comparison content -j 1
 ```
 
+### Date Dependency Update
+
+The current module graph uses `go-htmldate` v1.10.0 and its indirect dependency `go-dateparser` v1.4.3. Their module requirements also raise shared versions, including Cascadia, `golang.org/x/net`, `golang.org/x/text`, the regex runtime, and CLI/test utilities. No extraction API changes were needed, and the minimum Go version remains 1.26.0.
+
+Before the test synchronization, the updated graph passed the full package suite on Go 1.26.8 and Go 1.27.1, including the existing metadata/date tests, and the race-enabled suite on Go 1.27.1. A separate comparison used identical source and Go 1.27.1 with the pre-update and post-update dependency graphs. All 960 saved pages were processed in both fast and extensive date-search modes, without extraction fallbacks and with comments excluded.
+
+Across the initial 1,920 dependency-comparison results, body text, HTML, extracted dates, and errors were unchanged. Each mode retained one empty-result error. Two non-date metadata differences were observed in both modes: an author list changed order on the Haufe fixture, and the WordPress description's `&#8` numeric entity decoded to U+0008 (backspace) instead of remaining literal text. Repeated extraction subsequently reproduced both author orders with both dependency graphs, identifying an existing nondeterministic fallback rather than a dependency regression. The entity change came from the updated HTML decoder; Python removes the invalid reference entirely. The following fixes address these parity defects.
+
+### Metadata Parity Fixes
+
+Scalar meta-tag values now remove invalid references and non-printing characters during entity cleanup, matching Python 2.2.0 without changing list-valued tags. JSON-LD publisher, employee, and founder subtrees no longer supply fallback authors. Explicit nested author names and the existing fallback behavior elsewhere are retained. The [description tests](metadata_test.go) and [author tests](metadata-json_test.go) include expectations checked against pinned Python 2.2.0 for both reported fixtures and neighboring cases.
+
+A final before/after comparison used the same updated dependencies and all 960 saved pages in both fast and extensive date modes. In each mode, 956 results were completely unchanged. Four pages changed, covering one author, one title, and three descriptions; every changed field exactly matched Python 2.2.0. Body text, HTML, comments, dates, and errors were unchanged across all 1,920 results. This verifies the changed fields, not universal metadata parity or a new timing result.
+
+At that stage, the implementation passed `make test`, the race-enabled suite and `go vet ./...` on Go 1.27.1, and the full package suite on Go 1.26.8. The later source-synchronized tests expose additional differences, as recorded above.
+
 ## Compatibility Boundaries
 
-The Go fallback sequence intentionally does not copy jusText's sanitized-output trigger and replacement ratio. Testing that substitution with Dom Distiller reintroduced gallery boilerplate in an existing real-world fixture. The established Go candidate ordering/stopping rule is retained, while applicable empty/raw-JSON guards, recall preference, URL conversion, and a bounded Dom Distiller escalation candidate are included.
+The Go fallback sequence intentionally does not copy jusText's sanitized-output trigger and replacement ratio. Testing that substitution with Dom Distiller reintroduced gallery boilerplate in an existing real-world fixture. The established Go candidate ordering/stopping rule is retained, while applicable empty/raw-JSON guards, recall preference, URL conversion, and a bounded Dom Distiller escalation candidate are included. The [fallback breakdown](#fallback-extractors) records the accepted output differences.
 
-JSON-LD metadata traversal retains Go's article-priority rules and strict parser behavior, including support for bare publisher strings. Its results can differ from Python's regex recovery, graph ordering, and live-blog metadata choices. Baseline content recovery supports the new schema properties and Discourse preloads, but does not accept malformed JSON solely to mimic permissive Python parsing.
+JSON-LD metadata traversal now follows source-guided ordered schema/graph handling and includes targeted regex recovery for malformed metadata. The shared decoder also tolerates raw control characters inside quoted JSON strings before retrying structural decoding. Baseline recovery supports the new schema properties and Discourse preloads. This is not a general promise to repair arbitrary invalid JSON, but strict-only parsing and retained article-priority traversal are no longer intentional differences.
 
 The returned HTML DOM is not an untrusted-HTML security sanitizer. As before, applications rendering extracted content must apply their own security policy.

@@ -22,6 +22,7 @@
 package trafilatura
 
 var rwMockFiles = map[string]string{
+	"https://www.mercurynews.com/2023/01/16/letters-1119/": "mercurynews.com.2023.01.16.letters-1119.html",
 	"http://exotic_tags": "exotic_tags.html",
 	"https://die-partei.net/luebeck/2012/05/31/das-ministerium-fur-club-kultur-informiert/":                                        "die-partei.net.luebeck.html",
 	"https://www.bmjv.de/DE/Verbraucherportal/KonsumImAlltag/TransparenzPreisanpassung/TransparenzPreisanpassung_node.html":        "bmjv.de.konsum.html",

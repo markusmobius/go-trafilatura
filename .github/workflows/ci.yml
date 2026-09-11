@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: ${{ matrix.os }} / Go ${{ matrix.go }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        go: ['1.26.0', '1.27.1']
+    env:
+      GOTOOLCHAIN: local
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check Go formatting
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
+      - name: Check module tidiness
+        run: go mod tidy -diff
+      - name: Build
+        run: go build -mod=readonly ./...
+      - name: Vet
+        run: go vet -mod=readonly ./...
+      - name: Test compatibility checker
+        run: python -m unittest discover -s scripts -p test_check_tests.py -v
+      - name: Run all Go tests with reviewed differences
+        run: python scripts/check_tests.py --log "${{ runner.temp }}/go-test.jsonl"
+      - name: Preserve unmodified Go test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ matrix.os }}-go-${{ matrix.go }}
+          path: ${{ runner.temp }}/go-test.jsonl
+          if-no-files-found: ignore

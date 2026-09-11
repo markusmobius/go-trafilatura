@@ -6707,7 +6707,7 @@ var comparisonData = map[string]ComparisonEntry{
 		Title:    "Heizen mit Abfallholz: Mit dieser Erfindung funktioniert es",
 		Date:     "2022-12-11",
 		Authors:  []string{"Amelie Siekmann"},
-		With:     []string{"Auch dünne Äste", "Zunächst steckt er die", "Die Hydraulikpresse im Inneren"},
+		With:     []string{"Auch dünne Äste,", "Zunächst steckt er die", "Die Hydraulikpresse im Inneren"},
 		Without:  []string{"Mehr zum Thema", "Hier ist Ihre Meinung gefragt", "Wir informieren Sie täglich"},
 		Comments: []string{"Moin vom Fjord", "Zum andern ist", "Gerne Nachfragen"},
 	},

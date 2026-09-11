@@ -2,14 +2,24 @@
 
 ### Unreleased
 
-- Raise the minimum Go version to 1.26.0 and the preferred development toolchain to Go 1.27.1, without changing dependency versions.
+- Raise the minimum Go version to 1.26.0 and the preferred development toolchain to Go 1.27.1.
+- Update `go-htmldate` to v1.10.0 and the indirect `go-dateparser` dependency to v1.4.3, along with the shared dependency versions required by those releases.
+- Replace deprecated Go-Shiori Readability with `codeberg.org/readeck/go-readability/v2` v2.1.2 in the fallback, chained example, and comparison tool. Retain public APIs and fallback-selection rules; document changed extraction results in [UPSTREAM.md](UPSTREAM.md#readeck-v2-migration).
 - Add opt-in `Options.InputEncoding` to bypass charset detection for supplied HTML with a known encoding, retaining normalization and leaving automatic detection unchanged by default.
+- Keep `whatlanggo` as the exclusive text-language detector. Document known misclassifications and false rejections, retaining their failing regression checks instead of changing expectations.
 - Track supplied-HTML extraction changes through upstream Trafilatura v2.2.0. See [UPSTREAM.md](UPSTREAM.md) for the complete 53-commit audit from v2.0.0.
 - Preserve pruning tails, nested inline formatting, relative and linked images, table captions, empty cells, and bounded row/column spans.
 - Improve metadata image, title, author, license, and JSON-LD publisher handling.
+- Match Python 2.2.0 cleanup of invalid character references and non-printing characters in scalar meta-tag values, without changing tag lists.
+- Exclude JSON-LD publisher staff from author fallback while preserving explicit nested author names and existing fallback behavior elsewhere.
 - Update recovery deduplication, embedded-content baseline recovery, targeted boilerplate filtering, comment exclusion, forum-post routing, and bounded recall escalation.
 - Keep caller-owned DOMs and supplied fallback candidates unchanged during extraction.
 - Document the supplied-HTML philosophy and intentional differences. Existing CLI download, feed, and sitemap features are unchanged; crawler and Python-only API/output parity remain outside scope.
+- Reconcile three stale legacy assertions with pinned Python behavior and report each of the 85 saved pages as a named subtest without changing its assertions.
+- Import the four original JSON-normalization assertions and report 56 native coverage mappings separately from genuine skipped tests.
+- Separate `make test` from source generation, with configurable Go command, timeout, and test flags.
+- Remove the unused private `schemaInArticle` helper while preserving exported `SchemaData`.
+- Add Linux/Windows CI on Go 1.26.0 and Go 1.27.1 with a reviewed known-difference manifest; raw Go test failures remain visible and new differences fail CI.
 
 ### 22 May 2021
 

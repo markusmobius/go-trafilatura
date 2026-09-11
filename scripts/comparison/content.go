@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
-	"github.com/go-shiori/go-readability"
 	distiller "github.com/markusmobius/go-domdistiller"
 	gt "github.com/markusmobius/go-trafilatura"
 	"golang.org/x/net/html"
@@ -252,8 +252,12 @@ func prepareReadability(nWorker int) ExtractorRunner {
 
 				// Evaluate the result
 				var ev EvaluationResult
+				var text strings.Builder
 				if err == nil {
-					ev = evaluateEntry(param.Entry, article.TextContent)
+					err = article.RenderText(&text)
+				}
+				if err == nil {
+					ev = evaluateEntry(param.Entry, text.String())
 				}
 
 				// Temporarily lock resource

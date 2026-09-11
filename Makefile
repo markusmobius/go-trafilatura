@@ -1,3 +1,9 @@
+GO ?= go
+TEST_TIMEOUT ?= 5m
+TEST_ARGS ?=
+
+.PHONY: generate test
+
 generate:
 	@for name in internal/re2go/*.re; do \
 		RE_IN=$$name; \
@@ -6,7 +12,5 @@ generate:
 		gofmt -w $$RE_OUT; \
 	done
 
-test: generate
-	@echo "Test normal regex"
-	@echo
-	go test -timeout 30s ./...
+test:
+	$(GO) test -mod=readonly -count=1 -timeout $(TEST_TIMEOUT) $(TEST_ARGS) ./...
