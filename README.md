@@ -23,7 +23,7 @@ The goal is faithful extraction behavior within the scope below, not identical o
 
 The supplied-HTML extraction implementation tracks the applicable changes through upstream Trafilatura [v2.2.0][last-version], pinned to commit [c1bc9531a2a978326112ca9987e1382745116136][last-commit].
 
-[UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. The Python compatibility target is separate from the Go module version. Go v2 releases use the module path `github.com/markusmobius/go-trafilatura/v2`.
+[UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results.
 
 Current verification (September 11, 2026) has 974 passing checks, eight failing checks, and 41 skips on both Go 1.26.0 and Go 1.27.1. The eight failures are accepted fallback differences; all language checks pass with the adopted Python classifier behavior. Another 56 native coverage mappings are reported separately, not as passes or skips.
 
@@ -82,12 +82,6 @@ import "github.com/markusmobius/go-trafilatura/v2"
 ```
 
 See the [examples](examples) for basic usage.
-
-### Migrating to v2
-
-Add `/v2` to Go imports of this library, including imports in tests and examples. The package name remains `trafilatura`; the module-path correction does not change extraction APIs or behavior.
-
-Existing v1 consumers retain the original import path; v1 tags and commit-based pins are unchanged.
 
 ### Known Input Encoding
 
