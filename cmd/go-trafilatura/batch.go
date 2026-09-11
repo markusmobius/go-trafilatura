@@ -29,7 +29,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/markusmobius/go-trafilatura"
+	"github.com/markusmobius/go-trafilatura/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/semaphore"
 )

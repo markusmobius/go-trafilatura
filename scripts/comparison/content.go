@@ -12,7 +12,7 @@ import (
 	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
 	distiller "github.com/markusmobius/go-domdistiller"
-	gt "github.com/markusmobius/go-trafilatura"
+	gt "github.com/markusmobius/go-trafilatura/v2"
 	"golang.org/x/net/html"
 	"golang.org/x/sync/semaphore"
 )

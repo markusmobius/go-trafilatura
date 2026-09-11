@@ -29,8 +29,8 @@ import (
 	"testing"
 
 	"github.com/go-shiori/dom"
-	"github.com/markusmobius/go-trafilatura/internal/etree"
-	"github.com/markusmobius/go-trafilatura/internal/selector"
+	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
+	"github.com/markusmobius/go-trafilatura/v2/internal/selector"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )

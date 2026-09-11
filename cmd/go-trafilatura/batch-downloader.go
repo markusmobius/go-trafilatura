@@ -24,7 +24,7 @@ import (
 	nurl "net/url"
 	"time"
 
-	"github.com/markusmobius/go-trafilatura"
+	"github.com/markusmobius/go-trafilatura/v2"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )

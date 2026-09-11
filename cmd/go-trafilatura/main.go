@@ -31,7 +31,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/markusmobius/go-trafilatura"
+	"github.com/markusmobius/go-trafilatura/v2"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"golang.org/x/net/html"

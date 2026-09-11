@@ -23,7 +23,7 @@ The goal is faithful extraction behavior within the scope below, not identical o
 
 The supplied-HTML extraction implementation tracks the applicable changes through upstream Trafilatura [v2.2.0][last-version], pinned to commit [c1bc9531a2a978326112ca9987e1382745116136][last-commit].
 
-[UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. This is an upstream compatibility target, not a new Go module version.
+[UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. The Python compatibility target is separate from the Go module version. Go v2 releases use the module path `github.com/markusmobius/go-trafilatura/v2`.
 
 Current verification (September 11, 2026) has 974 passing checks, eight failing checks, and 41 skips on both Go 1.26.0 and Go 1.27.1. The eight failures are accepted fallback differences; all language checks pass with the adopted Python classifier behavior. Another 56 native coverage mappings are reported separately, not as passes or skips.
 
@@ -72,16 +72,28 @@ All six previous language-related failures now pass. Three Go-only edge-case exp
 Use Go 1.26.0 or newer. [go.mod](go.mod) selects Go 1.27.1 as the preferred development toolchain. To add the package, run:
 
 ```sh
-go get github.com/markusmobius/go-trafilatura
+go get github.com/markusmobius/go-trafilatura/v2
 ```
 
 Import the package in your application:
 
 ```go
-import "github.com/markusmobius/go-trafilatura"
+import "github.com/markusmobius/go-trafilatura/v2"
 ```
 
 See the [examples](examples) for basic usage.
+
+### Migrating to v2
+
+Add `/v2` to Go imports of this library, including imports in tests and examples. The package name remains `trafilatura`; the module-path correction does not change extraction APIs or behavior.
+
+The initial v2.2.0 tag retained the unversioned module path and was rejected by Go. This release corrects the module path in place while retaining the v2.2.0 version number. Install it with:
+
+```sh
+go get github.com/markusmobius/go-trafilatura/v2@v2.2.0
+```
+
+Existing v1 consumers retain the original import path; v1 tags and commit-based pins are unchanged. Source checkouts that already fetched the original v2.2.0 tag must explicitly refresh that tag to obtain the packaging correction. Do not disable Go checksum verification or use `+incompatible` to work around the module declaration.
 
 ### Known Input Encoding
 
@@ -102,7 +114,7 @@ This option is strictly opt-in: omitting it or using `""` keeps the existing aut
 To install the CLI with Go 1.26.0 or newer:
 
 ```sh
-go install github.com/markusmobius/go-trafilatura/cmd/go-trafilatura@latest
+go install github.com/markusmobius/go-trafilatura/v2/cmd/go-trafilatura@latest
 ```
 
 Use `--help` to see the available commands and options, including options for individual subcommands:

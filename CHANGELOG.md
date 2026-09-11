@@ -1,7 +1,10 @@
 # Changelog
 
-### Unreleased
+### v2.2.0
 
+- Correct v2.2.0 in place with the Go module path `github.com/markusmobius/go-trafilatura/v2`. The initial tag used the unversioned module path and was rejected as a v2 Go module.
+- Migrate library self-imports, the CLI, examples, comparison tools, and the reviewed-difference manifest to `/v2`. Consumers must update their imports; extraction APIs and behavior are unchanged by this correction.
+- Update package and CLI installation instructions. Only the v2.2.0 tag is moved for the packaging correction; existing v1 tags and commit-based pins remain unchanged.
 - Raise the minimum Go version to 1.26.0 and the preferred development toolchain to Go 1.27.1.
 - Update `go-htmldate` to v1.10.0 and the indirect `go-dateparser` dependency to v1.4.3, along with the shared dependency versions required by those releases.
 - Replace deprecated Go-Shiori Readability with `codeberg.org/readeck/go-readability/v2` v2.1.2 in the fallback, chained example, and comparison tool. Retain public APIs and fallback-selection rules; document changed extraction results in [UPSTREAM.md](UPSTREAM.md#readeck-v2-migration).

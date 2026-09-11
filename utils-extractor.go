@@ -30,9 +30,9 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-py3langid"
-	"github.com/markusmobius/go-trafilatura/internal/etree"
-	"github.com/markusmobius/go-trafilatura/internal/lru"
-	"github.com/markusmobius/go-trafilatura/internal/re2go"
+	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
+	"github.com/markusmobius/go-trafilatura/v2/internal/lru"
+	"github.com/markusmobius/go-trafilatura/v2/internal/re2go"
 	"golang.org/x/net/html"
 )
 

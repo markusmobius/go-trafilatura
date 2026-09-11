@@ -1,5 +1,5 @@
 {
-  "package": "github.com/markusmobius/go-trafilatura",
+  "package": "github.com/markusmobius/go-trafilatura/v2",
   "failures": [
     {
       "test": "Test_Python220_RealWorld/realworld_tests.py/test_extract/line_254",

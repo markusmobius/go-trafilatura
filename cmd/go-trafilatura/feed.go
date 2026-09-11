@@ -31,7 +31,7 @@ import (
 	"time"
 
 	betree "github.com/beevik/etree"
-	"github.com/markusmobius/go-trafilatura"
+	"github.com/markusmobius/go-trafilatura/v2"
 	gonanoid "github.com/matoous/go-nanoid/v2"
 
 	"github.com/go-shiori/dom"

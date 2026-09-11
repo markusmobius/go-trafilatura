@@ -38,8 +38,8 @@ import (
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-htmldate"
-	"github.com/markusmobius/go-trafilatura/internal/etree"
-	"github.com/markusmobius/go-trafilatura/internal/lru"
+	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
+	"github.com/markusmobius/go-trafilatura/v2/internal/lru"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
