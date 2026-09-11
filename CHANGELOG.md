@@ -6,7 +6,7 @@
 - Update `go-htmldate` to v1.10.0 and the indirect `go-dateparser` dependency to v1.4.3, along with the shared dependency versions required by those releases.
 - Replace deprecated Go-Shiori Readability with `codeberg.org/readeck/go-readability/v2` v2.1.2 in the fallback, chained example, and comparison tool. Retain public APIs and fallback-selection rules; document changed extraction results in [UPSTREAM.md](UPSTREAM.md#readeck-v2-migration).
 - Add opt-in `Options.InputEncoding` to bypass charset detection for supplied HTML with a known encoding, retaining normalization and leaving automatic detection unchanged by default.
-- Keep `whatlanggo` as the exclusive text-language detector. Document known misclassifications and false rejections, retaining their failing regression checks instead of changing expectations.
+- Replace whatlanggo with `github.com/markusmobius/go-py3langid` v0.4.0, aligning language identification with upstream Python's py3langid classifier and model. Reuse one private lazy identifier, retain public APIs and filtering rules, and adopt Python's raw edge-case labels. See the [README migration and measurements](README.md#language-classifier-update).
 - Track supplied-HTML extraction changes through upstream Trafilatura v2.2.0. See [UPSTREAM.md](UPSTREAM.md) for the complete 53-commit audit from v2.0.0.
 - Preserve pruning tails, nested inline formatting, relative and linked images, table captions, empty cells, and bounded row/column spans.
 - Improve metadata image, title, author, license, and JSON-LD publisher handling.

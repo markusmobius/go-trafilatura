@@ -25,10 +25,11 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
-	"github.com/RadhiFadlillah/whatlanggo"
 	"github.com/go-shiori/dom"
+	"github.com/markusmobius/go-py3langid"
 	"github.com/markusmobius/go-trafilatura/internal/etree"
 	"github.com/markusmobius/go-trafilatura/internal/lru"
 	"github.com/markusmobius/go-trafilatura/internal/re2go"
@@ -36,7 +37,10 @@ import (
 )
 
 var (
-	rxHtmlLang = regexp.MustCompile(`(?i)[a-z]{2}`)
+	rxHtmlLang         = regexp.MustCompile(`(?i)[a-z]{2}`)
+	languageIdentifier = sync.OnceValues(func() (*py3langid.Identifier, error) {
+		return py3langid.NewDefaultIdentifier()
+	})
 )
 
 // checkHtmlLanguage checks HTML meta-elements for language information and
@@ -104,8 +108,15 @@ func languageClassifier(contentText, commentsText string) string {
 		langTest = contentText
 	}
 
-	lang := whatlanggo.DetectLang(langTest)
-	return lang.Iso6391()
+	identifier, err := languageIdentifier()
+	if err != nil {
+		return ""
+	}
+	result, err := identifier.IdentifyString(langTest)
+	if err != nil {
+		return ""
+	}
+	return result.Language
 }
 
 // textFilter filters out unwanted text

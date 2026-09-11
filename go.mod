@@ -6,13 +6,13 @@ toolchain go1.27.1
 
 require (
 	codeberg.org/readeck/go-readability/v2 v2.1.2
-	github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc
 	github.com/andybalholm/cascadia v1.3.5
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.3.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
 	github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4
 	github.com/markusmobius/go-htmldate v1.10.0
+	github.com/markusmobius/go-py3langid v0.4.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2

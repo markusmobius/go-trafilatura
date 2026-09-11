@@ -1,7 +1,5 @@
 codeberg.org/readeck/go-readability/v2 v2.1.2 h1:JBrdyYJBRPMBbodLM1b5KxCSDH+JqCkGcuVRD7ICBAw=
 codeberg.org/readeck/go-readability/v2 v2.1.2/go.mod h1:Ut31sW4osSrJPR3T8eQslMh4+jbwimXqn0w0ReCT+PU=
-github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc h1:6aA31zw7fnfJ/G1ebisIesCDl44slkIVFqk3YTSadd8=
-github.com/RadhiFadlillah/whatlanggo v0.0.0-20240916001553-aac1f0f737fc/go.mod h1:PgrPWaMBxL1lyq1k5DEMqC0Y67R3pG1vEsHzxFXeDxc=
 github.com/andybalholm/cascadia v1.3.5 h1:RLjq12WJy58dN6eCIQrz0bAGZkztHWsEPFxP53Y7Ms8=
 github.com/andybalholm/cascadia v1.3.5/go.mod h1:BLRmbRjpEtNKieZOCCvYj4RqN+KRA41GBe/5O+G93kM=
 github.com/beevik/etree v1.2.0 h1:l7WETslUG/T+xOPs47dtd6jov2Ii/8/OjCldk5fYfQw=
@@ -30,6 +28,8 @@ github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4 h1:+7
 github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4/go.mod h1:E7PoeC3nd4GqtxP1A64v7JDBxpAbpTSnhlq9/DHmQ28=
 github.com/markusmobius/go-htmldate v1.10.0 h1:86/xzPKpmrTdw66BpN3Soy3XuiA8d6hVXcfCVs1kLKU=
 github.com/markusmobius/go-htmldate v1.10.0/go.mod h1:WhdO0xVT6ZMTqShgdxVagt5t3o9k1JnhFtD/Nzp7ud4=
+github.com/markusmobius/go-py3langid v0.4.0 h1:utKZ6EaXZmuMnAFZXDDmsK6iAlzSKPyCdCaJQOzBU2g=
+github.com/markusmobius/go-py3langid v0.4.0/go.mod h1:XiCY1vO+Waymj+bQgeqkil6fFcB9yDgQifFMVK7tpLE=
 github.com/matoous/go-nanoid v1.5.0/go.mod h1:zyD2a71IubI24efhpvkJz+ZwfwagzgSO6UNiFsZKN7U=
 github.com/matoous/go-nanoid/v2 v2.0.0 h1:d19kur2QuLeHmJBkvYkFdhFBzLoo1XVm2GgTpL+9Tj0=
 github.com/matoous/go-nanoid/v2 v2.0.0/go.mod h1:FtS4aGPVfEkxKxhdWPAspZpZSh1cOjtM7Ej/So3hR0g=

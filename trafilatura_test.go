@@ -1289,9 +1289,9 @@ func Test_LanguageClassifier_Compatibility(test *testing.T) {
 	for _, sample := range []struct {
 		name, content, comments, language string
 	}{
-		{"empty", "", "", ""},
-		{"whitespace", " \t\n", "", ""},
-		{"nonlinguistic", "12345 !?", "", ""},
+		{"empty", "", "", "af"},
+		{"whitespace", " \t\n", "", "af"},
+		{"nonlinguistic", "12345 !?", "", "zxx"},
 		{"french_phrase", "Texte en français", "", "fr"},
 		{"english_sentence", "In sleep a king, but waking no such matter.", "", "en"},
 		{"spanish_phrase", "Texto en español", "", "es"},

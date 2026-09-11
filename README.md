@@ -10,6 +10,7 @@ The goal is faithful extraction behavior within the scope below, not identical o
 
 - [Status](#status)
 - [Philosophy and Scope](#philosophy-and-scope)
+- [Language Classifier Update](#language-classifier-update)
 - [Usage as a Go Package](#usage-as-a-go-package)
 - [Usage as a CLI Application](#usage-as-a-cli-application)
 - [Performance](#performance)
@@ -24,7 +25,9 @@ The supplied-HTML extraction implementation tracks the applicable changes throug
 
 [UPSTREAM.md](UPSTREAM.md) accounts for all 53 commits since v2.0.0, including ported behavior, existing Go equivalents, intentional exclusions, and verification results. This is an upstream compatibility target, not a new Go module version.
 
-The latest recorded runs (September 11, 2026), on Go 1.26.0 and Go 1.27.1 with Readeck v2.1.2, have 968 passing checks, 14 failing checks, and 41 skips. The failures comprise **eight fallback-related checks and six language-detection checks**. Another 56 native coverage mappings are reported separately, not as passes or skips. Ordinary `go test` remains red; CI rejects changes outside the reviewed compatibility differences. These counts are not a document-extraction error rate. See the [test breakdown](UPSTREAM.md#current-results), [Readability migration](UPSTREAM.md#readeck-v2-migration), and [skip accounting](UPSTREAM.md#skipped-checks).
+Current verification (September 11, 2026) has 974 passing checks, eight failing checks, and 41 skips on both Go 1.26.0 and Go 1.27.1. The eight failures are accepted fallback differences; all language checks pass with the adopted Python classifier behavior. Another 56 native coverage mappings are reported separately, not as passes or skips.
+
+The reviewed-difference checker passes with those eight failures; ordinary `go test` still reports them as failures. These counts are not a document-extraction error rate. See the [current breakdown](UPSTREAM.md#current-results), [Readability migration](UPSTREAM.md#readeck-v2-migration), and [skip accounting](UPSTREAM.md#skipped-checks).
 
 ## Philosophy and Scope
 
@@ -34,12 +37,35 @@ We follow upstream improvements to extraction, cleaning, metadata (including JSO
 
 - **Acquisition:** crawler, downloader, feed, and sitemap parity is out of scope because the primary caller already supplies HTML. Existing CLI acquisition conveniences remain available, but are not expanded by this extraction update.
 - **Fallback extractors:** we use [Readeck Go-Readability v2.1.2][readability] (`codeberg.org/readeck/go-readability/v2`) and `go-domdistiller`, not Python's Readability fork and jusText. Different selected content is an accepted tradeoff, not something to force into Python parity. Library fallbacks are off by default (`EnableFallback`); the CLI enables them unless `--no-fallback` is set. Use Python's `fast=True` for extractor-only comparisons.
-- **Language detection:** `whatlanggo` is the sole detector, rather than Python's optional `py3langid`. It is a best-effort labeler and can misclassify short or repetitive text. With `TargetLanguage` set, wrong or empty labels can reject otherwise valid content. Lingua was evaluated and removed because its runtime and memory cost were too high for this workload.
+- **Language detection:** [go-py3langid v0.4.0](https://github.com/markusmobius/go-py3langid) replaces whatlanggo and aligns the classifier with upstream Python. Text selection and `TargetLanguage` filtering are unchanged. See the [classifier update and measurements](#language-classifier-update) for the performance, memory, and label changes.
 - **Output and APIs:** results contain an HTML DOM, plain text, and metadata; the CLI supports HTML, text, and JSON. Python's Markdown, XML/TEI, CSV, YAML headers, configuration-file loading, deprecated wrappers, and process-global cache APIs are not reproduced. Standalone Simhash/fingerprint/token APIs are also excluded; per-extraction paragraph deduplication remains supported.
 
 HTML parsing and date extraction also use Go dependencies, so exact output identity is not guaranteed. These implementation boundaries do not exclude fixes to supported extraction or metadata behavior. The [detailed compatibility document](UPSTREAM.md#scope) explains each omission, the fallback and language choices, and the remaining test-coverage gaps.
 
 Balanced extraction can retry in recall mode when a short result covers little of the page. Recovery also understands embedded JSON content, and schema-identified discussion-forum posts are treated as main content; the selected fallback engine can still affect the final result.
+
+## Language Classifier Update
+
+In moving from the prior v2.0.0-compatible port to this v2.2.0 update, we replace [whatlanggo](https://github.com/RadhiFadlillah/whatlanggo) with [go-py3langid v0.4.0](https://github.com/markusmobius/go-py3langid). This aligns language identification with the [py3langid](https://github.com/adbar/py3langid) classifier used by upstream [adbar/trafilatura][0] for its [optional language detection](https://github.com/adbar/trafilatura/blob/c1bc9531a2a978326112ca9987e1382745116136/pyproject.toml). The Go package embeds the same py3langid 0.4.0 model used by our Python reference; no Python, NumPy, or runtime model download is required.
+
+One private identifier is initialized lazily and reused across concurrent extractions. It classifies the longer of extracted body and comment text by Unicode code-point count; equal lengths select the body. The raw label populates `Metadata.Language`. When `TargetLanguage` is set, a mismatching or empty label rejects extraction; HTML language tags are checked separately. Without a target, a wrong prediction affects language metadata rather than discarding the document. Public extraction APIs and fallback selection are unchanged.
+
+The measurements below isolate the detector swap on the **same v2.2.0 extraction code and Readeck backend**; they are not a whole-release v2.0.0-versus-v2.2.0 comparison. They were collected on September 11, 2026, using Windows amd64, an AMD Ryzen AI 7 PRO 350, Go 1.27.1, and one worker. Values are medians of three alternating A/B rounds after discarding one warm-up round.
+
+| Warm Workload | Previous: whatlanggo | Current: Go py3langid | Time Reduction |
+| --- | ---: | ---: | ---: |
+| 16 saved pages, default options | 10.60 ms/document | 9.02 ms/document | 14.9% |
+| Same pages, fallbacks enabled | 13.29 ms/document | 12.01 ms/document | 9.6% |
+| Single saved article, default options | 8.95 ms/document | 7.63 ms/document | 14.8% |
+| Same article, fallbacks enabled | 11.14 ms/document | 9.03 ms/document | 18.9% |
+| Classifier only, short French phrase | 121.59 microseconds | 1.33 microseconds | 98.9% |
+| Classifier only, extracted saved article | 1.146 ms | 0.358 ms | 68.8% |
+
+End-to-end timings include HTML parsing, automatic encoding detection, extraction, metadata, and classification, but exclude file loading and model initialization. The 16 pages were evenly spaced through the existing 960-page corpus; all were accepted, and extracted body/comment hashes matched in every measured round. This is a small saved-page sample, not a universal throughput or production-accuracy claim.
+
+The tradeoff is a one-time model cost per process: fresh-process measurements gave a **185.7 ms median first classification** and about **92.8 MiB of retained heap** after garbage collection. Initialization allocated 186.2 MiB in total; that is not a peak-RSS measurement. Concurrent working buffers and other application memory are additional.
+
+All six previous language-related failures now pass. Three Go-only edge-case expectations were updated to independently verified Python model results: empty or whitespace-only input returns `af`, and `12345 !?` returns the non-linguistic label `zxx`. No confidence threshold or label remapping is applied. See the [detailed migration and verification](UPSTREAM.md#py3langid-migration) for the reference checks and measurement boundaries.
 
 ## Usage as a Go Package
 
@@ -70,12 +96,6 @@ result, err := trafilatura.Extract(reader, trafilatura.Options{
 Use the encoding of the bytes passed to `Extract`, not the page's original encoding if your scraper has already decoded it. For example, HTML converted to UTF-8 should use `"utf-8"`, even if its original charset declaration says otherwise. Other supported HTML charset labels, such as `"windows-1252"` and `"shift_jis"`, decode the input without detection. Unsupported labels return an error.
 
 This option is strictly opt-in: omitting it or using `""` keeps the existing automatic-detection path unchanged. Both paths retain NFC Unicode normalization and soft-hyphen removal. An explicit label takes precedence over declarations in the input; use it only when the encoding is known. `ExtractDocument` ignores this option because its input is already parsed.
-
-### Language Detection
-
-Text-language identification uses the [RadhiFadlillah/whatlanggo](https://github.com/RadhiFadlillah/whatlanggo) fork exclusively, not Python's optional `py3langid`. It classifies the longer of extracted body and comment text and uses the resulting ISO code for `Metadata.Language`. Short or repetitive text can be mislabeled, and some predictions have no ISO 639-1 code.
-
-When `TargetLanguage` is set, a mismatching or empty detected code rejects the extraction; HTML language tags are also checked separately. With `TargetLanguage` unset, an incorrect prediction does not discard the document, but its language metadata may be wrong or absent. Known French, English, and Italian failures remain covered by enabled tests. See the [language-detection limitations](UPSTREAM.md#language-detection-limitations); the small test sample is not a production accuracy estimate.
 
 ## Usage as a CLI Application
 

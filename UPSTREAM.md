@@ -168,14 +168,15 @@ go test -mod=readonly . -run '^Test_Python220_' -count=1 -timeout 5m
 
 ### Current Results
 
-The latest recorded full runs on Windows, September 11, 2026, using Go 1.26.0 and Go 1.27.1 with Readeck v2.1.2, compile every package but report **14 failures out of 982 executed leaf checks (1.43%)**. There are 968 passing checks and another 41 skipped checks, excluded from the failure-rate denominator. Parent test groups are not counted again. The 56 native coverage mappings are separate records, not additional pass/skip results.
+The current reviewed baseline uses go-py3langid v0.4.0 and Readeck v2.1.2. Full Windows runs on September 11, 2026, using Go 1.26.0 and Go 1.27.1, compile every package and report **eight failures out of 982 executed leaf checks (0.81%)**. There are 974 passing checks and another 41 skipped checks, excluded from the failure-rate denominator. Parent test groups are not counted again. The 56 native coverage mappings are separate records, not additional pass/skip results. The reviewed-difference checker passes; ordinary `go test` still fails on the eight accepted fallback differences.
 
 | Failing Area | Leaf Checks | Observed Differences |
 | --- | ---: | --- |
 | Fallback-related checks | 8 | Three forum checks, one blog-comment check, and imported plus legacy checks for each of love-hina and RNZ; see the [fallback breakdown](#fallback-extractors). |
-| Known language-detector limitations | 6 | Two original Python language cases and four added diagnostic checks. Some repeat the same French/English inputs; see [language detection](#language-detection-limitations). |
 
-Across `Test_Python220_*`, there are 739 passing and 8 failing leaves: **8 of 747 executed checks fail (1.07%)**, with 41 skipped. The 15 additional classifier cases pass 11 and fail 4 (26.67%). The remaining Go checks pass 218 and fail 2 out of 220 (0.91%). These are Go check counts, not counts of unique documents, independent defects, or directly imported Python assertions. Several checks exercise the same input. The initial synchronization snapshot below predates the later fixes and does not describe the current suite.
+Before the [classifier migration](#py3langid-migration), commit `5ecedf5` with whatlanggo reported 968 passing / 14 failing / 41 skipped checks. Replacing the detector fixes all six language failures. Three Go-only empty/nonlinguistic diagnostic expectations now reflect independently checked Python py3langid outputs; no imported Python assertion or fallback expectation was changed.
+
+Across `Test_Python220_*`, there are 741 passing and six failing leaves: **6 of 747 executed checks fail (0.80%)**, with 41 skipped. All 15 additional classifier cases pass. The remaining Go checks pass 218 and fail two out of 220 (0.91%). These are Go check counts, not counts of unique documents, independent defects, or directly imported Python assertions. Several checks exercise the same input. The initial synchronization snapshot below predates the later fixes and does not describe the current suite.
 
 ### Repository Cleanup and CI
 
@@ -183,9 +184,9 @@ Three stale legacy expectations in [trafilatura_test.go](trafilatura_test.go) we
 
 The saved-page suite now has 85 named subtests, preserving its existing assertions: 83 pass and two fail. Replacing its one old leaf with 85 raises the denominator by 84; importing the four original normalization assertions adds another four. Thus the change from 894 to 982 executed checks is reporting granularity and added coverage, not an extraction-quality improvement. Removing 56 bookkeeping skips and one stale normalization exclusion leaves 41 genuine skips. The unused private `schemaInArticle` helper was removed; exported `SchemaData` remains available.
 
-[scripts/check_tests.py](scripts/check_tests.py) runs the unchanged Go suite and checks [test-files/known-differences.json](test-files/known-differences.json), which lists exact failing leaf names, expected assertion-failure counts, and reasons. New failures, changed counts, unexpectedly passing/skipped/missing known differences, build errors, crashes, and incomplete runs fail the check. It also verifies that every imported native mapping is reported and its target Go tests actually execute. A passing check means only the reviewed differences remain, not that every assertion passes or that all behavior within a failing assertion is identical. The nine checker unit tests cover these failure modes.
+[scripts/check_tests.py](scripts/check_tests.py) runs the complete Go suite and checks [test-files/known-differences.json](test-files/known-differences.json), which lists exact failing leaf names, expected assertion-failure counts, and reasons. New failures, changed counts, unexpectedly passing/skipped/missing known differences, build errors, crashes, and incomplete runs fail the check. It also verifies that every imported native mapping is reported and its target Go tests actually execute. A passing check means only the reviewed differences remain, not that every assertion passes or that all behavior within a failing assertion is identical. The nine checker unit tests cover these failure modes.
 
-[CI](.github/workflows/ci.yml) runs this check on Linux and Windows with Go 1.26.0 and Go 1.27.1, using `GOTOOLCHAIN=local`. It also checks formatting, module tidiness, builds, and `go vet`, and preserves raw Go test events as artifacts. The checker needs only Python's standard library, not Trafilatura or the reference environment. Ordinary `go test` and `make test` still exit unsuccessfully for the 14 known differences. `make test` no longer generates source; `make generate` remains explicit, and `GO`, `TEST_TIMEOUT`, and `TEST_ARGS` are configurable.
+[CI](.github/workflows/ci.yml) runs this check on Linux and Windows with Go 1.26.0 and Go 1.27.1, using `GOTOOLCHAIN=local`. It also checks formatting, module tidiness, builds, and `go vet`, and preserves raw Go test events as artifacts. The checker needs only Python's standard library, not Trafilatura or the reference environment. Ordinary `go test` and `make test` still exit unsuccessfully for the eight known differences. `make test` no longer generates source; `make generate` remains explicit, and `GO`, `TEST_TIMEOUT`, and `TEST_ARGS` are configurable.
 
 ### Skipped Checks
 
@@ -231,19 +232,19 @@ Entire acquisition/CLI and XML/TEI modules are excluded by the agreed scope and 
 
 ### Language Detection Limitations
 
-The sole text-language detector is `github.com/RadhiFadlillah/whatlanggo`, pinned to `v0.0.0-20240916001553-aac1f0f737fc`. There is no optional Lingua backend. Python's reference uses optional `py3langid`, so language identification is a dependency difference rather than a claim of exact model parity.
+The v2.2.0 update uses [go-py3langid v0.4.0](https://github.com/markusmobius/go-py3langid), aligning the classifier and model with the Python reference's optional py3langid 0.4.0. The previous detector was `github.com/RadhiFadlillah/whatlanggo`, pinned to `v0.0.0-20240916001553-aac1f0f737fc`. whatlanggo and Lingua are absent from the current module graph. The [migration](#py3langid-migration) records current behavior; the earlier detector limitations below are historical comparisons.
 
 Go classifies the longer of the extracted body and comments by Unicode code-point count; equal lengths choose the body. Python's helper chooses comments on a tie. Go also assigns language metadata when no target is requested. Classification happens after extraction and does not control DOM selection, paragraph scoring, or fallback choice.
 
-Known cases remain visible in [trafilatura_test.go](trafilatura_test.go):
+Before the replacement, whatlanggo produced these results in cases still covered by [trafilatura_test.go](trafilatura_test.go):
 
-- The short French phrase is classified as Afrikaans (`af`) instead of French (`fr`). Its original test does not filter by language, so extraction still succeeds with a wrong label.
-- "In sleep a king, but waking no such matter." produces an empty ISO language code. The English-targeted extraction test therefore rejects a valid English document.
-- The added Italian sentence is labeled Portuguese (`pt`) instead of Italian (`it`). Another Italian fixture is labeled Estonian (`et`). The existing negative English-filter checks still pass for those inputs, despite the incorrect labels.
+- The short French phrase was classified as Afrikaans (`af`) instead of French (`fr`). Its original test does not filter by language, so extraction succeeded with a wrong label.
+- "In sleep a king, but waking no such matter." produced an empty ISO language code. The English-targeted extraction test therefore rejected a valid English document.
+- The added Italian sentence was labeled Portuguese (`pt`) instead of Italian (`it`). Another Italian fixture was labeled Estonian (`et`). The existing negative English-filter checks passed for those inputs, despite the incorrect labels.
 
-An isolated audit of the existing tests recorded 13 decisions at the statistical language-filter check: three correct acceptances, nine correct rejections, and one false rejection. The one-in-13 failure rate describes these small, repeated test inputs only. Most saved-page extraction assertions do not verify the predicted language and cannot establish detector accuracy.
+An isolated audit of the whatlanggo baseline's tests recorded 13 decisions at the statistical language-filter check: three correct acceptances, nine correct rejections, and one false rejection. The one-in-13 failure rate describes those small, repeated test inputs only. Most saved-page extraction assertions do not verify the predicted language and cannot establish detector accuracy.
 
-No confidence threshold, language whitelist, or phrase-specific exception is added. The existing policy is preserved: a nonempty `TargetLanguage` rejects a mismatching or empty detected ISO code. Without a target, an incorrect prediction affects language metadata rather than discarding the content. HTML language-tag checks remain separate. Passing a negative English-filter test does not demonstrate an accurate label: Italian mislabeled as Portuguese still correctly fails an English-only filter.
+No confidence threshold, language whitelist, or phrase-specific exception is added. The existing policy is preserved: a nonempty `TargetLanguage` rejects a mismatching or empty detected label. Without a target, an incorrect prediction affects language metadata rather than discarding the content. HTML language-tag checks remain separate. Passing a negative English-filter test does not demonstrate an accurate label: Italian mislabeled as Portuguese still correctly fails an English-only filter.
 
 Lingua v1.4.0 was evaluated and removed for resource cost. It fixed some short-text labels but also misclassified a repeated Italian fixture as English. It was not an unqualified accuracy improvement on these cases.
 
@@ -253,6 +254,39 @@ Lingua v1.4.0 was evaluated and removed for resource cost. It fixed some short-t
 | Same pages, fallbacks enabled | 17.39 ms/document | 46.66 ms/document | +168% |
 
 These are averages of two interleaved warmed runs on 16 evenly spaced saved pages, on Windows with Go 1.27.1. Body/comment hashes matched between builds. File reads and model initialization are excluded; this is not a universal workload or accuracy estimate. A separate first French classification took about 2.94 seconds and retained an additional 732 MiB of Go heap after garbage collection. That is model-cache growth, not per-document memory. Lingua and its trial-only dependencies are absent from the production module graph; independently required shared dependencies are retained.
+
+### Py3langid Migration
+
+The v2.2.0 update replaces whatlanggo with [go-py3langid v0.4.0](https://github.com/markusmobius/go-py3langid), release commit `d3e0c0861455d7d84daedb994392d2e71a0f6270`. It embeds the py3langid 0.4.0 model used by the Python reference, aligning with [upstream adbar/trafilatura's optional classifier](https://github.com/adbar/trafilatura/blob/c1bc9531a2a978326112ca9987e1382745116136/pyproject.toml).
+
+The private `languageClassifier` wrapper loads one independent identifier through `sync.OnceValues` and reuses it concurrently. It uses raw scores, without a confidence threshold, language restriction, or phrase-specific exception. A private instance avoids interference from another package calling `py3langid.SetLanguages`. Initialization/classification errors return an empty label through the existing string-only interface. Public extraction APIs, body/comment selection, HTML-language checks, fallback behavior, and target-language filtering are unchanged. No Python, NumPy, CGO, or runtime model download is needed by the detector.
+
+All six whatlanggo-related failures now pass, including the English false rejection, French labels, and Italian sentence. The migration also adopts three raw model labels in place of the old Go-only empty-label expectations:
+
+| Input | Previous Go Expectation | Current Go py3langid | Python py3langid 0.4.0 |
+| --- | --- | --- | --- |
+| Empty string | Empty label | `af` | `af` |
+| Whitespace only | Empty label | `af` | `af` |
+| `12345 !?` | Empty label | `zxx` | `zxx` |
+
+These outputs were checked directly against the installed Python reference. `zxx` is the model's non-linguistic label, not an abstention threshold. The replacement retains the raw Python labels without a guard or remapping. The three Go-only diagnostics now assert these independently established results; no imported Python assertion was changed. The six resolved language entries were removed from the known-difference manifest, while all eight fallback entries and their assertion counts remain unchanged.
+
+The current configuration passes the reviewed-difference checker on both Go versions: **974 passing / 8 failing / 41 skipped leaves**, plus 56 native mappings. All 15 classifier diagnostics pass. The imported Python subset has 741 passing / 6 failing / 41 skipped leaves; those six failures are fallback differences. These curated checks are not a representative language-accuracy estimate.
+
+The September 11 performance comparison rebuilt the committed whatlanggo wrapper and matching module files against the same current extraction code, with only the detector swapped. It is not a whole-release v2.0.0-versus-v2.2.0 benchmark. Measurements used Windows amd64, AMD Ryzen AI 7 PRO 350, Go 1.27.1, and one worker. One warm-up round was discarded; the table gives medians of three further alternating A/B rounds at 750 ms per benchmark. The 16-page sample selects evenly spaced files from the existing 960-page corpus; it is not a random production sample.
+
+| Warm Sample | whatlanggo | Go py3langid | Time Change |
+| --- | ---: | ---: | ---: |
+| 16 saved pages, default options | 10.60 ms/document | 9.02 ms/document | -14.9% |
+| Same pages, fallbacks enabled | 13.29 ms/document | 12.01 ms/document | -9.6% |
+| Single saved article, default options | 8.95 ms/document | 7.63 ms/document | -14.8% |
+| Same article, fallbacks enabled | 11.14 ms/document | 9.03 ms/document | -18.9% |
+| Classifier only, short French phrase | 121.59 microseconds | 1.33 microseconds | -98.9% |
+| Classifier only, extracted saved article | 1.146 ms | 0.358 ms | -68.8% |
+
+End-to-end runs include HTML parsing, automatic encoding detection, extraction, metadata, and language classification; file loading and model initialization are outside the timed loop. All 16 documents were accepted, and body/comment hashes matched between detectors in every measured round for each option set. Startup was measured separately in fresh processes: median first classification 185.7 ms, about 92.8 MiB retained heap after garbage collection, and 186.2 MiB total allocation during initialization. Retained model memory is a one-time process cost, not per-document allocation; concurrent working buffers and other application memory are additional. These sample results do not establish a universal throughput improvement.
+
+All packages compile, `go vet` and module tidiness pass, and all 15 parallel classifier cases pass under the race detector without a race. Temporary A/B binaries, overlays, and measurement helpers remain outside the repository. The current compatibility baseline contains only the eight accepted fallback differences.
 
 ### Initial Synchronization Results
 
