@@ -4,6 +4,8 @@ Go-Trafilatura extracts main text, comments, and metadata from supplied HTML whi
 
 The port began as a close, largely line-by-line translation. We keep the extraction code recognizable so upstream fixes can be reviewed and ported systematically, while preserving Go APIs and HTML-oriented results.
 
+The upgrade from Go-Trafilatura v2.0.0 to v2.2.1 was performed with assistance from GPT-6 Astra. Going forward, we will continue to use coding LLMs to help keep the Go port in sync with upstream Python Trafilatura.
+
 The goal is faithful extraction behavior within the scope below, not identical output for every input or a Go implementation of every Python feature.
 
 ## Table of Contents
