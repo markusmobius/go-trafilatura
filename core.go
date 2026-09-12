@@ -76,6 +76,24 @@ type ExtractResult struct {
 	Metadata Metadata
 }
 
+// ContentMarkdown converts the extracted content into Markdown text. The
+// formatting mirrors the Markdown output of the original Python Trafilatura.
+func (r *ExtractResult) ContentMarkdown() string {
+	if r == nil {
+		return ""
+	}
+	return htmlToMarkdown(r.ContentNode)
+}
+
+// CommentsMarkdown converts the extracted comments into Markdown text. It will
+// return an empty string if comments are excluded from the extraction result.
+func (r *ExtractResult) CommentsMarkdown() string {
+	if r == nil {
+		return ""
+	}
+	return htmlToMarkdown(r.CommentsNode)
+}
+
 // Extract parses a reader and find the main readable content.
 func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 	if r == nil {
