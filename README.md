@@ -50,20 +50,26 @@ In moving from the prior v2.0.0-compatible port to this v2.2.0 update, we replac
 
 One private identifier is initialized lazily and reused across concurrent extractions. It classifies the longer of extracted body and comment text by Unicode code-point count; equal lengths select the body. The raw label populates `Metadata.Language`. When `TargetLanguage` is set, a mismatching or empty label rejects extraction; HTML language tags are checked separately. Without a target, a wrong prediction affects language metadata rather than discarding the document. Public extraction APIs and fallback selection are unchanged.
 
-The measurements below isolate the detector swap on the **same v2.2.0 extraction code and Readeck backend**; they are not a whole-release v2.0.0-versus-v2.2.0 comparison. They were collected on September 11, 2026, using Windows amd64, an AMD Ryzen AI 7 PRO 350, Go 1.27.1, and one worker. Values are medians of three alternating A/B rounds after discarding one warm-up round.
+We choose go-py3langid for three reasons:
 
-| Warm Workload | Previous: whatlanggo | Current: Go py3langid | Time Reduction |
-| --- | ---: | ---: | ---: |
-| 16 saved pages, default options | 10.60 ms/document | 9.02 ms/document | 14.9% |
-| Same pages, fallbacks enabled | 13.29 ms/document | 12.01 ms/document | 9.6% |
-| Single saved article, default options | 8.95 ms/document | 7.63 ms/document | 14.8% |
-| Same article, fallbacks enabled | 11.14 ms/document | 9.03 ms/document | 18.9% |
-| Classifier only, short French phrase | 121.59 microseconds | 1.33 microseconds | 98.9% |
-| Classifier only, extracted saved article | 1.146 ms | 0.358 ms | 68.8% |
+- **Upstream alignment:** Go-Trafilatura uses a Go port of the same py3langid Python engine and model selected by upstream Trafilatura, reducing an otherwise unnecessary source of behavioral drift.
+- **A complete whatlanggo replacement:** once initialized, go-py3langid dominates the previous whatlanggo detector in model coverage, accuracy, warm-up runtime, and steady-state runtime. On the shared corpus it supports 139 rather than 84 languages, makes half as many errors (8 rather than 16), and completes the median pass 13.0% faster.
+- **Near-CLD3 speed with substantially better accuracy:** despite being pure Go, its median pass is within 9.6% of the well-respected CGO-based CLD3 detector while again making half as many errors (8 rather than 16).
 
-End-to-end timings include HTML parsing, automatic encoding detection, extraction, metadata, and classification, but exclude file loading and model initialization. The 16 pages were evenly spaced through the existing 960-page corpus; all were accepted, and extracted body/comment hashes matched in every measured round. This is a small saved-page sample, not a universal throughput or production-accuracy claim.
+The following table is copied from the [go-py3langid four-engine comparison](https://github.com/markusmobius/go-py3langid#language-detector-comparison). The corpus contains **1,000 short/medium sentences from 20 selected FLORES-200 languages, not the full FLORES-200 language inventory**. All four detectors support these 20 languages and are evaluated on the same sentences while considering their full supported language sets.
 
-The tradeoff is a one-time model cost per process: fresh-process measurements gave a **185.7 ms median first classification** and about **92.8 MiB of retained heap** after garbage collection. Initialization allocated 186.2 MiB in total; that is not a peak-RSS measurement. Concurrent working buffers and other application memory are additional.
+Fresh results from 2026-09-12 on WSL2 Linux/AMD64, AMD Ryzen AI 7 PRO 350, Go 1.26.0, Python 3.14.4, and `GOMAXPROCS=1`:
+
+| Engine | Pure Go | Supported languages | Accuracy | Startup (s) | Warm-up total (s) | Median pass (s) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| CLD3 | No (CGO) | 103 | 98.4% | 0.0474 | 0.6154 | 0.4546 |
+| go-py3langid | Yes | 139 | 99.2% | 0.4007 | 0.6579 | 0.4982 |
+| Whatlanggo | Yes | 84 | 98.4% | 0.0394 | 0.7823 | 0.5724 |
+| Lingua | Yes | 75 | 98.7% | 0.0634 | 11.1091 | 2.3587 |
+
+Workers stay alive across all phases. **Startup** is launch-to-ready; **warm-up total** is one separately timed, discarded 1,000-text pass, including Lingua's lazy model loading. **Median pass** covers only the eight subsequent 1,000-text passes with rotating engine order, excluding both startup and warm-up. Wall time includes Python, JSON, and TCP overhead. The slower one-time startup and larger embedded model remain the tradeoff for go-py3langid; the steady-state comparison assumes a reused detector, as Go-Trafilatura does.
+
+This is an opt-in detector benchmark, not a production-throughput claim or an all-language accuracy study. See the [benchmark methodology and individual pass times](https://github.com/markusmobius/go-py3langid/tree/main/benchmarks/language-detection) before generalizing small timing differences.
 
 All six previous language-related failures now pass. Three Go-only edge-case expectations were updated to independently verified Python model results: empty or whitespace-only input returns `af`, and `12345 !?` returns the non-linguistic label `zxx`. No confidence threshold or label remapping is applied. See the [detailed migration and verification](UPSTREAM.md#py3langid-migration) for the reference checks and measurement boundaries.
 
