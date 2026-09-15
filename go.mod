@@ -11,7 +11,7 @@ require (
 	github.com/forPelevin/gomoji v1.3.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
 	github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4
-	github.com/markusmobius/go-htmldate v1.10.0
+	github.com/markusmobius/go-htmldate v1.10.1
 	github.com/markusmobius/go-py3langid v0.4.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/rs/zerolog v1.35.1
@@ -25,12 +25,10 @@ require (
 
 require (
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
-	github.com/hablullah/go-hijri v1.0.2 // indirect
-	github.com/hablullah/go-juliandays v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
-	github.com/jalaali/go-jalaali v0.1.0 // indirect
-	github.com/markusmobius/go-dateparser v1.4.3 // indirect
+	github.com/markusmobius/go-dateparser v1.4.7 // indirect
+	github.com/markusmobius/go-dateutil/v2 v2.9.1 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
