@@ -1,5 +1,3 @@
-codeberg.org/readeck/go-readability/v2 v2.1.2 h1:JBrdyYJBRPMBbodLM1b5KxCSDH+JqCkGcuVRD7ICBAw=
-codeberg.org/readeck/go-readability/v2 v2.1.2/go.mod h1:Ut31sW4osSrJPR3T8eQslMh4+jbwimXqn0w0ReCT+PU=
 github.com/andybalholm/cascadia v1.3.5 h1:RLjq12WJy58dN6eCIQrz0bAGZkztHWsEPFxP53Y7Ms8=
 github.com/andybalholm/cascadia v1.3.5/go.mod h1:BLRmbRjpEtNKieZOCCvYj4RqN+KRA41GBe/5O+G93kM=
 github.com/beevik/etree v1.2.0 h1:l7WETslUG/T+xOPs47dtd6jov2Ii/8/OjCldk5fYfQw=
@@ -26,6 +24,8 @@ github.com/markusmobius/go-htmldate v1.10.1 h1:bkUp0aThgtwhaKvDQ2Q2zqORCEx/E2epC
 github.com/markusmobius/go-htmldate v1.10.1/go.mod h1:xb+pEmZGlBbO4lEa6RQleFBW3eCqDrajqVUu5hqeH9s=
 github.com/markusmobius/go-py3langid v0.4.0 h1:utKZ6EaXZmuMnAFZXDDmsK6iAlzSKPyCdCaJQOzBU2g=
 github.com/markusmobius/go-py3langid v0.4.0/go.mod h1:XiCY1vO+Waymj+bQgeqkil6fFcB9yDgQifFMVK7tpLE=
+github.com/markusmobius/go-readabilityV2 v0.6.0 h1:bfKlbdke8BT2O828bhjS8sD5q7c72WNRKxLisjzd8zo=
+github.com/markusmobius/go-readabilityV2 v0.6.0/go.mod h1:hg77OafsTYCRgbDRQq9g40DFHrDbZB+cHIPMLSZF6tI=
 github.com/matoous/go-nanoid v1.5.0/go.mod h1:zyD2a71IubI24efhpvkJz+ZwfwagzgSO6UNiFsZKN7U=
 github.com/matoous/go-nanoid/v2 v2.0.0 h1:d19kur2QuLeHmJBkvYkFdhFBzLoo1XVm2GgTpL+9Tj0=
 github.com/matoous/go-nanoid/v2 v2.0.0/go.mod h1:FtS4aGPVfEkxKxhdWPAspZpZSh1cOjtM7Ej/So3hR0g=

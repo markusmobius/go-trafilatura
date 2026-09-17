@@ -5,7 +5,6 @@ go 1.26.0
 toolchain go1.27.1
 
 require (
-	codeberg.org/readeck/go-readability/v2 v2.1.2
 	github.com/andybalholm/cascadia v1.3.5
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.3.0
@@ -13,6 +12,7 @@ require (
 	github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4
 	github.com/markusmobius/go-htmldate v1.10.1
 	github.com/markusmobius/go-py3langid v0.4.0
+	github.com/markusmobius/go-readabilityV2 v0.6.0
 	github.com/matoous/go-nanoid/v2 v2.0.0
 	github.com/rs/zerolog v1.35.1
 	github.com/spf13/cobra v1.10.2

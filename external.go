@@ -26,9 +26,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
 	distiller "github.com/markusmobius/go-domdistiller"
+	readability "github.com/markusmobius/go-readabilityV2"
 	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
 	"github.com/markusmobius/go-trafilatura/v2/internal/selector"
 	"golang.org/x/net/html"

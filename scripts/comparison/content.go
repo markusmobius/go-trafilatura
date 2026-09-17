@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
 	distiller "github.com/markusmobius/go-domdistiller"
+	readability "github.com/markusmobius/go-readabilityV2"
 	gt "github.com/markusmobius/go-trafilatura/v2"
 	"golang.org/x/net/html"
 	"golang.org/x/sync/semaphore"

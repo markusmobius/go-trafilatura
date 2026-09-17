@@ -7,10 +7,10 @@ import (
 	fp "path/filepath"
 	"time"
 
-	readability "codeberg.org/readeck/go-readability/v2"
 	"github.com/go-shiori/dom"
 	distiller "github.com/markusmobius/go-domdistiller"
 	"github.com/markusmobius/go-htmldate"
+	readability "github.com/markusmobius/go-readabilityV2"
 	"github.com/markusmobius/go-trafilatura/v2"
 	"golang.org/x/net/html"
 )
