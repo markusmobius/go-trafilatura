@@ -23,21 +23,21 @@ package trafilatura
 
 import (
 	"regexp"
-	"slices"
 	"strings"
 	"sync"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
 	"github.com/markusmobius/go-py3langid"
 	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
 	"github.com/markusmobius/go-trafilatura/v2/internal/lru"
-	"github.com/markusmobius/go-trafilatura/v2/internal/re2go"
 	"golang.org/x/net/html"
 )
 
 var (
 	rxHtmlLang         = regexp.MustCompile(`(?i)[a-z]{2}`)
+	rxPythonTextFilter = regexp.MustCompile(`(?i)^[^\p{L}\p{N}_]*(Drucken|E-?Mail|Facebook|Flipboard|Google|Instagram|Linkedin|Mail|PDF|Pinterest|Pocket|Print|QQ|Reddit|Twitter|WeChat|WeiBo|Whatsapp|Xing|Mehr zum Thema:?|More on this.{0,8})$`)
 	languageIdentifier = sync.OnceValues(func() (*py3langid.Identifier, error) {
 		return py3langid.NewDefaultIdentifier()
 	})
@@ -102,7 +102,7 @@ func languageClassifier(contentText, commentsText string) string {
 	lenComments := utf8.RuneCountInString(commentsText)
 
 	var langTest string
-	if lenComments > lenContent {
+	if lenComments >= lenContent {
 		langTest = commentsText
 	} else {
 		langTest = contentText
@@ -129,12 +129,27 @@ func textFilter(n *html.Node) bool {
 		testText = text
 	}
 
-	if !textCharsTest(testText) {
+	if strings.TrimFunc(testText, func(character rune) bool {
+		return unicode.IsSpace(character) || character >= '\x1c' && character <= '\x1f'
+	}) == "" {
 		return true
 	}
 
-	lines := strings.Split(testText, "\n")
-	return slices.ContainsFunc(lines, re2go.IsTextFilter)
+	lines := strings.FieldsFunc(testText, func(character rune) bool {
+		return strings.ContainsRune("\n\r\v\f\x1c\x1d\x1e\u0085\u2028\u2029", character)
+	})
+	for _, line := range lines {
+		line = strings.Map(func(character rune) rune {
+			if character == '\u0130' || character == '\u0131' {
+				return 'i'
+			}
+			return character
+		}, line)
+		if rxPythonTextFilter.MatchString(line) {
+			return true
+		}
+	}
+	return false
 }
 
 // textCharsTest determine if a string is only composed of spaces and/or control characters.

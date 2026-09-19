@@ -19,6 +19,7 @@
 package etree
 
 import (
+	"iter"
 	"strings"
 
 	"github.com/go-shiori/dom"
@@ -99,6 +100,131 @@ func Strip(element *html.Node) {
 
 	// Remove the element itself
 	element.Parent.RemoveChild(element)
+}
+
+func MutableDescendants(root *html.Node, tags ...string) iter.Seq[*html.Node] {
+	return mutableElements(root, true, tags...)
+}
+
+func MutableElements(root *html.Node) iter.Seq[*html.Node] {
+	return mutableElements(root, false)
+}
+
+func MutableChildren(root *html.Node) iter.Seq[*html.Node] {
+	return func(yield func(*html.Node) bool) {
+		for current := root.FirstChild; current != nil; {
+			next := current.NextSibling
+			for next != nil && next.Type != html.ElementNode {
+				next = next.NextSibling
+			}
+			if current.Type == html.ElementNode && !yield(current) {
+				return
+			}
+			current = next
+		}
+	}
+}
+
+func StripTagsInPlace(root *html.Node, tags ...string) {
+	for _, element := range dom.GetElementsByTagName(root, "*") {
+		matched := false
+		for _, tag := range tags {
+			matched = matched || element.Data == tag
+		}
+		parent := element.Parent
+		if !matched || parent == nil {
+			continue
+		}
+		for element.FirstChild != nil {
+			child := element.FirstChild
+			element.RemoveChild(child)
+			parent.InsertBefore(child, element)
+		}
+		parent.RemoveChild(element)
+	}
+}
+
+func mutableElements(root *html.Node, descendants bool, tags ...string) iter.Seq[*html.Node] {
+	match := func(node *html.Node) bool {
+		if node.Type != html.ElementNode {
+			return false
+		}
+		if len(tags) == 0 {
+			return true
+		}
+		for _, tag := range tags {
+			if node.Data == tag {
+				return true
+			}
+		}
+		return false
+	}
+	advance := func(current *html.Node) *html.Node {
+		for {
+			if current.FirstChild != nil {
+				current = current.FirstChild
+			} else {
+				for current != root && current.NextSibling == nil {
+					current = current.Parent
+					if current == nil {
+						return nil
+					}
+				}
+				if current == root {
+					return nil
+				}
+				current = current.NextSibling
+			}
+			if match(current) {
+				return current
+			}
+		}
+	}
+	return func(yield func(*html.Node) bool) {
+		current := root
+		if descendants || !match(current) {
+			current = advance(current)
+		}
+		for current != nil {
+			next := advance(current)
+			if !yield(current) {
+				return
+			}
+			current = next
+		}
+	}
+}
+
+func ExtractionText(root *html.Node) string {
+	type visit struct {
+		node *html.Node
+		exit bool
+	}
+	var parts []string
+	var current strings.Builder
+	present := false
+	pending := []visit{{root, false}}
+	for len(pending) > 0 {
+		entry := pending[len(pending)-1]
+		pending = pending[:len(pending)-1]
+		if !entry.exit && entry.node.Type == html.TextNode {
+			current.WriteString(entry.node.Data)
+			present = true
+			continue
+		}
+		if present {
+			parts = append(parts, current.String())
+			current.Reset()
+			present = false
+		}
+		if !entry.exit && (entry.node.Type == html.ElementNode || entry.node.Type == html.DocumentNode) {
+			pending = append(pending, visit{entry.node, true})
+			for child := entry.node.LastChild; child != nil; child = child.PrevSibling {
+				pending = append(pending, visit{child, false})
+			}
+		}
+	}
+	return strings.TrimSpace(strings.Join(parts, " "))
 }
 
 // ToString encode an element to string representation of its structure.

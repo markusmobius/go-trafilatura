@@ -9,6 +9,56 @@ This is the detailed companion to the [README](README.md#philosophy-and-scope): 
 
 For decisions and limitations, see [scope and omissions](#scope), [fallback extractors](#fallback-extractors), [language detection](#language-detection-limitations), and [test/skip accounting](#current-results). The [commit ledger](#commit-ledger) and [historical verification](#verification) retain the implementation audit.
 
+## Behavioral Authority
+
+As clarified on 2026-09-17, Python Trafilatura 2.2.0 at the target commit above is
+the behavioral authority for the **non-fallback path only**, in both Go and Rust.
+Compare Python `fast=True` against Go `EnableFallback: false` and the equivalent
+Rust option. Confirmed differences must drive general algorithm repairs in both
+ports, using a pinned Python runtime/dependency graph and independent expectations.
+
+The **Go fallback pipeline is explicitly retained**, including ReadabilityV2,
+DomDistiller, custom candidates, ordering, acceptance/stopping rules, sanitization,
+and recall rescue. Rust must reproduce this Go behavior. Do not implement jusText
+or replace these fallbacks with Python's bundled Readability. Historical fallback
+differences below remain outside the Python parity target; they do not excuse
+non-fallback differences. No fixture-specific corrections or changes to Python
+expectations are a substitute for non-fallback algorithm alignment.
+
+Supplied-HTML scope, caller-controlled concurrency, native-only runtime, and
+existing public contracts remain. Historical test counts are retained as dated
+evidence; no new parity or benchmark claim follows from this policy change.
+Unrelated worktree changes remain separate and no release is authorized.
+
+### Paired Core Alignment (2026-09-18)
+
+The native Rust port prompted independent checks against the pinned Python core,
+with general algorithm corrections applied to both ports. These include raw
+selector/metadata attributes, exact pre-cleanup text snapshots, whole-line text
+filters, forum patterns, heading order, live mutation traversal for lists,
+paragraphs, quotes and table cells, ordered cleaning, original-document ownership
+after detachment, and absent versus explicitly empty text/tail slots. Caption and
+cell-tail whitespace is retained where Python uses it in extraction decisions.
+The existing mutable cleaning-tag map still supports additional entries after
+the standard ordered tags. No filename, phrase or benchmark-specific rules were
+added, and the retained Go fallback algorithms were not replaced.
+
+[test-files/python-2.2.0-reference.json](test-files/python-2.2.0-reference.json)
+is generated independently by Python Trafilatura 2.2.0 with Python 3.12.13,
+lxml 6.1.3, py3langid 0.4.0 and 19 checked dependency pins. Its SHA-256 is
+`5c66c000f1e58dea7a870c3f4d02d41212bca71fff5fea088240ec5c12fab559`.
+The same fixture is consumed by Rust; current-Go cross-port expectations are
+separately labelled and do not establish Python correctness on their own.
+The final synthetic edge matrix contains 162 independent Python input/option
+combinations, alongside the larger selector, text, sequence and extraction
+matrices. Two legacy table-tail assertions were corrected only after confirming
+the exact whitespace independently in Python.
+
+Native plain rendering, parser repairs, namespaces and newer native date
+dependencies remain distinct compatibility boundaries. Passing tests or equal
+corpus scores are not proof of equivalence over arbitrary input. These local
+changes are not a new published Go version or a parent-application upgrade.
+
 ## Scope
 
 The primary contract is extraction from supplied HTML or a parsed DOM, not page acquisition. Main text, comments, cleaning, structural formatting, tables, images, links, metadata/JSON-LD, baseline recovery, and recall escalation are in scope. `OriginalURL` supplies context; the library does not fetch that URL. Regression comparisons use saved or synthetic HTML, not live-site contents.
@@ -29,17 +79,17 @@ JSON-LD is not an omission. The current port uses structured decoding, ordered s
 
 ### Interpretation
 
-An omitted API, a deliberate dependency substitution, a detector limitation, and a missing test are different things. The skip ledger below distinguishes them. Accepted fallback differences do not establish that every fallback result is ideal; they mean exact Python fallback output is not the compatibility requirement.
+An omitted API, a dependency substitution, a detector limitation, and a missing test are different things. The historical skip ledger below distinguishes them. Python parity applies to non-fallback extraction; the explicitly retained Go fallback differences are separate from that requirement.
 
 ## Fallback Extractors
 
-The choice of Go Readability and `go-domdistiller` is deliberate and predates this update. The current Readability backend is [Readeck Go-Readability v2.1.2](https://codeberg.org/readeck/go-readability), module `codeberg.org/readeck/go-readability/v2`, replacing the deprecated `github.com/go-shiori/go-readability`. Python uses its bundled Readability fork and jusText. We retain the Go candidate cascade rather than tune outputs solely to satisfy Python-reference assertions. Custom `FallbackCandidates` remain supported.
+The choice of Go Readability and `go-domdistiller` is deliberate and explicitly retained. The current Readability backend is [Go-ReadabilityV2 v0.6.0](https://github.com/markusmobius/go-readabilityV2), module `github.com/markusmobius/go-readabilityV2`; the earlier Readeck migration is recorded below as history. Python uses its bundled Readability fork and jusText, which are not the fallback parity target. Retain the Go candidate cascade and its native Rust equivalent. Custom `FallbackCandidates` remain supported.
 
 | Setting | Go | Python Reference |
 | --- | --- | --- |
 | Library default | Fallbacks disabled; opt in with `EnableFallback: true`. | Fallbacks enabled; `fast=True` disables them. |
 | Go CLI default | Fallbacks enabled; `--no-fallback` disables them. | CLI behavior is not a parity target. |
-| Secondary algorithms | Readeck Go-Readability v2 and Dom Distiller. | Bundled Readability and jusText. |
+| Secondary algorithms | Go-ReadabilityV2 0.6.0 and Dom Distiller. | Bundled Readability and jusText. |
 | Candidate selection | Existing Go ordering, acceptance, and stopping rules, with a Dom Distiller recall-rescue candidate. | Readability comparison plus jusText-specific triggers and replacement rules. |
 
 ### Pre-Migration Investigation
@@ -168,7 +218,20 @@ go test -mod=readonly . -run '^Test_Python220_' -count=1 -timeout 5m
 
 ### Current Results
 
-The current reviewed baseline uses go-py3langid v0.4.0 and Readeck v2.1.2. Full Windows runs on September 11, 2026, using Go 1.26.0 and Go 1.27.1, compile every package and report **eight failures out of 982 executed leaf checks (0.81%)**. There are 974 passing checks and another 41 skipped checks, excluded from the failure-rate denominator. Parent test groups are not counted again. The 56 native coverage mappings are separate records, not additional pass/skip results. The reviewed-difference checker passes; ordinary `go test` still fails on the eight accepted fallback differences.
+The September 18, 2026 Windows run with Go 1.27.1 reports **7,307 passing leaves,
+eight reviewed fallback failures and 42 skips**, plus 56 separate native coverage
+mappings. The reviewed-difference checker passes; `go vet -mod=readonly ./...`
+and `go build -mod=readonly ./...` pass. The checker still requires the exact
+reviewed failure names and assertion counts. Ordinary `go test` reports those
+eight failures; they were not waived in native Rust-versus-Go comparisons.
+The current backend is ReadabilityV2 0.6.0 and the classifier is Py3langid 0.4.0.
+The expanded counts mostly reflect independently generated core matrices, not
+thousands of newly fixed defects or unique documents. No hosted-CI result is
+claimed for these uncommitted changes.
+
+### September 11 Baseline
+
+The historical reviewed baseline used go-py3langid v0.4.0 and Readeck v2.1.2. Full Windows runs on September 11, 2026, using Go 1.26.0 and Go 1.27.1, compiled every package and reported **eight failures out of 982 executed leaf checks (0.81%)**. There were 974 passing checks and another 41 skipped checks, excluded from the failure-rate denominator. Parent test groups are not counted again. The 56 native coverage mappings are separate records, not additional pass/skip results. The reviewed-difference checker passed; ordinary `go test` still failed on the eight accepted fallback differences.
 
 | Failing Area | Leaf Checks | Observed Differences |
 | --- | ---: | --- |
@@ -190,7 +253,9 @@ The saved-page suite now has 85 named subtests, preserving its existing assertio
 
 ### Skipped Checks
 
-All 41 skips are explicit entries in the Go test port, not runtime skips caused by missing dependencies:
+This is the historical September 11 breakdown. Its 41 skips were explicit entries
+in the Go test port, not runtime skips caused by missing dependencies; the current
+expanded suite reports 42 skips as recorded above.
 
 | Category | Skips | Meaning |
 | --- | ---: | --- |

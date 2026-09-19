@@ -24,6 +24,7 @@ package trafilatura
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -40,6 +41,7 @@ import (
 	"github.com/markusmobius/go-htmldate"
 	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
 	"github.com/markusmobius/go-trafilatura/v2/internal/lru"
+	"github.com/markusmobius/go-trafilatura/v2/internal/selector"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/html"
 )
@@ -66,6 +68,153 @@ var (
 		Config: DefaultConfig(),
 	}
 )
+
+func Test_Python220_CoreMatrix(test *testing.T) {
+	type sample struct {
+		HTML             string          `json:"html"`
+		Focus            ExtractionFocus `json:"focus"`
+		Flags            int             `json:"flags"`
+		Variant          int             `json:"variant"`
+		Accepted         bool            `json:"accepted"`
+		Snapshot         string          `json:"snapshot"`
+		Content          string          `json:"content"`
+		Comments         string          `json:"comments"`
+		CommentsSnapshot string          `json:"comments_snapshot"`
+	}
+	var reference struct {
+		Core struct {
+			Sequences  []*sample `json:"sequences"`
+			Extraction []*sample `json:"extraction"`
+			Edges      []*sample `json:"edge_sequences"`
+		} `json:"native_core"`
+		Forums []struct {
+			HTML  string `json:"html"`
+			Forum bool   `json:"forum"`
+		} `json:"forums"`
+	}
+	data, err := os.ReadFile("test-files/python-2.2.0-reference.json")
+	if err != nil {
+		test.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &reference); err != nil {
+		test.Fatal(err)
+	}
+	assert.Len(test, reference.Core.Sequences, 4992)
+	assert.Len(test, reference.Core.Extraction, 6177)
+	assert.Len(test, reference.Core.Edges, 162)
+	reference.Core.Sequences = append(reference.Core.Sequences, reference.Core.Edges...)
+	assert.Len(test, reference.Forums, 30)
+	for _, current := range reference.Forums {
+		assert.Equal(test, current.Forum, forumThreadPage(docFromStr(current.HTML)), "%s", current.HTML)
+	}
+	options := func(current *sample) Options {
+		address, _ := nurl.Parse("https://example.com/news/page")
+		return Options{Config: DefaultConfig(), Focus: current.Focus, IncludeImages: current.Flags&1 != 0, IncludeLinks: current.Flags&2 != 0,
+			Deduplicate: current.Flags&4 != 0, ExcludeComments: current.Flags&16 != 0, ExcludeTables: current.Flags&32 != 0, OriginalURL: address, HtmlDateMode: Disabled}
+	}
+	compact := func(value string) string { return strings.Join(strings.Fields(value), "") }
+	nodeText := func(node *html.Node) string {
+		if node == nil {
+			return ""
+		}
+		return dom.TextContent(node)
+	}
+	for index, current := range reference.Core.Sequences {
+		if current == nil {
+			continue
+		}
+		test.Run(fmt.Sprintf("sequence/%d", index), func(test *testing.T) {
+			opts := options(current)
+			body, snapshot, comments, commentsSnapshot := extractionSequence(docFromStr(current.HTML), lru.NewCache(opts.Config.CacheSize), opts)
+			assert.Equal(test, compact(current.Content), compact(dom.TextContent(body)))
+			assert.Equal(test, trim(current.Snapshot), trim(snapshot))
+			assert.Equal(test, compact(current.Comments), compact(nodeText(comments)))
+			assert.Equal(test, trim(current.CommentsSnapshot), trim(commentsSnapshot))
+		})
+	}
+	for index, current := range reference.Core.Extraction {
+		if current == nil {
+			continue
+		}
+		test.Run(fmt.Sprintf("extraction/%d", index), func(test *testing.T) {
+			opts := options(current)
+			switch current.Variant {
+			case 3:
+				opts.TargetLanguage = "en"
+			case 4:
+				opts.MaxTreeSize = 1
+			case 5:
+				opts.Config.MinOutputSize, opts.Config.MinOutputCommentSize = 50000, 50000
+			case 6:
+				opts.PruneSelector = "p.bar, aside"
+			case 7:
+				opts.PruneSelector = "p:not("
+			}
+			result, err := ExtractDocument(docFromStr(current.HTML), opts)
+			if !assert.Equal(test, current.Accepted, err == nil, "%v", err) || err != nil {
+				return
+			}
+			assert.Equal(test, compact(current.Content), compact(dom.TextContent(result.ContentNode)))
+			assert.Equal(test, compact(current.Comments), compact(nodeText(result.CommentsNode)))
+		})
+	}
+}
+
+func Test_Python220_TextFilter(test *testing.T) {
+	var reference struct {
+		Cases []struct {
+			Text     string `json:"text"`
+			Filtered bool   `json:"filtered"`
+		} `json:"text_filters"`
+	}
+	data, err := os.ReadFile("test-files/python-2.2.0-reference.json")
+	if err != nil {
+		test.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &reference); err != nil {
+		test.Fatal(err)
+	}
+	assert.Len(test, reference.Cases, 349)
+	for _, sample := range reference.Cases {
+		element := etree.Element("p")
+		etree.SetText(element, sample.Text)
+		assert.Equal(test, sample.Filtered, textFilter(element), "Python text filter %q", sample.Text)
+	}
+}
+
+func Test_Python220_ContentSnapshots(test *testing.T) {
+	var reference struct {
+		Cases []struct {
+			HTML             string          `json:"html"`
+			Focus            ExtractionFocus `json:"focus"`
+			Snapshot         string          `json:"snapshot"`
+			Length           int             `json:"length"`
+			Cleaned          string          `json:"cleaned"`
+			SequenceSnapshot string          `json:"sequence_snapshot"`
+			SequenceCleaned  string          `json:"sequence_cleaned"`
+		} `json:"content_snapshots"`
+	}
+	data, err := os.ReadFile("test-files/python-2.2.0-reference.json")
+	if err != nil {
+		test.Fatal(err)
+	}
+	if err := json.Unmarshal(data, &reference); err != nil {
+		test.Fatal(err)
+	}
+	assert.Len(test, reference.Cases, 27)
+	for index, sample := range reference.Cases {
+		test.Run(fmt.Sprint(index), func(test *testing.T) {
+			opts := Options{Config: DefaultConfig(), Focus: sample.Focus, ExcludeComments: true}
+			body, snapshot := extractContent(prepareTree(docFromStr(sample.HTML), opts), lru.NewCache(opts.Config.CacheSize), opts)
+			assert.Equal(test, sample.Snapshot, snapshot)
+			assert.Equal(test, sample.Length, len([]rune(snapshot)))
+			assert.Equal(test, sample.Cleaned, trim(etree.IterText(body, " ")))
+			body, snapshot, _, _ = extractionSequence(docFromStr(sample.HTML), lru.NewCache(opts.Config.CacheSize), opts)
+			assert.Equal(test, sample.SequenceSnapshot, snapshot)
+			assert.Equal(test, strings.Fields(sample.SequenceCleaned), strings.Fields(etree.IterText(body, " ")))
+		})
+	}
+}
 
 func Test_InputSafety(test *testing.T) {
 	result, err := ExtractDocument(nil, Options{})
@@ -1276,12 +1425,15 @@ func Test_LanguageClassifier(t *testing.T) {
 	assert.Equal(t, "de", lang)
 
 	// Extraction result
+	languageOpts := zeroOpts
+	languageOpts.TargetLanguage = "es"
 	htmlInput = `<html><body><p>Texto en español</p></body></html>`
-	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
+	result, _ = Extract(strings.NewReader(htmlInput), languageOpts)
 	assert.Equal(t, "es", result.Metadata.Language)
 
+	languageOpts.TargetLanguage = "fr"
 	htmlInput = `<html><body><p>Après la pluie, le beau temps.</p></body></html>`
-	result, _ = Extract(strings.NewReader(htmlInput), zeroOpts)
+	result, _ = Extract(strings.NewReader(htmlInput), languageOpts)
 	assert.Equal(t, "fr", result.Metadata.Language)
 }
 
@@ -1303,12 +1455,217 @@ func Test_LanguageClassifier_Compatibility(test *testing.T) {
 		{"arabic_sentence", "تشرح هذه المقالة كيف يجمع الباحثون البيانات ويقارنون النتائج قبل نشر الدراسة.", "", "ar"},
 		{"longer_comments", "This is English.", "Die Kommentare sind aber etwas länger.", "de"},
 		{"longer_content", "Die Kommentare sind aber etwas länger.", "This is English.", "de"},
-		{"equal_lengths_choose_content", "Texte en français", "Texto en español ", "fr"},
+		{"equal_lengths_choose_comments", "Texte en français", "Texto en español ", "es"},
 	} {
 		test.Run(sample.name, func(test *testing.T) {
 			test.Parallel()
 			assert.Equal(test, sample.language, languageClassifier(sample.content, sample.comments))
 		})
+	}
+}
+
+type pythonLanguageReference struct {
+	Commit    string
+	Python    string
+	Packages  map[string]string
+	Languages []struct {
+		Content, Comments, Language string
+	}
+	LanguageExtraction []struct {
+		HTML, Target, Language, Content, Comments string
+		Fast, Accepted                            bool
+	} `json:"language_extraction"`
+	MetadataAttributes []struct {
+		HTML, Author string
+	} `json:"metadata_attributes"`
+	Selectors []struct {
+		Tag        string
+		Attributes [][2]string
+		Matches    []bool
+	} `json:"selectors"`
+	Pruning []struct {
+		HTML      string
+		Group     int
+		Backup    bool
+		Tree      json.RawMessage
+		InputTree json.RawMessage `json:"input_tree"`
+	} `json:"pruning"`
+}
+
+func loadPythonLanguageReference(test *testing.T) pythonLanguageReference {
+	test.Helper()
+	data, err := os.ReadFile("test-files/python-2.2.0-reference.json")
+	if err != nil {
+		test.Fatal(err)
+	}
+	var reference pythonLanguageReference
+	if err := json.Unmarshal(data, &reference); err != nil {
+		test.Fatal(err)
+	}
+	assert.Equal(test, "c1bc9531a2a978326112ca9987e1382745116136", reference.Commit)
+	assert.Equal(test, "3.12.13", reference.Python)
+	assert.Equal(test, "0.4.0", reference.Packages["py3langid"])
+	return reference
+}
+
+func Test_Python220_LanguageClassifier(test *testing.T) {
+	reference := loadPythonLanguageReference(test)
+	assert.Len(test, reference.Languages, 324)
+	for index, sample := range reference.Languages {
+		test.Run(fmt.Sprintf("case_%03d", index), func(test *testing.T) {
+			test.Parallel()
+			assert.Equal(test, sample.Language, languageClassifier(sample.Content, sample.Comments),
+				"content=%q comments=%q", sample.Content, sample.Comments)
+		})
+	}
+}
+
+func Test_Python220_LanguageExtraction(test *testing.T) {
+	reference := loadPythonLanguageReference(test)
+	assert.Len(test, reference.LanguageExtraction, 36)
+	for index, sample := range reference.LanguageExtraction {
+		test.Run(fmt.Sprintf("case_%03d", index), func(test *testing.T) {
+			test.Parallel()
+			document, err := html.Parse(strings.NewReader(sample.HTML))
+			if err != nil {
+				test.Fatal(err)
+			}
+			before := dom.OuterHTML(document)
+			result, err := ExtractDocument(document, Options{
+				TargetLanguage: sample.Target,
+				EnableFallback: !sample.Fast,
+				HtmlDateMode:   Disabled,
+			})
+			assert.Equal(test, before, dom.OuterHTML(document))
+			if !sample.Accepted {
+				assert.Error(test, err)
+				assert.Nil(test, result)
+				return
+			}
+			if err != nil {
+				test.Fatal(err)
+			}
+			assert.Equal(test, sample.Language, result.Metadata.Language)
+			assert.Equal(test, sample.Content, result.ContentText)
+			assert.Equal(test, sample.Comments, result.CommentsText)
+		})
+	}
+}
+
+func Test_Python220_MetaAttributeSelection(test *testing.T) {
+	reference := loadPythonLanguageReference(test)
+	assert.Len(test, reference.MetadataAttributes, 60)
+	for index, sample := range reference.MetadataAttributes {
+		test.Run(fmt.Sprintf("case_%03d", index), func(test *testing.T) {
+			document, err := html.Parse(strings.NewReader(sample.HTML))
+			if err != nil {
+				test.Fatal(err)
+			}
+			result := extractMetadata(document, Options{HtmlDateMode: Disabled})
+			assert.Equal(test, sample.Author, result.Author, sample.HTML)
+		})
+	}
+}
+
+func Test_Python220_ContentSelectors(test *testing.T) {
+	reference := loadPythonLanguageReference(test)
+	assert.Greater(test, len(reference.Selectors), 10000)
+	groups := [][]selector.Rule{selector.Content, selector.OverallDiscardedContent, selector.PrecisionDiscardedContent, selector.Comments, selector.DiscardedComments, selector.RemovedComments, selector.DiscardedImage, selector.DiscardedTeaser}
+	for index, sample := range reference.Selectors {
+		node := &html.Node{Type: html.ElementNode, Data: sample.Tag}
+		for _, attribute := range sample.Attributes {
+			node.Attr = append(node.Attr, html.Attribute{Key: attribute[0], Val: attribute[1]})
+		}
+		ruleIndex := 0
+		for _, group := range groups {
+			for _, rule := range group {
+				assert.Equal(test, sample.Matches[ruleIndex], rule(node), "selector %d rule %d: %+v", index, ruleIndex, sample)
+				ruleIndex++
+			}
+		}
+	}
+}
+
+func pythonTreeSnapshot(node *html.Node) any {
+	if node.Type == html.DocumentNode {
+		return pythonTreeSnapshot(dom.QuerySelector(node, "html"))
+	}
+	if node.Type == html.CommentNode {
+		return map[string]any{"comment": node.Data}
+	}
+	tag := node.Data
+	switch tag {
+	case "li", "dd", "dt":
+		tag = "item"
+	case "ol", "ul", "dl":
+		tag = "list"
+	case "blockquote", "pre", "q":
+		tag = "quote"
+	}
+	attributes := [][2]string{}
+	for _, attribute := range node.Attr {
+		attributes = append(attributes, [2]string{attribute.Key, attribute.Val})
+	}
+	children := []any{}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type == html.TextNode {
+			if child.Data == "" {
+				continue
+			}
+			if len(children) > 0 {
+				if previous, ok := children[len(children)-1].(string); ok {
+					children[len(children)-1] = previous + child.Data
+					continue
+				}
+			}
+			children = append(children, child.Data)
+		} else if child.Type == html.ElementNode || child.Type == html.CommentNode {
+			children = append(children, pythonTreeSnapshot(child))
+		}
+	}
+	return map[string]any{"tag": tag, "attributes": attributes, "children": children}
+}
+
+func pythonTreeImport(test *testing.T, data json.RawMessage) *html.Node {
+	test.Helper()
+	var text string
+	if json.Unmarshal(data, &text) == nil {
+		return &html.Node{Type: html.TextNode, Data: text}
+	}
+	var item struct {
+		Tag        string
+		Comment    *string
+		Attributes [][2]string
+		Children   []json.RawMessage
+	}
+	if err := json.Unmarshal(data, &item); err != nil {
+		test.Fatal(err)
+	}
+	if item.Comment != nil {
+		return &html.Node{Type: html.CommentNode, Data: *item.Comment}
+	}
+	node := &html.Node{Type: html.ElementNode, Data: item.Tag}
+	for _, attribute := range item.Attributes {
+		node.Attr = append(node.Attr, html.Attribute{Key: attribute[0], Val: attribute[1]})
+	}
+	for _, child := range item.Children {
+		node.AppendChild(pythonTreeImport(test, child))
+	}
+	return node
+}
+
+func Test_Python220_Pruning(test *testing.T) {
+	reference := loadPythonLanguageReference(test)
+	assert.Len(test, reference.Pruning, 288)
+	groups := [][]selector.Rule{selector.Content, selector.OverallDiscardedContent, selector.PrecisionDiscardedContent, selector.Comments, selector.DiscardedComments, selector.RemovedComments, selector.DiscardedImage, selector.DiscardedTeaser}
+	for index, sample := range reference.Pruning {
+		document := pythonTreeImport(test, sample.InputTree)
+		result := pruneUnwantedNodes(document, groups[sample.Group], sample.Backup)
+		actual, err := json.Marshal(pythonTreeSnapshot(result))
+		if err != nil {
+			test.Fatal(err)
+		}
+		assert.JSONEq(test, string(sample.Tree), string(actual), "pruning %d: %s", index, sample.HTML)
 	}
 }
 
@@ -2140,7 +2497,8 @@ func Test_TableProcessing(t *testing.T) {
 	</body></html>`)
 	opts = Options{IncludeLinks: true, Config: zeroConfig}
 	result, _ := ExtractDocument(complexPage, opts)
-	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td><td><a href="link">linktext</a></td></tr></table>`)
+	assert.Contains(t, dom.OuterHTML(result.ContentNode), `<table><tr><td>text<h4>more_text</h4></td>`+
+		"\n\t\t\t\t"+`<td><a href="link">linktext</a></td>`+"\n\t\t\t\t"+`</tr></table>`)
 
 	// Table cell with text and child
 	tableCellWithTextAndChild := etree.FromString(`<table><tr><td>text<lb/><p>more text</p></td></tr></table>`)
@@ -2232,7 +2590,7 @@ func Test_TableProcessing(t *testing.T) {
 	result, _ = ExtractDocument(tableNestedElements, opts)
 	assert.Contains(t, dom.OuterHTML(result.ContentNode), ``+
 		`<tr>`+
-		`<td><b>Present Tense</b></td>`+
+		`<td><b>Present Tense</b></td>`+"\n\t\t\t\t\t"+
 		`<td>I buy</td>`+
 		`<td>you buy</td>`+
 		`<td>he/she/it buys</td>`+

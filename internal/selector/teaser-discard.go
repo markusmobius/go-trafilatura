@@ -22,6 +22,8 @@
 package selector
 
 import (
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -33,8 +35,8 @@ var DiscardedTeaser = []Rule{
 // `.//*[self::div or self::dd or self::dt or self::li or self::ul or self::ol or self::dl or self::p or self::section or self::span]
 // [contains(translate(@id, "T", "t"), "teaser") or contains(translate(@class, "T", "t"), "teaser")]`,
 func discardedTeaserRule1(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -44,8 +46,8 @@ func discardedTeaserRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case contains(lower(id), "teaser"),
-		contains(lower(class), "teaser"):
+	case contains(strings.ReplaceAll(id, "T", "t"), "teaser"),
+		contains(strings.ReplaceAll(class, "T", "t"), "teaser"):
 	default:
 		return false
 	}

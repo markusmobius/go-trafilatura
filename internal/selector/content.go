@@ -22,6 +22,8 @@
 package selector
 
 import (
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
@@ -53,8 +55,8 @@ var Content = []Rule{
 // contains(@id, "body-text") or contains(@class, "body-text") or
 // contains(@class, "article__container") or contains(@id, "art-content") or contains(@class, "art-content")][1]`,
 func contentRule1(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	itemProp := dom.GetAttribute(n, "itemprop")
 	tagName := dom.TagName(n)
 
@@ -75,10 +77,12 @@ func contentRule1(n *html.Node) bool {
 		contains(class, "postentry"),
 		contains(class, "post-content"),
 		contains(class, "post_content"),
-		contains(lower(class), "postcontent"),
+		contains(class, "postcontent"),
+		contains(class, "postContent"),
 		contains(class, "post_inner_wrapper"),
 		contains(class, "article-text"),
-		contains(lower(class), "articletext"),
+		contains(class, "articletext"),
+		contains(class, "articleText"),
 		contains(id, "entry-content"),
 		contains(class, "entry-content"),
 		contains(id, "article-content"),
@@ -90,8 +94,10 @@ func contentRule1(n *html.Node) bool {
 		contains(id, "article__body"),
 		contains(class, "article__body"),
 		itemProp == "articleBody",
-		contains(lower(id), "articlebody"),
-		contains(lower(class), "articlebody"),
+		contains(id, "articlebody"),
+		contains(id, "articleBody"),
+		contains(class, "articlebody"),
+		contains(class, "articleBody"),
 		id == "articleContent",
 		contains(class, "ArticleContent"),
 		contains(class, "page-content"),
@@ -127,8 +133,8 @@ func contentRule2(n *html.Node) bool {
 // contains(translate(@class, "FULTEX","fultex"), "fulltext")]) or
 // @role='article'])[1]
 func contentRule3(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 	role := dom.GetAttribute(n, "role")
 
@@ -152,7 +158,7 @@ func contentRule3(n *html.Node) bool {
 		contains(class, "main-column"),
 		contains(class, "wpb_text_column"),
 		startsWith(id, "primary"),
-		startsWith(class, "article"),
+		startsWith(class, "article "),
 		class == "text",
 		id == "article",
 		class == "cell",
@@ -177,8 +183,8 @@ func contentRule3(n *html.Node) bool {
 // or contains(translate(@class, "CP","cp"), "page-content") or
 // @id="content" or @class="content"])[1]`,
 func contentRule4(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -195,9 +201,9 @@ func contentRule4(n *html.Node) bool {
 		contains(class, "content-body"),
 		contains(id, "contentBody"),
 		contains(class, "content__body"),
-		contains(lower(id), "main-content"),
-		contains(lower(class), "main-content"),
-		contains(lower(class), "page-content"),
+		contains(strings.NewReplacer("C", "c", "M", "m").Replace(id), "main-content"),
+		contains(strings.NewReplacer("C", "c", "M", "m").Replace(class), "main-content"),
+		contains(strings.NewReplacer("C", "c", "P", "p").Replace(class), "page-content"),
 		id == "content",
 		class == "content":
 	default:
@@ -209,8 +215,8 @@ func contentRule4(n *html.Node) bool {
 
 // `(.//*[self::article or self::div or self::section][starts-with(@class, "main") or starts-with(@id, "main") or starts-with(@role, "main")])[1]|(.//main)[1]`,
 func contentRule5(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 	role := dom.GetAttribute(n, "role")
 

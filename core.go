@@ -24,12 +24,11 @@ package trafilatura
 import (
 	"bufio"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	nurl "net/url"
 	"os"
-	"slices"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -213,15 +212,11 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Sanity check on language
-	lang := languageClassifier(tmpBodyText, tmpComments)
 	if opts.TargetLanguage != "" {
+		lang := languageClassifier(tmpBodyText, tmpComments)
 		if lang != opts.TargetLanguage {
 			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
 		}
-	}
-
-	// Put the captured language to metadata
-	if lang != "" {
 		metadata.Language = lang
 	}
 
@@ -269,26 +264,11 @@ func plainText(root *html.Node) string {
 	return strings.Join(lines, "\n")
 }
 
+var discussionForumPosting = regexp.MustCompile(`"@type"[\s\v\x{1c}-\x{1f}\x{85}\p{Z}]*:[\s\v\x{1c}-\x{1f}\x{85}\p{Z}]*(?:"DiscussionForumPosting"|\[[^\]]*"DiscussionForumPosting")`)
+
 func forumThreadPage(doc *html.Node) bool {
-	var hasForumType func(any) bool
-	hasForumType = func(value any) bool {
-		for _, item := range jsonItems(value) {
-			if object, ok := item.(map[string]any); ok {
-				if slices.Contains(getSchemaTypes(object, true), "discussionforumposting") {
-					return true
-				}
-				for _, child := range object {
-					if hasForumType(child) {
-						return true
-					}
-				}
-			}
-		}
-		return false
-	}
 	for _, script := range dom.QuerySelectorAll(doc, `script[type="application/ld+json"]`) {
-		var value any
-		if json.Unmarshal([]byte(dom.TextContent(script)), &value) == nil && hasForumType(value) {
+		if discussionForumPosting.MatchString(etree.Text(script)) {
 			return true
 		}
 	}
@@ -297,8 +277,7 @@ func forumThreadPage(doc *html.Node) bool {
 
 func prepareTree(doc *html.Node, opts Options) *html.Node {
 	cleaned := dom.Clone(doc, true)
-	docCleaning(cleaned, opts)
-	convertTags(cleaned, opts)
+	prepareCore(cleaned, opts)
 	return cleaned
 }
 
@@ -366,12 +345,16 @@ func extractionSequence(doc *html.Node, cache *lru.Cache, opts Options) (*html.N
 			existing = append(existing, trim(dom.TextContent(element)))
 		}
 		bodyText := strings.Join(existing, "\n")
+		changed := false
 		for _, post := range dom.Children(forumPosts) {
 			if postText := trim(dom.TextContent(post)); postText != "" && !strings.Contains(bodyText, postText) {
 				etree.Append(body, post)
+				changed = true
 			}
 		}
-		text = trim(etree.IterText(body, " "))
+		if changed {
+			text = etree.ExtractionText(body)
+		}
 	}
 	return body, text, commentsBody, commentsText
 }

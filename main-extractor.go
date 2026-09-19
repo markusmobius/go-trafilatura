@@ -36,15 +36,11 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 		// etree.SetTail(element, "")
 		title = processNode(element, cache, opts)
 	} else {
-		title = dom.Clone(element, false)
-		for _, child := range dom.ChildNodes(element) {
-			clonedChild := dom.Clone(child, true)
-			processedChild := handleTextNode(clonedChild, cache, false, false, opts)
-
+		title = cloneForExtraction(element)
+		for _, child := range dom.Children(element) {
+			processedChild := handleTextNode(child, cache, false, false, opts)
 			if processedChild != nil {
-				dom.AppendChild(title, processedChild)
-			} else {
-				dom.AppendChild(title, clonedChild)
+				etree.Append(title, processedChild)
 			}
 
 			child.Data = "done"
@@ -91,8 +87,8 @@ func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.
 
 // processNestedElement iterates through an element child and rewire its descendants.
 func processNestedElement(child, newChildElement *html.Node, cache *lru.Cache, opts Options) {
-	etree.SetText(newChildElement, etree.Text(child))
-	for _, subElement := range etree.IterDescendants(child) {
+	etree.SetTextSlot(newChildElement, etree.TextSlot(child))
+	for subElement := range etree.MutableDescendants(child) {
 		if inMap(dom.TagName(subElement), mapXmlListTags) {
 			processedSubChild := handleLists(subElement, cache, opts)
 			if processedSubChild != nil {
@@ -119,8 +115,8 @@ func isTextElement(element *html.Node) bool {
 func defineNewElement(processedElement, originalElement *html.Node, keepChildren ...bool) {
 	if processedElement != nil {
 		childElement := etree.SubElement(originalElement, dom.TagName(processedElement))
-		etree.SetText(childElement, etree.Text(processedElement))
-		etree.SetTail(childElement, etree.Tail(processedElement))
+		etree.SetTextSlot(childElement, etree.TextSlot(processedElement))
+		etree.SetTailSlot(childElement, etree.TailSlot(processedElement))
 		for _, attr := range processedElement.Attr {
 			if strIn(attr.Key, "href", "target", "src", "alt", "title", "lang") {
 				childElement.Attr = append(childElement.Attr, attr)
@@ -144,16 +140,17 @@ func handleLists(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 	var newChildElem *html.Node
 	processedElement := etree.Element(dom.TagName(element))
 
-	if text := strings.TrimSpace(etree.Text(element)); text != "" {
+	if text := etree.Text(element); strings.TrimSpace(text) != "" {
 		newChildElem = etree.SubElement(processedElement, "li")
 		etree.SetText(newChildElem, text)
 	}
 
-	for _, child := range etree.IterDescendants(element, listXmlItemTags...) {
-		if dom.TagName(child) == "done" {
-			continue
+	for child := range etree.MutableDescendants(element, listXmlItemTags...) {
+		tag := dom.TagName(child)
+		if tag == "done" {
+			tag = "li"
 		}
-		newChildElem = dom.CreateElement(dom.TagName(child))
+		newChildElem = dom.CreateElement(tag)
 
 		if len(dom.Children(child)) == 0 {
 			processedChild := processNode(child, cache, opts)
@@ -229,8 +226,16 @@ func isCodeBlockElement(element *html.Node) bool {
 }
 
 // handleCodeBlocks turn element into a properly tagged code block.
-func handleCodeBlocks(element *html.Node) *html.Node {
+func cloneForExtraction(element *html.Node) *html.Node {
 	processedElement := dom.Clone(element, true)
+	container := etree.Element("div")
+	dom.AppendChild(container, processedElement)
+	etree.SetTailSlot(processedElement, etree.TailSlot(element))
+	return processedElement
+}
+
+func handleCodeBlocks(element *html.Node) *html.Node {
+	processedElement := cloneForExtraction(element)
 	for _, child := range etree.Iter(element) {
 		child.Data = "done"
 	}
@@ -251,8 +256,8 @@ func handleQuotes(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 	}
 
 	processedElement := etree.Element(dom.TagName(element))
-	etree.SetText(processedElement, etree.Text(element))
-	for _, child := range etree.IterDescendants(element) {
+	etree.SetTextSlot(processedElement, etree.TextSlot(element))
+	for child := range etree.MutableDescendants(element) {
 		childTag := dom.TagName(child)
 		if childTag == "img" {
 			defineNewElement(handleImage(child, opts), processedElement)
@@ -319,16 +324,13 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	}
 
 	processedElement := etree.Element(dom.TagName(element))
-	for _, child := range etree.Iter(element) {
+	for child := range etree.MutableElements(element) {
 		childTag := dom.TagName(child)
 		if childTag == "done" || !inMap(childTag, potentialTags) {
 			continue
 		}
 
 		processedChild := handleTextNode(child, cache, false, true, opts)
-		if processedChild == nil && inMap(childTag, inlineCarriedTags) && len(dom.Children(child)) > 0 {
-			processedChild = child
-		}
 		if processedChild == nil {
 			child.Data = "done"
 			continue
@@ -338,31 +340,29 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 			if text := etree.Text(processedElement); text != "" {
 				etree.SetText(processedElement, text+" "+etree.Text(processedChild))
 			} else {
-				etree.SetText(processedElement, etree.Text(processedChild))
+				etree.SetTextSlot(processedElement, etree.TextSlot(processedChild))
 			}
 		} else if childTag == "img" {
 			if image := handleImage(processedChild, opts); image != nil {
 				etree.Append(processedElement, image)
 			}
 		} else {
-			keepChildren := inMap(childTag, inlineCarriedTags)
-			if keepChildren && len(dom.Children(processedChild)) > 0 {
+			formatting := inMap(childTag, mapXmlHiTags) || childTag == "a"
+			keepChildren := false
+			if formatting && len(dom.Children(processedChild)) > 0 {
 				wrapsInline := childTag == "a"
 				for _, nested := range dom.Children(processedChild) {
 					wrapsInline = wrapsInline || inMap(dom.TagName(nested), inlineCarriedTags)
 				}
+				keepChildren = wrapsInline
 				if !wrapsInline {
-					descendants := etree.IterDescendants(processedChild)
-					for _, nested := range dom.Children(processedChild) {
+					for nested := range etree.MutableChildren(processedChild) {
 						if inMap(dom.TagName(nested), mapXmlLbTags) && etree.Tail(nested) != "" {
 							etree.SetTail(nested, " "+strings.TrimLeftFunc(etree.Tail(nested), unicode.IsSpace))
 						} else if text := etree.Text(nested); textCharsTest(text) {
 							etree.SetText(nested, " "+text)
 						}
-						etree.StripTags(processedChild, dom.TagName(nested))
-					}
-					for _, nested := range descendants {
-						nested.Data = "done"
+						etree.StripTagsInPlace(processedChild, dom.TagName(nested))
 					}
 					keepChildren = false
 				}
@@ -375,7 +375,7 @@ func handleParagraphs(element *html.Node, potentialTags map[string]struct{}, cac
 	children := dom.Children(processedElement)
 	if len(children) > 0 {
 		last := children[len(children)-1]
-		if inMap(dom.TagName(last), mapXmlLbTags) && etree.Tail(last) == "" {
+		if inMap(dom.TagName(last), mapXmlLbTags) && !etree.TailSlot(last).Present {
 			etree.Remove(last)
 		}
 		return processedElement
@@ -445,15 +445,15 @@ func finalizeTableRow(table, row *html.Node, rowspans map[int]int, maxColumns in
 func fillTableCell(target, cell *html.Node, nestedElements map[*html.Node]struct{}, potentialTags map[string]struct{}, cache *lru.Cache, opts Options) {
 	if len(dom.Children(cell)) == 0 {
 		if processed := processNode(cell, cache, opts); processed != nil {
-			etree.SetText(target, etree.Text(processed))
-			etree.SetTail(target, etree.Tail(processed))
+			etree.SetTextSlot(target, etree.TextSlot(processed))
+			etree.SetTailSlot(target, etree.TailSlot(processed))
 		}
 		return
 	}
-	etree.SetText(target, etree.Text(cell))
-	etree.SetTail(target, trim(etree.Tail(cell)))
+	etree.SetTextSlot(target, etree.TextSlot(cell))
+	etree.SetTailSlot(target, etree.TailSlot(cell))
 	cell.Data = "done"
-	for _, child := range etree.IterDescendants(cell) {
+	for child := range etree.MutableDescendants(cell) {
 		tag := dom.TagName(child)
 		if tag == "done" {
 			continue
@@ -523,7 +523,7 @@ func handleTable(tableElement *html.Node, potentialTags map[string]struct{}, cac
 		if dom.TagName(caption) != "caption" {
 			continue
 		}
-		if text := trim(etree.IterText(caption, " ")); text != "" {
+		if text := etree.ExtractionText(caption); text != "" {
 			row := etree.SubElement(newTable, "tr")
 			etree.SetText(etree.SubElement(row, "th"), text)
 			for len(dom.Children(row)) < maxColumns {
@@ -639,7 +639,7 @@ func handleImage(element *html.Node, options ...Options) *html.Node {
 		url = "http://" + strings.TrimPrefix(url, "//")
 	}
 	dom.SetAttribute(processedElement, "src", url)
-	etree.SetTail(processedElement, etree.Tail(element))
+	etree.SetTailSlot(processedElement, etree.TailSlot(element))
 
 	return processedElement
 }
@@ -839,6 +839,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 		}
 
 		// Prune the subtree
+		selectedTree := subTree
 		subTree = pruneUnwantedSections(subTree, potentialTags, opts)
 		// TODO: second pass?
 		// deleteByLinkDensity(subTree, opts, false, listXmlListTags...)
@@ -850,8 +851,15 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 		// Check if there are enough <p> with text
 		var paragraphText string
-		for _, p := range dom.GetElementsByTagName(doc, "p") {
-			paragraphText += dom.TextContent(p)
+		paragraphRoot := subTree
+		if subTree == selectedTree {
+			paragraphRoot = doc
+		}
+		for paragraphRoot.Parent != nil {
+			paragraphRoot = paragraphRoot.Parent
+		}
+		for _, paragraph := range dom.GetElementsByTagName(paragraphRoot, "p") {
+			paragraphText += dom.TextContent(paragraph)
 		}
 
 		factor := 3
@@ -920,11 +928,12 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	}
 
 	// Try parsing wild <p> elements if nothing found or text too short
-	tmpText := trim(etree.IterText(resultBody, " "))
+	tmpText := etree.ExtractionText(resultBody)
 	tmpTextLength := utf8.RuneCountInString(tmpText)
 
 	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
 		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
+		tmpText = etree.ExtractionText(resultBody)
 	}
 	previous := ""
 	for _, element := range dom.Children(resultBody) {
@@ -939,7 +948,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	// Filter output
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
-	tmpText = trim(etree.IterText(resultBody, " "))
 
 	return resultBody, tmpText
 }
@@ -1000,7 +1008,7 @@ func extractComments(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node
 		}
 	}
 
-	tmpComments := etree.IterText(commentsBody, " ")
+	tmpComments := etree.ExtractionText(commentsBody)
 	if tmpComments != "" {
 		return commentsBody, tmpComments
 	}

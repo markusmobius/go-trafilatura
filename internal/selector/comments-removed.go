@@ -37,8 +37,8 @@ var RemovedComments = []Rule{
 // or starts-with(@id, 'comol') or starts-with(@id, 'disqus_thread')
 // or starts-with(@id, 'dsq-comments')]`,
 func removedCommentsRule1(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -48,8 +48,10 @@ func removedCommentsRule1(n *html.Node) bool {
 	}
 
 	switch {
-	case startsWith(lower(id), "comment"),
-		startsWith(lower(class), "comment"),
+	case startsWith(id, "comment"),
+		startsWith(id, "Comment"),
+		startsWith(class, "comment"),
+		startsWith(class, "Comment"),
 		contains(class, "article-comments"),
 		contains(class, "post-comments"),
 		startsWith(id, "comol"),

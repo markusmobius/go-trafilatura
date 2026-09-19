@@ -22,13 +22,64 @@
 package selector
 
 import (
+	"strings"
+
 	"github.com/go-shiori/dom"
 	"golang.org/x/net/html"
 )
 
 var OverallDiscardedContent = []Rule{
+	pythonOverallDiscardedContentRule1,
+	pythonOverallDiscardedContentRule2,
+}
+
+var FallbackDiscardedContent = []Rule{
 	overallDiscardedContentRule1,
 	overallDiscardedContentRule2,
+}
+
+func pythonOverallDiscardedContentRule1(node *html.Node) bool {
+	switch dom.TagName(node) {
+	case "div", "dd", "dt", "li", "ul", "ol", "dl", "p", "section", "span":
+	default:
+		return false
+	}
+	id, class := dom.GetAttribute(node, "id"), dom.GetAttribute(node, "class")
+	for _, value := range []string{id, class} {
+		if startsWith(value, "shar") {
+			return true
+		}
+		for _, token := range []string{"social", "viral", "newsletter", "syndication", "tags", "sidebar", "banner", "breadcrumb", "bread-crumb", "button", "author"} {
+			if contains(value, token) {
+				return true
+			}
+		}
+	}
+	for _, token := range []string{"bmdh", "footer", "Footer", "share", "Share", "nav", "Nav", "menu", "related", "message-container", "premium"} {
+		if contains(id, token) {
+			return true
+		}
+	}
+	for _, token := range []string{"subnav", "avigation", "navbar", "navbox", "menu", "bar", " ad ", "-ad-", "outbrain", "taboola", "criteo", "paid-content", "paidcontent", "widget", "footer", "Footer", "byline", "Byline", "share-", "sociable", "embedded", "embed", "tag-list", "consent", "modal-content", "permission", "elated", "next-", "-stories", "most-popular", "meta", "rating", "attachment", "timestamp", "user-info", "user-profile", "-icon", "article-infos", "message-container", "slide", "viewport", "overlay", "options", "expand", "obfuscated", "blurred", "mol-factbox", "yin", "zlylin", "nfoline"} {
+		if contains(class, token) {
+			return true
+		}
+	}
+	return startsWith(id, "jp-") || startsWith(id, "dpsp-content") || startsWith(class, "nav") || startsWith(class, "post-nav") || startsWith(class, "ZendeskForm") ||
+		contains(firstAttribute(node, "id", "class"), "cookie") || contains(strings.ReplaceAll(dom.GetAttribute(node, "role"), "N", "n"), "nav") ||
+		contains(dom.GetAttribute(node, "data-component"), "MostPopularStories") || dom.HasAttribute(node, "data-lp-replacement-content")
+}
+
+func pythonOverallDiscardedContentRule2(node *html.Node) bool {
+	id, class, style := dom.GetAttribute(node, "id"), dom.GetAttribute(node, "class"), dom.GetAttribute(node, "style")
+	for _, token := range []string{"comments-title", "nocomments", "-reply-", "message", "akismet", "suggest-links", "-hide-", "hide-print", " hidden", " hide", "noprint", "notloaded"} {
+		if contains(class, token) {
+			return true
+		}
+	}
+	return startsWith(firstAttribute(node, "id", "class"), "reply-") || contains(firstAttribute(node, "id", "style"), "hidden") ||
+		startsWith(class, "hide-") || contains(id, "reader-comments") || contains(id, "akismet") ||
+		contains(style, "display:none") || contains(style, "display: none") || dom.GetAttribute(node, "aria-hidden") == "true"
 }
 
 // navigation + footers, news outlets related posts, sharing, jp-post-flair jp-relatedposts

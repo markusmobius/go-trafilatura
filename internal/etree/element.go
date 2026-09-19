@@ -93,6 +93,44 @@ func IterDescendants(element *html.Node, tags ...string) []*html.Node {
 
 // Text returns texts before first subelement. If there was no text,
 // this function will returns an empty string.
+type TextValue struct {
+	Value   string
+	Present bool
+}
+
+func TextSlot(element *html.Node) TextValue {
+	if element == nil {
+		return TextValue{}
+	}
+	for child := element.FirstChild; child != nil && child.Type != html.ElementNode; child = child.NextSibling {
+		if child.Type == html.TextNode {
+			return TextValue{Text(element), true}
+		}
+	}
+	return TextValue{}
+}
+
+func TailSlot(element *html.Node) TextValue {
+	return TextValue{Tail(element), len(TailNodes(element)) > 0}
+}
+
+func SetTextSlot(element *html.Node, slot TextValue) {
+	if element == nil || dom.IsVoidElement(element) {
+		return
+	}
+	SetText(element, slot.Value)
+	if !slot.Present {
+		element.RemoveChild(element.FirstChild)
+	}
+}
+
+func SetTailSlot(element *html.Node, slot TextValue) {
+	SetTail(element, slot.Value)
+	if slot.Present && slot.Value == "" && element != nil && element.Parent != nil && !dom.IsVoidElement(element.Parent) {
+		element.Parent.InsertBefore(dom.CreateTextNode(""), element.NextSibling)
+	}
+}
+
 func Text(element *html.Node) string {
 	if element == nil {
 		return ""

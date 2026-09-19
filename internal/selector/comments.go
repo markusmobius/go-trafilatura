@@ -39,10 +39,9 @@ var Comments = []Rule{
 // contains(@id|@class, 'comment-list') or
 // contains(@class, 'comments-content') or contains(@class, 'post-comments')]`,
 func commentsRule1(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
-	idClass := id + class
+	idClass := firstAttribute(n, "id", "class")
 
 	switch tagName {
 	case "div", "ol", "ul", "dl", "section":
@@ -69,10 +68,9 @@ func commentsRule1(n *html.Node) bool {
 // starts-with(@id|@class, 'comment-') or
 // contains(@class, 'article-comments')],
 func commentsRule2(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
-	idClass := id + class
+	idClass := firstAttribute(n, "id", "class")
 
 	switch tagName {
 	case "div", "section", "ol", "ul", "dl":
@@ -95,7 +93,7 @@ func commentsRule2(n *html.Node) bool {
 // `.//*[self::div or self::section or self::ol or self::ul or self::dl][starts-with(@id, 'comol') or
 // starts-with(@id, 'disqus_thread') or starts-with(@id, 'dsq-comments')]`,
 func commentsRule3(n *html.Node) bool {
-	id := dom.ID(n)
+	id := dom.GetAttribute(n, "id")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -107,7 +105,7 @@ func commentsRule3(n *html.Node) bool {
 	switch {
 	case startsWith(id, "comol"),
 		startsWith(id, "disqus_thread"),
-		startsWith(id, "dsq_comments"):
+		startsWith(id, "dsq-comments"):
 	default:
 		return false
 	}
@@ -117,8 +115,8 @@ func commentsRule3(n *html.Node) bool {
 
 // `.//*[self::div or self::section][starts-with(@id, 'social') or contains(@class, 'comment')]`,
 func commentsRule4(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	id := dom.GetAttribute(n, "id")
+	class := dom.GetAttribute(n, "class")
 	tagName := dom.TagName(n)
 
 	switch tagName {

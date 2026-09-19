@@ -34,7 +34,7 @@ var DiscardedComments = []Rule{
 
 // `.//*[self::div or self::section][starts-with(@id, "respond")]`,
 func discardedCommentsRule1(n *html.Node) bool {
-	id := dom.ID(n)
+	id := dom.GetAttribute(n, "id")
 	tagName := dom.TagName(n)
 
 	switch tagName {
@@ -55,7 +55,7 @@ func discardedCommentsRule1(n *html.Node) bool {
 // `.//cite|.//quote`,
 func discardedCommentsRule2(n *html.Node) bool {
 	tagName := dom.TagName(n)
-	return tagName == "cite" || tagName == "quote"
+	return tagName == "cite" || tagName == "quote" || tagName == "blockquote" || tagName == "pre" || tagName == "q"
 }
 
 // `.//*[@class="comments-title" or contains(@class, "comments-title") or
@@ -64,10 +64,9 @@ func discardedCommentsRule2(n *html.Node) bool {
 // or contains(@class, "signin") or
 // contains(@id|@class, "akismet") or contains(@style, "display:none")]`,
 func discardedCommentsRule3(n *html.Node) bool {
-	id := dom.ID(n)
-	class := dom.ClassName(n)
+	class := dom.GetAttribute(n, "class")
 	style := dom.GetAttribute(n, "style")
-	idClass := id + class
+	idClass := firstAttribute(n, "id", "class")
 
 	switch {
 	case class == "comments-title",

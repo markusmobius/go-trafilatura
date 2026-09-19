@@ -37,9 +37,21 @@ import (
 // docCleaning cleans the document by discarding unwanted elements.
 // In original it's named `tree_cleaning`.
 func docCleaning(doc *html.Node, opts Options) {
+	docCleaningMode(doc, opts, false)
+}
+
+func prepareCore(doc *html.Node, opts Options) {
+	docCleaningMode(doc, opts, true)
+	convertTagsMode(doc, opts, true)
+}
+
+func docCleaningMode(doc *html.Node, opts Options, core bool) {
 	// Determine cleaning strategy
 	cleaningList := maps.Clone(tagsToClean)
 	strippingList := maps.Clone(tagsToStrip)
+	if core {
+		cleaningList["noindex"] = struct{}{}
+	}
 
 	if opts.ExcludeTables {
 		cleaningList["table"] = struct{}{}
@@ -78,12 +90,34 @@ func docCleaning(doc *html.Node, opts Options) {
 		etree.StripTags(doc, tagName)
 	}
 
+	clean := func() {
+		order := slices.Sorted(maps.Keys(cleaningList))
+		if core {
+			order = strings.Fields("aside embed fencedframe footer form head iframe menu object script applet audio canvas figure map picture svg video area blink button datalist dialog frame frameset fieldset link input ins label legend marquee math menuitem nav noindex noscript optgroup option output param progress rp rt rtc select source style track textarea time use table td th tr")
+			for _, tagName := range slices.Sorted(maps.Keys(cleaningList)) {
+				if !slices.Contains(order, tagName) {
+					order = append(order, tagName)
+				}
+			}
+		}
+		for _, tagName := range order {
+			if !inMap(tagName, cleaningList) {
+				continue
+			}
+			if core {
+				for element := range etree.MutableDescendants(doc, tagName) {
+					etree.Remove(element, true)
+				}
+			} else {
+				etree.StripElements(doc, true, tagName)
+			}
+		}
+	}
+
 	// Prevent removal of paragraphs
 	if opts.Focus == FavorRecall && len(dom.GetElementsByTagName(doc, "p")) > 0 {
 		docBackup := dom.Clone(doc, true)
-		for _, tagName := range slices.Sorted(maps.Keys(cleaningList)) {
-			etree.StripElements(doc, true, tagName)
-		}
+		clean()
 
 		// If paragraphs is removed, revert to backup
 		if len(dom.GetElementsByTagName(doc, "p")) == 0 {
@@ -91,14 +125,24 @@ func docCleaning(doc *html.Node, opts Options) {
 		}
 	} else {
 		// Remove nodes in cleaning list including its children
-		for _, tagName := range slices.Sorted(maps.Keys(cleaningList)) {
-			etree.StripElements(doc, true, tagName)
-		}
+		clean()
 	}
 
 	// Remove HTML comment
 	removeHtmlCommentNode(doc)
-	pruneHTML(doc, opts)
+	if core {
+		var empty []*html.Node
+		for _, element := range dom.GetElementsByTagName(doc, "*") {
+			if inMap(element.Data, emptyTagsToRemove) && element.FirstChild == nil {
+				empty = append(empty, element)
+			}
+		}
+		for _, element := range empty {
+			etree.Remove(element, opts.Focus != FavorPrecision)
+		}
+	} else {
+		pruneHTML(doc, opts)
+	}
 }
 
 // removeHtmlCommentNode removes all `html.CommentNode` in document.
@@ -196,21 +240,25 @@ func handleTextNode(node *html.Node, cache *lru.Cache, fixComments, preserveSpac
 
 	// If text is empty, try tail
 	if text == "" && len(children) == 0 {
+		originalTail := etree.TailSlot(node)
 		text, tail = tail, ""
-		etree.SetText(node, text)
-		etree.SetTail(node, tail)
 
 		// Handle differently for br/hr
 		if fixComments && inMap(tagName, mapXmlLbTags) {
 			node.Data = "p"
 		}
+		etree.SetTextSlot(node, originalTail)
+		etree.SetTailSlot(node, etree.TextValue{Value: "", Present: true})
 	}
 
 	// Trim values
 	if !preserveSpaces {
-		text, tail = trim(text), trim(tail)
-		etree.SetText(node, text)
-		etree.SetTail(node, tail)
+		text = trim(text)
+		etree.SetTextSlot(node, etree.TextValue{Value: text, Present: text != ""})
+		if tail != "" {
+			tail = trim(tail)
+			etree.SetTailSlot(node, etree.TextValue{Value: tail, Present: tail != ""})
+		}
 	}
 
 	if text == "" && textFilter(node) {
@@ -359,8 +407,11 @@ func processNode(element *html.Node, cache *lru.Cache, opts Options) *html.Node 
 
 	// Trim
 	text, tail = trim(text), trim(tail)
-	etree.SetText(element, text)
-	etree.SetTail(element, tail)
+	if tagName == "wbr" && (text != "" || tail != "") {
+		element.Data = "span"
+	}
+	etree.SetTextSlot(element, etree.TextValue{Value: text, Present: text != ""})
+	etree.SetTailSlot(element, etree.TextValue{Value: tail, Present: tail != ""})
 
 	// Adapt content string
 	if !inMap(tagName, mapXmlLbTags) && text == "" && tail != "" {
@@ -474,6 +525,10 @@ func deleteByLinkDensity(subTree *html.Node, opts Options, backtracking bool, ta
 // into the one that suitable for XML. However, since we prefer the results
 // to be HTML, we won't do it here.
 func convertTags(tree *html.Node, opts Options) {
+	convertTagsMode(tree, opts, false)
+}
+
+func convertTagsMode(tree *html.Node, opts Options, core bool) {
 	for _, heading := range dom.QuerySelectorAll(tree, `strong[class*="schema-faq-question"]`) {
 		heading.Data = "h3"
 		heading.Attr = nil
@@ -488,6 +543,9 @@ func convertTags(tree *html.Node, opts Options) {
 	if !opts.IncludeLinks {
 		// Prepare selector
 		cssSelector := "div a, ul a, ol a, dl a, p a"
+		if core {
+			cssSelector = "div a, li a, p a"
+		}
 		if !opts.ExcludeTables {
 			cssSelector += ", table a"
 		}
@@ -528,9 +586,26 @@ func convertTags(tree *html.Node, opts Options) {
 		}
 	}
 
+	if core {
+		for _, element := range dom.GetElementsByTagName(tree, "*") {
+			if inMap(dom.TagName(element), mapXmlHiTags) || strIn(dom.TagName(element), "h1", "h2", "h3", "h4", "h5", "h6") {
+				element.Attr = nil
+			}
+		}
+		for _, details := range dom.GetElementsByTagName(tree, "details") {
+			details.Data = "div"
+			for _, summary := range dom.GetElementsByTagName(details, "summary") {
+				summary.Data = "h3"
+			}
+		}
+	}
+
 	// Iterate over all concerned elements.
 	// In this case we only care about quotes.
 	for _, elem := range etree.Iter(tree, listXmlQuoteTags...) {
+		if core && dom.TagName(elem) != "pre" {
+			continue
+		}
 		var codeFlag bool
 
 		// Pre with a single span is more likely to be code
@@ -549,6 +624,9 @@ func convertTags(tree *html.Node, opts Options) {
 
 		// Find hljs elements to detect if it's code
 		hljsSelector := `span[class*=" hljs"], span[class^="hljs"]`
+		if core {
+			hljsSelector = `span[class^="hljs"]`
+		}
 		hljsElems := dom.QuerySelectorAll(elem, hljsSelector)
 		if len(hljsElems) > 0 {
 			codeFlag = true
