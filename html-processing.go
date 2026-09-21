@@ -104,13 +104,7 @@ func docCleaningMode(doc *html.Node, opts Options, core bool) {
 			if !inMap(tagName, cleaningList) {
 				continue
 			}
-			if core {
-				for element := range etree.MutableDescendants(doc, tagName) {
-					etree.Remove(element, true)
-				}
-			} else {
-				etree.StripElements(doc, true, tagName)
-			}
+			etree.StripElements(doc, true, tagName)
 		}
 	}
 

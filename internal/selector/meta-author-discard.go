@@ -37,8 +37,8 @@ var MetaAuthorDiscard = []Rule{
 // starts-with(@id, 'comments') or contains(@data-component, "Figure") or contains(@class, "article-share") or contains(@class, "article-support") or contains(@class, "print") or contains(@class, "category") or contains(@class, "meta-date") or contains(@class, "meta-reviewer")
 // or starts-with(@class, 'comments') or starts-with(@class, 'Comments')]`,
 func metaAuthorDiscardRule1(n *html.Node) bool {
-	id := dom.GetAttribute(n, "id")
-	class := dom.GetAttribute(n, "class")
+	id := dom.ID(n)
+	class := dom.ClassName(n)
 	dataComponent := dom.GetAttribute(n, "data-component")
 	tagName := dom.TagName(n)
 

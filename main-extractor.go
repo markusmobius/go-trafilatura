@@ -933,7 +933,6 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 
 	if len(dom.Children(resultBody)) == 0 || tmpTextLength < opts.Config.MinExtractedSize {
 		recoverWildText(backupDoc, resultBody, potentialTags, cache, opts)
-		tmpText = etree.ExtractionText(resultBody)
 	}
 	previous := ""
 	for _, element := range dom.Children(resultBody) {
@@ -949,7 +948,7 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 	etree.StripElements(resultBody, false, "done")
 	etree.StripTags(resultBody, "div")
 
-	return resultBody, tmpText
+	return resultBody, etree.ExtractionText(resultBody)
 }
 
 // processCommentsNode process and determine how to deal with comment's content.

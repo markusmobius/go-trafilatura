@@ -64,10 +64,13 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 	logInfo(opts, "trying external extractor for url %q", originalUrl)
 
 	// Prior cleaning
-	cleanedDoc := dom.Clone(originalDoc, true)
-	etree.StripElements(cleanedDoc, true, "fencedframe")
-	if opts.Focus == FavorPrecision {
-		cleanedDoc = pruneUnwantedNodes(cleanedDoc, selector.OverallDiscardedContent)
+	cleanedDoc := originalDoc
+	if opts.Focus == FavorPrecision || len(dom.GetElementsByTagName(originalDoc, "fencedframe")) != 0 {
+		cleanedDoc = dom.Clone(originalDoc, true)
+		etree.StripElements(cleanedDoc, true, "fencedframe")
+		if opts.Focus == FavorPrecision {
+			cleanedDoc = pruneUnwantedNodes(cleanedDoc, selector.FallbackDiscardedContent)
+		}
 	}
 
 	// Process each candidate

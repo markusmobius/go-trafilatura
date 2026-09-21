@@ -212,13 +212,11 @@ func ExtractDocument(doc *html.Node, opts Options) (*ExtractResult, error) {
 	}
 
 	// Sanity check on language
-	if opts.TargetLanguage != "" {
-		lang := languageClassifier(tmpBodyText, tmpComments)
-		if lang != opts.TargetLanguage {
-			return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
-		}
-		metadata.Language = lang
+	lang := languageClassifier(tmpBodyText, tmpComments)
+	if opts.TargetLanguage != "" && lang != opts.TargetLanguage {
+		return nil, fmt.Errorf("wrong language, want %s got %s", opts.TargetLanguage, lang)
 	}
+	metadata.Language = lang
 
 	// Post cleaning
 	postCleaning(postBody)

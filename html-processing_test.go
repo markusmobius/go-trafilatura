@@ -481,6 +481,27 @@ func Test_Cleaning_Upstream22(test *testing.T) {
 	}
 }
 
+func Test_CoreCleaning_RemovesAllMatches(test *testing.T) {
+	for _, tag := range []string{"nav", "aside", "fieldset"} {
+		for _, depth := range []int{1, 2, 4} {
+			for _, focus := range []ExtractionFocus{Balanced, FavorRecall, FavorPrecision} {
+				test.Run(fmt.Sprintf("%s/depth-%d/focus-%d", tag, depth, focus), func(test *testing.T) {
+					nested := strings.Repeat("<"+tag+">", depth) + "discard nested content" + strings.Repeat("</"+tag+">", depth)
+					input := "<div>before" + nested + "between<p>Article text kept intact.</p><" + tag + ">discard sibling content</" + tag + ">after</div>"
+					document := etree.FromString(input)
+					opts := Options{Config: DefaultConfig(), Focus: focus}
+					docCleaningMode(document, opts, true)
+					assert.Empty(test, dom.GetElementsByTagName(document, tag))
+					assert.Equal(test, "beforebetweenArticle text kept intact.after", dom.TextContent(document))
+					cleaned := etree.ToString(document)
+					docCleaningMode(document, opts, true)
+					assert.Equal(test, cleaned, etree.ToString(document))
+				})
+			}
+		}
+	}
+}
+
 func Test_LinkDensity_Upstream22(test *testing.T) {
 	for _, input := range []string{
 		`<ul><li><p><a href="/x">Linked list item</a></p></li></ul>`,

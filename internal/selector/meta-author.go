@@ -35,8 +35,8 @@ var MetaAuthor = []Rule{
 // specific and almost specific
 // `//*[self::a or self::address or self::div or self::link or self::p or self::span or self::strong][@rel="author" or @id="author" or @class="author" or @itemprop="author name" or rel="me" or contains(@class, "author-name") or contains(@class, "AuthorName") or contains(@class, "authorName") or contains(@class, "author name") or @data-testid="AuthorCard" or @data-testid="AuthorURL"]|//author`,
 func metaAuthorRule1(n *html.Node) bool {
-	id := dom.GetAttribute(n, "id")
-	class := dom.GetAttribute(n, "class")
+	id := dom.ID(n)
+	class := dom.ClassName(n)
 	rel := dom.GetAttribute(n, "rel")
 	itemProp := dom.GetAttribute(n, "itemprop")
 	dataTestID := dom.GetAttribute(n, "data-testid")
@@ -72,8 +72,8 @@ func metaAuthorRule1(n *html.Node) bool {
 // almost generic and generic, last ones not common
 // `//*[self::a or self::div or self::h3 or self::h4 or self::p or self::span][contains(@class, "author") or contains(@id, "author") or contains(@itemprop, "author") or @class="byline" or contains(@class, "channel-name") or contains(@id, "zuozhe") or contains(@class, "zuozhe") or contains(@id, "bianji") or contains(@class, "bianji") or contains(@id, "xiaobian") or contains(@class, "xiaobian") or contains(@class, "submitted-by") or contains(@class, "posted-by") or @class="username" or @class="byl" or @class="BBL" or contains(@class, "journalist-name")]`
 func metaAuthorRule2(n *html.Node) bool {
-	id := dom.GetAttribute(n, "id")
-	class := dom.GetAttribute(n, "class")
+	id := dom.ID(n)
+	class := dom.ClassName(n)
 	itemProp := dom.GetAttribute(n, "itemprop")
 	tagName := dom.TagName(n)
 
@@ -111,8 +111,8 @@ func metaAuthorRule2(n *html.Node) bool {
 // last resort: any element
 // `//*[contains(translate(@id, "A", "a"), "author") or contains(translate(@class, "A", "a"), "author") or contains(@class, "screenname") or contains(@data-component, "Byline") or contains(@itemprop, "author") or contains(@class, "writer") or contains(translate(@class, "B", "b"), "byline")]`
 func metaAuthorRule3(n *html.Node) bool {
-	id := dom.GetAttribute(n, "id")
-	class := dom.GetAttribute(n, "class")
+	id := dom.ID(n)
+	class := dom.ClassName(n)
 	dataComponent := dom.GetAttribute(n, "data-component")
 	itemProp := dom.GetAttribute(n, "itemprop")
 
