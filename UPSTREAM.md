@@ -8,7 +8,7 @@ For the current library overview and usage, see [README.md](README.md). For chan
 
 The [2026-09-23 JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/d433ab637f0a56c0926aa3698f470794a553472f/go_rust_shared_performance_2026_09_23.json)
 is authoritative for the current [README tables](README.md#current-quality-and-speed).
-Its SHA-256 is `24db96d7858adea1f345e7e3096e7a62bc24fa2f218a3f19f85d1fecb727e4b9`.
+Its published-file SHA-256 (LF line endings) is `7d7be9839f1652606cb91850af5134b188f2508be25623df889372dab4a06cc6`.
 Read text scores at `quality[worker][engine].evaluations[corpus].overall.f1`,
 selected timings at `overall`, and all-four timings at `all_passes`.
 
