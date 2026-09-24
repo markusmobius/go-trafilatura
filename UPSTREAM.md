@@ -16,8 +16,8 @@ Go pins are Readability 0.6.0 (`db6ab179f951f80ad176850001aaf486e2fbd367`),
 DomDistiller 1.0.0 (`25b8d046ffb4053bf68345d6fa59bc9ae1961ad8`) and Trafilatura
 2.2.2 (`f4684e100869274311107325e3b72e47cc78db20`). Rust uses Readability 0.6.3,
 DomDistiller 1.0.1 and Trafilatura 2.2.4; exact commits, dependency graphs and
-binary hashes are in the build receipts. Rust-Trafilatura remains private;
-reproducing that suite requires authorized access. No Go version or tag changes.
+binary hashes are in the build receipts. Rust-Trafilatura is now public;
+the recorded source commits remain available. No Go version or tag changes.
 
 | Implementation | Author Sets Exact / 1,290 | Author-Unit F1 | Titles Exact / 2,364 | Dates Exact / 1,530 |
 | --- | ---: | ---: | ---: | ---: |
