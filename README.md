@@ -210,6 +210,27 @@ These are not standalone request latencies or isolated old/new-version speedups.
 retain separate metadata scores, output differences, exact source/build pins,
 all pass totals and verification limits. Historical results use other protocols.
 
+### Fallback Selection Rates
+
+The separate [6,554-page application-worker validation](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/release_validation_2026_09_28.json)
+was captured before release packaging, with native readability-lxml explicitly
+selected, internally generated candidates and dates disabled. This unannotated
+corpus is not the 2,659-page benchmark above or a measurement of Mozilla mode.
+
+| Final Content Source | Go Pages (% of All 6,554) | Rust Pages (% of All 6,554) |
+| --- | ---: | ---: |
+| Trafilatura core (including recall) | 5,655 (86.283%) | 5,655 (86.283%) |
+| Native readability-lxml | 206 (3.143%) | 206 (3.143%) |
+| DomDistiller | 75 (1.144%) | 75 (1.144%) |
+| Internal baseline recovery | 597 (9.109%) | 597 (9.109%) |
+| No result | 21 (0.320%) | 21 (0.320%) |
+
+**External fallback: 281 / 6,554 pages (4.287%) in each language**, comprising
+readability-lxml and DomDistiller. Counts identify the final returned source,
+not engine calls or accuracy; recall and internal baseline recovery are separate.
+Python 2.2.0 selected readability-lxml on 158 pages and jusText on 62, totaling
+220 (3.357%) on this corpus. Go and Rust use DomDistiller, not jusText.
+
 ## Performance
 
 Extraction time depends on document size and structure, character-encoding detection, metadata processing, and optional fallback extractors. Use `ExtractDocument` when you already have a parsed DOM, or supply a [known input encoding](#known-input-encoding) to avoid statistical charset detection.
