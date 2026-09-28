@@ -181,52 +181,34 @@ Ordinary `go test` reports the known fallback differences as failures; a passing
 
 ## Current Quality and Speed
 
-The [2026-09-23 benchmark JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/d433ab637f0a56c0926aa3698f470794a553472f/go_rust_shared_performance_2026_09_23.json)
-is the source for these tables. All six released engines use the same 2,659
-development pages: 983 LegoNews, 181 ScrapingHub and 1,495 WCXB. The three F1
-scores use different scoring rules and must not be averaged. Errors are shown
-in that corpus order and remain in the denominators.
+The [2026-09-28 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/README.md#results-2026-09-28) uses 2,659 saved
+development pages: 983 LegoNews, 181 ScrapingHub and 1,495 WCXB. Their F1
+scores use different rules and must not be averaged. Errors are listed in
+that order and remain in the denominators.
 
-| Implementation | LegoNews F1 | ScrapingHub F1 | WCXB F1 | Errors |
-| --- | ---: | ---: | ---: | --- |
-| go-readabilityV2-0.6.0 | 87.82711% | 95.20557% | 78.47603% | 7 / 0 / 28 |
-| rust-readability-0.6.3 | 87.82711% | 95.20557% | 78.47603% | 7 / 0 / 28 |
-| go-domdistiller-1.0.0 | 86.74080% | 92.74280% | 74.39696% | 0 / 0 / 0 |
-| rust-domdistiller-1.0.1 | 86.74080% | 92.74280% | 74.39696% | 0 / 0 / 0 |
-| go-trafilatura-2.2.2 | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 |
-| rust-trafilatura-2.2.4 | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 |
+| Implementation | Fallback | LegoNews F1 | ScrapingHub F1 | WCXB F1 | Errors | Extraction ms/page |
+| --- | --- | ---: | ---: | ---: | --- | ---: |
+| go-trafilatura-2.2.5 | Off | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 | 8.716 |
+| rust-trafilatura-2.2.5 | Off | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 | 5.324 |
+| go-trafilatura-2.2.5 | Native Lxml | 91.14833% | 95.94602% | 81.17181% | 3 / 0 / 9 | 23.737 |
+| rust-trafilatura-2.2.5 | Native Lxml | 91.14833% | 95.94602% | 81.17181% | 3 / 0 / 9 | 10.517 |
 
-| Implementation | Shared Parse ms/page | Extraction ms/page | Extraction ms/page, All Four Passes |
-| --- | ---: | ---: | ---: |
-| go-readabilityV2-0.6.0 | 5.638 | 2.669 | 2.705 |
-| rust-readability-0.6.3 | 2.525 | 2.441 | 2.451 |
-| go-domdistiller-1.0.0 | 5.638 | 3.618 | 3.628 |
-| rust-domdistiller-1.0.1 | 2.525 | 1.965 | 1.973 |
-| go-trafilatura-2.2.2 | 5.638 | 6.815 | 6.839 |
-| rust-trafilatura-2.2.4 | 2.525 | 4.000 | 4.026 |
+Timings are means of **all four measured passes** after one warmup, not best-of
+selection. Windows 11 / Ryzen AI 7 PRO 350; Go 1.27.1 and Rust 1.98.1 GNU with
+ThinLTO/mimalloc. Native extraction includes working copies, metadata and
+text rendering; file I/O, startup, IPC and scoring are excluded.
+Shared parsing is charged once per language/page: Go 7.308 and Rust 3.369 ms
+with fallback off; Go 8.710 and Rust 4.137 ms in the separate Lxml run.
+Lxml is explicitly selected and generates its own candidates; Mozilla remains
+the library's default selector. Comments and pagination are off; tables are on.
+DomDistiller is not Python jusText, and full Python parity is not claimed.
+These are not standalone request latencies or isolated old/new-version speedups.
 
-One full warmup precedes four measured passes. The first two timing columns
-use the common best two complete passes (1 and 3), an optimistic estimate;
-the final column retains the all-four mean. Go/Rust extraction ratios from
-unrounded means are **1.09x Readability, 1.84x DomDistiller and 1.70x Trafilatura**.
-Parsing is charged once per language/page, not once per engine. All-four parse
-means are Go 5.667 and Rust 2.531 ms/page.
-
-These Windows 11 / Ryzen AI 7 PRO 350 measurements use Go 1.27.1 and Rust
-1.98.1 GNU, the released Trafilatura dependency graphs, and Rust ThinLTO/mimalloc.
-Parsing includes eager decoding, normalization and DOM construction after the
-file read; extraction includes private working copies, native metadata and text
-rendering. Rust temporary trees are destroyed inside the timer; Go uses normal
-GC, which can cross stage boundaries. File I/O, startup, IPC and scoring are
-excluded. Fallbacks, comments and pagination are off; tables are on.
-
-Every repeated scored output was stable. Go/Rust Readability and DomDistiller
-match all scored outputs; Trafilatura retains two metadata-only differences.
-Separate metadata scores, exact source pins and protocol limits are in
-[UPSTREAM.md](UPSTREAM.md#released-suite-benchmark). Go-Trafilatura remains
-2.2.2. These are shared-input suite timings, not standalone end-to-end latency
-or measurements of the fallback-enabled CLI. Historical measurements use
-different protocols and are not pooled with this run.
+[Disabled-mode JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/go_rust_shared_performance_2026_09_28.json),
+[native-Lxml JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/go_rust_lxml_performance_2026_09_28.json), and
+[release validation](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/release_validation_2026_09_28.json)
+retain separate metadata scores, output differences, exact source/build pins,
+all pass totals and verification limits. Historical results use other protocols.
 
 ## Performance
 
