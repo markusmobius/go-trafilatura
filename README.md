@@ -217,19 +217,29 @@ was captured before release packaging, with native readability-lxml explicitly
 selected, internally generated candidates and dates disabled. This unannotated
 corpus is not the 2,659-page benchmark above or a measurement of Mozilla mode.
 
-| Final Content Source | Go Pages (% of All 6,554) | Rust Pages (% of All 6,554) |
-| --- | ---: | ---: |
-| Trafilatura core (including recall) | 5,655 (86.283%) | 5,655 (86.283%) |
-| Native readability-lxml | 206 (3.143%) | 206 (3.143%) |
-| DomDistiller | 75 (1.144%) | 75 (1.144%) |
-| Internal baseline recovery | 597 (9.109%) | 597 (9.109%) |
-| No result | 21 (0.320%) | 21 (0.320%) |
+Cells show pages and percentages of all 6,554 inputs, including failures.
 
-**External fallback: 281 / 6,554 pages (4.287%) in each language**, comprising
-readability-lxml and DomDistiller. Counts identify the final returned source,
-not engine calls or accuracy; recall and internal baseline recovery are separate.
-Python 2.2.0 selected readability-lxml on 158 pages and jusText on 62, totaling
-220 (3.357%) on this corpus. Go and Rust use DomDistiller, not jusText.
+| Final Content Source | Go | Rust | Python 2.2.0 |
+| --- | ---: | ---: | ---: |
+| Trafilatura core (including recall) | 5,655 (86.283%) | 5,655 (86.283%) | 5,695 (86.894%) |
+| readability-lxml | 206 (3.143%) | 206 (3.143%) | 158 (2.411%) |
+| DomDistiller | 75 (1.144%) | 75 (1.144%) | Not used |
+| jusText | Not used | Not used | 62 (0.946%) |
+| Internal baseline recovery | 597 (9.109%) | 597 (9.109%) | 605 (9.231%) |
+| No result | 21 (0.320%) | 21 (0.320%) | 34 (0.519%) |
+| **External fallback total** | **281 (4.287%)** | **281 (4.287%)** | **220 (3.357%)** |
+
+Before correction, the Rust worker and Go v2.2.2 supplied-candidate reference
+selected external fallback on **2,408 pages (36.741%)** of this same corpus,
+**10.95x** Python's rate. Internally prepared native-Lxml candidates reduce that
+to **4.287% versus Python's 3.357% (1.28x)**. This compares worker configurations,
+not the unchanged Mozilla library default.
+
+Go and Rust's aggregate external-fallback rate is within **0.931 percentage
+points** of Python (61 pages). This is comparable frequency, not identical
+behavior or complete extraction parity: Go and Rust use DomDistiller, not
+jusText. Counts identify the final returned source, not engine calls or accuracy;
+recall and internal baseline recovery are excluded from the external total.
 
 ## Performance
 
