@@ -142,6 +142,9 @@ func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator
 		})
 	} else {
 		generators = append(generators, func() (string, *html.Node) {
+			if opts.ReadabilityFallback == ReadabilityLxml {
+				return readabilityTitle, extractReadabilityLxml(doc)
+			}
 			result, _ := readability.FromDocument(doc, opts.OriginalURL)
 			return readabilityTitle, result.Node
 		})

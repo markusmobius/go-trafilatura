@@ -6,7 +6,7 @@ The current source follows the non-fallback extractor in Python Trafilatura [v2.
 
 This README describes the library as it works now, its design choices, and how to use it. [CHANGELOG.md](CHANGELOG.md) records changes by release. [UPSTREAM.md](UPSTREAM.md) is the technical reference for Python compatibility, intentional differences, and verification evidence.
 
-The current released version is **v2.2.2**. This documentation refresh changes no Go source, dependency versions or release tags.
+The current released version is **v2.2.5**, adding an explicit native readability-lxml fallback while preserving the library's existing default mode.
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ Python's Markdown, XML/TEI, CSV, YAML headers, configuration-file interfaces, an
 ## Extraction Choices
 
 - **Python-aligned core.** We follow the supplied-HTML, non-fallback behavior of the pinned Python 2.2.0 source. Compare with Python's `fast=True`; Python's default fallback path is a different algorithm combination.
-- **Native Go fallbacks.** Optional [Go-ReadabilityV2 v0.6.0][readability] and [Go-DomDistiller][dom-distiller] retain the Go candidate ordering, acceptance rules, cleanup, and recall rescue. They are not substitutes intended to match Python's Readability fork and jusText. Custom `FallbackCandidates` are supported. Library fallbacks are off by default; the CLI enables them unless `--no-fallback` is set.
+- **Native Go fallbacks.** Choose the default [Go-ReadabilityV2 v0.6.0][readability] or explicit `ReadabilityLxml`, followed by [Go-DomDistiller][dom-distiller]. Candidate ordering, acceptance, cleanup, recall rescue and custom `FallbackCandidates` are retained. DomDistiller is not Python's jusText. Library fallbacks are off by default; the CLI enables the existing default mode unless `--no-fallback` is set.
 - **Complete cleanup and accurate recovery decisions.** Cleaning removes all matching unwanted elements, including nested ones. Recovery decisions use text from the final cleaned body, so removed duplicates cannot make an incomplete article appear long enough. These are deliberate corrections to Python behavior, not website-specific exceptions.
 - **Whitespace-tolerant author selection.** Author-selection and author-discard rules trim ID whitespace and normalize class whitespace, so values such as `class=" username "` remain usable. This deliberate difference from Python does not broaden content selectors or change case matching. Single-word meta-tag authors are also retained. See the [metadata boundaries](UPSTREAM.md#metadata-and-language).
 - **Upstream candidate selection.** We retain Python's narrower `article ` class-prefix rule. The broader old Go `article` prefix is not restored; other Python-alignment improvements remain in place.
@@ -81,6 +81,24 @@ result, err := trafilatura.Extract(reader, trafilatura.Options{
 Use the encoding of the bytes passed to `Extract`, not the page's original encoding if your scraper has already decoded it. For example, HTML converted to UTF-8 should use `"utf-8"`, even if its original charset declaration says otherwise. Other supported HTML charset labels, such as `"windows-1252"` and `"shift_jis"`, decode the input without detection. Unsupported labels return an error.
 
 This option is strictly opt-in: omitting it or using `""` keeps the existing automatic-detection path unchanged. Both paths retain NFC Unicode normalization and soft-hyphen removal. An explicit label takes precedence over declarations in the input; use it only when the encoding is known. `ExtractDocument` ignores this option because its input is already parsed.
+
+## Native Readability-Lxml
+
+For Python-aligned fallback candidates, use the library option explicitly:
+
+```go
+options := trafilatura.Options{
+  EnableFallback: true,
+  ReadabilityFallback: trafilatura.ReadabilityLxml,
+}
+```
+
+Leave `FallbackCandidates` nil to retain Trafilatura's input preparation rather
+than reuse independently extracted standalone results. Zero-value selection
+remains `ReadabilityMozilla`. The Apache-2.0 port follows Python Trafilatura
+2.2.0's bundled readability-lxml, with Arc90, starrhorne/iterationlabs and
+gfxmonk/python-readability ancestry. See [CHANGELOG.md](CHANGELOG.md) for validation
+and remaining Python differences.
 
 ## Usage as a CLI Application
 

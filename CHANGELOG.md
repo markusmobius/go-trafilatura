@@ -2,6 +2,23 @@
 
 Changes by Go release. For current behavior and usage, see [README.md](README.md); for detailed Python compatibility decisions and evidence, see [UPSTREAM.md](UPSTREAM.md).
 
+### v2.2.5 - 2026-09-28
+
+- Add native `ReadabilityLxml` fallback selection through
+	`Options.ReadabilityFallback`, ported from Python Trafilatura 2.2.0's bundled
+	readability-lxml. No Python runtime is required.
+- Keep the zero-value `ReadabilityMozilla` mode, supplied-candidate precedence,
+	DomDistiller input cleaning, acceptance rules and fallback enablement unchanged.
+	Applications choosing Lxml should let Trafilatura prepare its own candidates.
+- Verify 6,541 exact-input Python candidate trees. In the separate 6,554-page
+	corrected worker lab, Go and Rust complete outputs match; external fallback
+	supplies 4.29% of results versus Python's 3.36%. These are selection rates,
+	not accuracy or extraction-error rates, and do not certify full Python parity.
+- Preserve the eight reviewed default-mode test differences without weakening
+	their assertions. Fresh annotated quality and performance results are recorded
+	in the [shared benchmark](https://github.com/markusmobius/content-extractor-benchmark).
+- Skip Go versions 2.2.3 and 2.2.4 to align this release number with Rust.
+
 ### Documentation - 2026-09-23
 
 - Refresh README quality and six-engine speed comparisons from the published

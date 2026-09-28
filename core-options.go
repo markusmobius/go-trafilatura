@@ -42,6 +42,13 @@ const (
 	FavorPrecision
 )
 
+type ReadabilityFallback uint8
+
+const (
+	ReadabilityMozilla ReadabilityFallback = iota
+	ReadabilityLxml
+)
+
 // HtmlDateMode specify the mode of publish date extractor using HtmlDate package.
 type HtmlDateMode uint8
 
@@ -90,6 +97,8 @@ type Options struct {
 	// it will use algorithm from another package, i.e. Readability and Dom Distiller.
 	// This will make the extraction result more precise, but also a bit slower.
 	EnableFallback bool
+
+	ReadabilityFallback ReadabilityFallback
 
 	// FallbackCandidates is user specified candidates that will be checked by Trafilatura
 	// when EnableFallback set to True. This is useful if user already use Readability
