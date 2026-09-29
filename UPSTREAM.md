@@ -6,6 +6,10 @@ For the current library overview and usage, see [README.md](README.md). For chan
 
 ## Released Suite Benchmark
 
+The September 29 documentation refresh aligns all six library README sections
+under [AGENTS.md](AGENTS.md). Go-Trafilatura remains 2.2.6: no runtime,
+dependency, tag or benchmark data is changed by this refresh.
+
 The [2026-09-29 FAST report](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/go_rust_shared_performance_2026_09_29.json)
 and [non-FAST lxml report](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/go_rust_lxml_performance_2026_09_29.json)
 are authoritative for the current [README tables](README.md#current-quality-and-speed).
@@ -49,6 +53,38 @@ their pre-removal native workers; all other sections are unchanged and complete
 Go/Rust outputs match. Five protocol tests pass on Windows/Linux amd64 against
 rebuilt deployments. Earlier receipts remain historical. Trafilatura library
 code, tags, annotated benchmark results and fallback selection rates are unchanged.
+
+## Why Supplied Candidates Were Removed
+
+The controlled Go 2.2.2 comparison kept the library version and 6,554 inputs
+fixed while changing how fallback candidates were obtained:
+
+| Final External Source | Generated Internally | Supplied Standalone Result |
+| --- | ---: | ---: |
+| Mozilla Readability | 776 | 794 |
+| DomDistiller | 4 | 1,614 |
+| Total | 780 (11.90%) | 2,408 (36.74%) |
+
+Trafilatura prepared the input before internal DomDistiller extraction, while
+supplied results came from the original page. In three MoneySavingExpert forum
+cases, a 1,380-character legal footer replaced article content; candidates from
+prepared input were only 188-262 characters and were rejected. Sanitizing the
+supplied output afterward did not fix those cases. Removing only internal input
+cleaning reproduced all supplied results in a 16-page control. DomDistiller's
+own cleanup was present in both paths.
+
+Algorithm choice is a separate effect: supplying Python's bundled Readability
+candidate to the otherwise unchanged pipeline lowered fallback to 275/6,554
+(4.20%), whereas a retry-threshold-only change reached 733/6,554 (11.18%).
+Mozilla Readability is not bundled readability-lxml, and DomDistiller is not
+Python's jusText. The current 202/6,554 (3.08%) reflects the complete lxml-only
+policy, not candidate removal alone. All rates count final returned content,
+not temporary acceptance or accuracy.
+
+The [historical validation](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/release_validation_2026_09_28.json)
+retains the supplied-policy baseline and the subsequent corrected policy;
+the controlled investigation is recorded in the application lab's
+`Rust/lab/RESULTS.md`, section `Go v2.2.2 and Local Correction`.
 
 ## Historical Suite Benchmark: 2026-09-23
 

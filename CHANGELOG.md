@@ -2,31 +2,33 @@
 
 Changes by Go release. For current behavior and usage, see [README.md](README.md); for detailed Python compatibility decisions and evidence, see [UPSTREAM.md](UPSTREAM.md).
 
+### Documentation - 2026-09-29
+
+- Explain the measured reason for removing supplied fallback candidates and
+	align the six-library speed/quality comparison with the shared benchmark.
+- Add AGENTS.md with instructions for README, UPSTREAM, CHANGELOG and
+	coordinated release documentation.
+- Keep Go-Trafilatura 2.2.6, runtime source, dependencies and all measured data
+	unchanged. No new module version or benchmark run.
+
 ### v2.2.6 - 2026-09-29
 
-- Restrict non-FAST fallback to internally generated bundled readability-lxml.
-	Remove Mozilla, DomDistiller, custom candidates and DomDistiller recall rescue.
-	Keep native recall and baseline recovery. Standalone Go-ReadabilityV2 is unchanged.
-- Retain legacy fallback fields and enum values for source compatibility but
-	ignore them. `EnableFallback` is the only fallback selector; its default is false.
+- Remove caller-supplied fallback candidates. Candidates extracted before
+	Trafilatura's input cleanup can retain long boilerplate, such as legal footers,
+	that passes fallback length checks and replaces the article.
+- In the controlled Go 2.2.2 comparison on 6,554 pages, supplied candidates
+	raised final external fallback from **780 (11.90%)** to **2,408 (36.74%)**.
+	DomDistiller selections rose from **4 to 1,614**. Trafilatura now prepares
+	its own candidates rather than accepting standalone results.
+- Restrict enabled fallback to bundled readability-lxml. The complete 2.2.6
+	policy selects it on **202/6,554 pages (3.08%)**; this also changes the algorithm
+	set, so it is not a candidate-removal-only comparison or an accuracy score.
+	FAST has no external fallback; native recall and baseline remain. Legacy
+	candidate/selector fields are ignored and `EnableFallback` defaults to false.
 - Use scripting-disabled parsing in `Extract`, preserving charset detection,
 	explicit encodings, normalization and gzip handling. `ExtractDocument` keeps
 	the supplied DOM; its caller should select the same parser mode for Trafilatura.
-- Pass the strict reviewed-difference gate: 7,370 passing leaves, four reviewed
-	Python fallback differences, 43 skips and 56 native mappings on Windows/Go 1.27.1.
-	Six former reviewed Mozilla differences now pass; Python fixture assertions remain.
-- Application workers always use FAST, with separate default input for standalone
-	Mozilla image recovery. All 6,554 standalone outputs remain unchanged in each
-	language; 129 corrected FAST bodies now match Python FAST exactly.
-- Measure final external fallback on the separate application corpus: **0% FAST**,
-	**202/6,554 (3.082%) non-FAST**, solely bundled lxml. Recall/baseline are separate;
-	21 failures remain in the denominator. Non-FAST probes are never deployed.
-- Publish [fresh 2,659-page results](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/README.md#results-2026-09-29):
-	FAST F1 90.91534% / 96.15663% / 78.51703%, non-FAST 91.13924% / 95.98168% /
-	79.56922% (LegoNews / ScrapingHub / WCXB). Go/Rust extraction is 11.329 / 6.570
-	ms/page FAST and 24.745 / 10.910 non-FAST, all four passes retained. These are
-	within-run language comparisons, not old/new speedups. The lxml-only policy
-	has lower non-FAST WCXB F1 and one extra LegoNews rejection versus 2.2.5.
+	See [UPSTREAM.md](UPSTREAM.md) for verification and remaining differences.
 
 ### v2.2.5 - 2026-09-28
 
