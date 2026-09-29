@@ -2,6 +2,23 @@
 
 Changes by Go release. For current behavior and usage, see [README.md](README.md); for detailed Python compatibility decisions and evidence, see [UPSTREAM.md](UPSTREAM.md).
 
+### v2.2.6 - 2026-09-29
+
+- Restrict non-FAST fallback to internally generated bundled readability-lxml.
+	Remove Mozilla, DomDistiller, custom candidates and DomDistiller recall rescue.
+	Keep native recall and baseline recovery. Standalone Go-ReadabilityV2 is unchanged.
+- Retain legacy fallback fields and enum values for source compatibility but
+	ignore them. `EnableFallback` is the only fallback selector; its default is false.
+- Use scripting-disabled parsing in `Extract`, preserving charset detection,
+	explicit encodings, normalization and gzip handling. `ExtractDocument` keeps
+	the supplied DOM; its caller should select the same parser mode for Trafilatura.
+- Pass the strict reviewed-difference gate: 7,370 passing leaves, four reviewed
+	Python fallback differences, 43 skips and 56 native mappings on Windows/Go 1.27.1.
+	Six former reviewed Mozilla differences now pass; Python fixture assertions remain.
+- Application workers always use FAST, with separate default input for standalone
+	Mozilla image recovery. Fresh benchmarks and fallback selection rates will be
+	linked from the [shared benchmark](https://github.com/markusmobius/content-extractor-benchmark).
+
 ### v2.2.5 - 2026-09-28
 
 - Add native `ReadabilityLxml` fallback selection through

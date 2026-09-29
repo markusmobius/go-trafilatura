@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/go-shiori/dom"
-	readability "github.com/markusmobius/go-readabilityV2"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 )
@@ -88,27 +87,21 @@ func TestReadabilityLxmlFallbackOption(test *testing.T) {
 	if err != nil {
 		test.Fatal(err)
 	}
-	mozilla, err := readability.FromDocument(source, nil)
-	if err != nil {
-		test.Fatal(err)
-	}
+	expected := renderReadabilityLxmlForTest(test, extractReadabilityLxml(source))
 	_, defaultCandidate := createFallbackGenerators(source, Options{})[0]()
-	if renderReadabilityLxmlForTest(test, defaultCandidate) != renderReadabilityLxmlForTest(test, mozilla.Node) {
-		test.Error("default fallback no longer matches Mozilla Readability")
-	}
-	_, nativeCandidate := createFallbackGenerators(source, Options{ReadabilityFallback: ReadabilityLxml})[0]()
-	if renderReadabilityLxmlForTest(test, nativeCandidate) != renderReadabilityLxmlForTest(test, extractReadabilityLxml(source)) {
-		test.Error("explicit readability-lxml option did not select the native port")
+	if renderReadabilityLxmlForTest(test, defaultCandidate) != expected {
+		test.Error("default fallback does not match readability-lxml")
 	}
 	for _, mode := range []ReadabilityFallback{ReadabilityMozilla, ReadabilityLxml} {
 		custom, read, distill := dom.CreateElement("div"), dom.CreateElement("div"), dom.CreateElement("div")
 		options := Options{ReadabilityFallback: mode, FallbackCandidates: &FallbackCandidates{Readability: read, Distiller: distill, Others: []*html.Node{custom}}}
 		generators := createFallbackGenerators(source, options)
-		for index, expected := range []*html.Node{custom, read, distill} {
-			_, actual := generators[index]()
-			if actual != expected {
-				test.Errorf("mode %d did not preserve supplied candidate %d", mode, index)
-			}
+		if len(generators) != 1 {
+			test.Fatalf("mode %d generated %d fallback extractors, want only lxml", mode, len(generators))
+		}
+		_, actual := generators[0]()
+		if renderReadabilityLxmlForTest(test, actual) != expected {
+			test.Errorf("mode %d used a supplied or non-lxml candidate", mode)
 		}
 	}
 }

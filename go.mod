@@ -9,6 +9,7 @@ require (
 	github.com/beevik/etree v1.2.0
 	github.com/forPelevin/gomoji v1.3.0
 	github.com/go-shiori/dom v0.0.0-20230515143342-73569d674e1c
+	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f
 	github.com/markusmobius/go-domdistiller v0.0.0-20240926050704-25b8d046ffb4
 	github.com/markusmobius/go-htmldate v1.10.1
 	github.com/markusmobius/go-py3langid v0.4.0
@@ -24,7 +25,6 @@ require (
 )
 
 require (
-	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
 	github.com/markusmobius/go-dateparser v1.4.7 // indirect

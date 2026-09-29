@@ -22,13 +22,10 @@
 package trafilatura
 
 import (
-	"fmt"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/go-shiori/dom"
-	distiller "github.com/markusmobius/go-domdistiller"
-	readability "github.com/markusmobius/go-readabilityV2"
 	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
 	"github.com/markusmobius/go-trafilatura/v2/internal/selector"
 	"golang.org/x/net/html"
@@ -42,10 +39,7 @@ var tagsToSanitize = sliceToMap(
 	"object", "option", "select", "source", "svg", "time",
 )
 
-// compareExternalExtraction decide whether to choose own or external extraction based on
-// a series of heuristics. In original Trafilatura, they use python-readability and justext,
-// while here we use go-readability and go-domdistiller. Since there are difference in
-// implementation between them, here we do it a bit differently compared to the original code.
+// compareExternalExtraction compares native extraction with the bundled readability-lxml port.
 //
 // In original Trafilatura, this function is named `compare_extraction`.
 func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Options) (*html.Node, string) {
@@ -110,82 +104,10 @@ func compareExternalExtraction(originalDoc, extractedDoc *html.Node, opts Option
 	return extractedDoc, extractedText
 }
 
-func createFallbackGenerators(doc *html.Node, opts Options) []_FallbackGenerator {
-	// Initial variables
-	var generators []_FallbackGenerator
-	var customCandidates []*html.Node
-	var readabilityCandidate, distillerCandidate *html.Node
-
-	if opts.FallbackCandidates != nil {
-		customCandidates = opts.FallbackCandidates.Others
-		distillerCandidate = opts.FallbackCandidates.Distiller
-		readabilityCandidate = opts.FallbackCandidates.Readability
-	}
-
-	// First is the user specified custom candidates.
-	for i, candidate := range customCandidates {
-		if candidate == nil {
-			continue
-		}
-
-		generators = append(generators, func() (string, *html.Node) {
-			return fmt.Sprintf("Candidate-%d", i), candidate
-		})
-	}
-
-	// Next is Readability
-	readabilityTitle := "Readability"
-
-	if readabilityCandidate != nil {
-		generators = append(generators, func() (string, *html.Node) {
-			return readabilityTitle, readabilityCandidate
-		})
-	} else {
-		generators = append(generators, func() (string, *html.Node) {
-			if opts.ReadabilityFallback == ReadabilityLxml {
-				return readabilityTitle, extractReadabilityLxml(doc)
-			}
-			result, _ := readability.FromDocument(doc, opts.OriginalURL)
-			return readabilityTitle, result.Node
-		})
-	}
-
-	// Last is Dom Distiller
-	distillerTitle := "Dom Distiller"
-
-	if distillerCandidate != nil {
-		generators = append(generators, func() (string, *html.Node) {
-			return distillerTitle, distillerCandidate
-		})
-	} else {
-		generators = append(generators, func() (string, *html.Node) {
-			body, _ := distillerRescue(doc, opts)
-			return distillerTitle, body
-		})
-	}
-
-	return generators
-}
-
-func distillerRescue(doc *html.Node, opts Options) (*html.Node, string) {
-	var body *html.Node
-	if opts.FallbackCandidates != nil && opts.FallbackCandidates.Distiller != nil {
-		body = dom.Clone(opts.FallbackCandidates.Distiller, true)
-	} else {
-		cleaned := basicCleaning(dom.Clone(doc, true))
-		result, _ := distiller.Apply(cleaned, &distiller.Options{
-			OriginalURL:    opts.OriginalURL,
-			SkipPagination: true,
-		})
-		if result != nil {
-			body = result.Node
-		}
-	}
-	if body == nil {
-		return nil, ""
-	}
-	sanitizeTree(body, opts)
-	return body, trim(etree.IterText(body, " "))
+func createFallbackGenerators(doc *html.Node, _ Options) []_FallbackGenerator {
+	return []_FallbackGenerator{func() (string, *html.Node) {
+		return "Readability", extractReadabilityLxml(doc)
+	}}
 }
 
 // candidateIsUsable check if the fallback candidate is good enough to use as extraction result.

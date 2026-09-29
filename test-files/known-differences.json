@@ -2,44 +2,24 @@
   "package": "github.com/markusmobius/go-trafilatura/v2",
   "failures": [
     {
-      "test": "Test_Python220_RealWorld/realworld_tests.py/test_extract/line_254",
+      "test": "Test_Python220_Extraction/unit_tests.py/test_recall_escalation_justext/line_2324",
       "assertions": 1,
-      "reason": "Readeck retains the love-hina visitor counter and comment link."
-    },
-    {
-      "test": "Test_Python220_RealWorld/realworld_tests.py/test_extract/line_314",
-      "assertions": 1,
-      "reason": "Readeck returns no RNZ candidate; baseline recovery misses the article."
-    },
-    {
-      "test": "Test_Extract/love-hina.ch.0409.html",
-      "assertions": 2,
-      "reason": "Legacy assertions for the same love-hina counter and comment-link difference."
-    },
-    {
-      "test": "Test_Extract/rnz.de.witzel.html",
-      "assertions": 2,
-      "reason": "Legacy opening and closing phrase assertions for the same RNZ recovery difference."
+      "reason": "The lxml-only fallback and native recall return zero Message number replies where Python's jusText recovery keeps eight; jusText is not implemented."
     },
     {
       "test": "Test_Python220_Recovery/test_recall_escalation_justext_comment_scoping/forum_keeps_posts",
       "assertions": 1,
-      "reason": "The Go fallback cascade selects forum replies without the introduction; Python uses jusText."
-    },
-    {
-      "test": "Test_Python220_Recovery/test_recall_escalation_no_comment_doubling/p",
-      "assertions": 1,
-      "reason": "The paragraph-wrapped forum introduction is lost in the Go fallback cascade."
+      "reason": "Readability-lxml and native recall disagree with Python's jusText on forum introduction/reply selection when comments are excluded."
     },
     {
       "test": "Test_Python220_Recovery/test_recall_escalation_no_comment_doubling/div",
       "assertions": 1,
-      "reason": "The div-wrapped forum introduction is lost in the Go fallback cascade."
+      "reason": "Readability-lxml and native recall disagree with Python's jusText on the div-wrapped forum introduction/reply selection."
     },
     {
-      "test": "Test_Python220_Recovery/test_recall_escalation_blog_comment_leak",
+      "test": "Test_Python220_Recovery/test_main_pass_excludes_details_wrapped_comments",
       "assertions": 1,
-      "reason": "Readeck includes eight comments outside the blog article wrapper."
+      "reason": "The lxml-only fallback selects the article but omits a separate details-wrapped FAQ paragraph; excluded comments remain excluded."
     }
   ]
 }

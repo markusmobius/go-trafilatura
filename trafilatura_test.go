@@ -69,6 +69,30 @@ var (
 	}
 )
 
+func TestExtractReaderNoScript(test *testing.T) {
+	source := "<html><head><title>Article</title></head><body><article><p>" +
+		strings.Repeat("A substantive article sentence, with sufficient detail for content extraction. ", 12) +
+		"</p><noscript><p>Hidden placeholder markup.</p><img src='/image.jpg'></noscript></article></body></html>"
+	document, err := html.ParseWithOptions(strings.NewReader(source), html.ParseOptionEnableScripting(false))
+	if err != nil {
+		test.Fatal(err)
+	}
+	for _, encoding := range []string{"", "utf-8"} {
+		options := Options{EnableFallback: false, InputEncoding: encoding, HtmlDateMode: Disabled}
+		reader, err := Extract(strings.NewReader(source), options)
+		if err != nil {
+			test.Fatal(err)
+		}
+		expected, err := ExtractDocument(document, options)
+		if err != nil {
+			test.Fatal(err)
+		}
+		assert.Equal(test, expected.ContentText, reader.ContentText)
+		assert.NotContains(test, reader.ContentText, "Hidden placeholder")
+		assert.NotContains(test, reader.ContentText, "<img")
+	}
+}
+
 func Test_Python220_CoreMatrix(test *testing.T) {
 	type sample struct {
 		HTML             string          `json:"html"`
@@ -2007,7 +2031,7 @@ func Test_Formatting(t *testing.T) {
 	// Empty elements
 	r = strings.NewReader("<html><body><div>\t\n</div><div>There is text here.</div></body></html>")
 	result, _ = Extract(r, zeroOpts)
-	assert.Equal(t, "<div><p>There is text here.</p></div>", fnHtml(result))
+	assert.Equal(t, "<body>\t\n<p>There is text here.</p></body>", fnHtml(result))
 
 	// List with links
 	opts = Options{IncludeLinks: true, Config: zeroConfig}

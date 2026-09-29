@@ -23,6 +23,7 @@ package trafilatura
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -34,12 +35,14 @@ import (
 
 	"github.com/andybalholm/cascadia"
 	"github.com/go-shiori/dom"
+	"github.com/gogs/chardet"
 	"github.com/markusmobius/go-trafilatura/v2/internal/etree"
 	"github.com/markusmobius/go-trafilatura/v2/internal/lru"
 	"github.com/markusmobius/go-trafilatura/v2/internal/selector"
 	"github.com/rs/zerolog"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/charset"
+	xunicode "golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/runes"
 	"golang.org/x/text/transform"
 	"golang.org/x/text/unicode/norm"
@@ -100,22 +103,33 @@ func Extract(r io.Reader, opts Options) (*ExtractResult, error) {
 		r = compressed
 	}
 
-	// Parse HTML
-	var doc *html.Node
+	var decoded io.Reader
 	if opts.InputEncoding == "" {
-		doc, err = dom.Parse(r)
-	} else {
-		decoded, decodeErr := charset.NewReaderLabel(opts.InputEncoding, r)
-		if decodeErr != nil {
-			return nil, decodeErr
+		content, readErr := io.ReadAll(r)
+		if readErr != nil {
+			return nil, readErr
 		}
-		normalized := transform.NewReader(decoded, transform.Chain(
-			norm.NFD,
-			runes.Remove(runes.Predicate(func(character rune) bool { return character == '\u00ad' })),
-			norm.NFC,
-		))
-		doc, err = html.Parse(normalized)
+		detected, detectErr := chardet.NewHtmlDetector().DetectBest(content)
+		if detectErr != nil {
+			return nil, detectErr
+		}
+		encoding, _ := charset.Lookup(detected.Charset)
+		if encoding == nil {
+			encoding = xunicode.UTF8
+		}
+		decoded = transform.NewReader(bytes.NewReader(content), encoding.NewDecoder())
+	} else {
+		decoded, err = charset.NewReaderLabel(opts.InputEncoding, r)
+		if err != nil {
+			return nil, err
+		}
 	}
+	normalized := transform.NewReader(decoded, transform.Chain(
+		norm.NFD,
+		runes.Remove(runes.Predicate(func(character rune) bool { return character == '\u00ad' })),
+		norm.NFC,
+	))
+	doc, err := html.ParseWithOptions(normalized, html.ParseOptionEnableScripting(false))
 	if err != nil {
 		return nil, err
 	}
@@ -325,15 +339,7 @@ func extractionSequence(doc *html.Node, cache *lru.Cache, opts Options) (*html.N
 		}
 		retryBody, retryText := recallRetry(retryDoc, opts)
 		retryLength := utf8.RuneCountInString(retryText)
-		var distillerBody *html.Node
-		var distillerText string
-		if opts.EnableFallback {
-			distillerBody, distillerText = distillerRescue(retryDoc, opts)
-		}
-		distillerLength := utf8.RuneCountInString(distillerText)
-		if distillerLength > retryLength && distillerLength > 2*length {
-			body, text, forumPosts = distillerBody, distillerText, nil
-		} else if retryLength >= opts.Config.MinExtractedSize && float64(retryLength) > 1.5*float64(length) {
+		if retryLength >= opts.Config.MinExtractedSize && float64(retryLength) > 1.5*float64(length) {
 			body, text, forumPosts = retryBody, retryText, nil
 		}
 	}

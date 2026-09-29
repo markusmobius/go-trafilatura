@@ -45,6 +45,7 @@ const (
 type ReadabilityFallback uint8
 
 const (
+	// Deprecated: retained for source compatibility; only readability-lxml is used.
 	ReadabilityMozilla ReadabilityFallback = iota
 	ReadabilityLxml
 )
@@ -93,17 +94,14 @@ type Options struct {
 	// uses the specified language.
 	TargetLanguage string
 
-	// If EnableFallback is true, then whenever Trafilatura failed to extract a document,
-	// it will use algorithm from another package, i.e. Readability and Dom Distiller.
-	// This will make the extraction result more precise, but also a bit slower.
+	// EnableFallback allows comparison with the bundled readability-lxml port.
+	// False selects FAST, retaining native recall and baseline recovery only.
 	EnableFallback bool
 
+	// Deprecated: ignored; readability-lxml is the only external fallback.
 	ReadabilityFallback ReadabilityFallback
 
-	// FallbackCandidates is user specified candidates that will be checked by Trafilatura
-	// when EnableFallback set to True. This is useful if user already use Readability
-	// and Dom Distiller before, or if user want to provide his own candidates. As mentioned
-	// before, it will only used if `EnableFallback = true`.
+	// Deprecated: ignored; fallback candidates are always generated internally.
 	FallbackCandidates *FallbackCandidates
 
 	// Focus specify the extraction behavior of Trafilatura.
@@ -189,8 +187,8 @@ func DefaultConfig() *Config {
 	}
 }
 
-// FallbackCandidates allows to specify a list of fallback candidates
-// in particular: Readability and Dom Distiller.
+// FallbackCandidates retains the legacy caller-candidate shape.
+// Deprecated: supplied candidates are ignored.
 type FallbackCandidates struct {
 	// Readability is the user specified extraction result from Go-Readability
 	// that will be used as fallback candidate.

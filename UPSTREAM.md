@@ -7,7 +7,8 @@ For the current library overview and usage, see [README.md](README.md). For chan
 ## Released Suite Benchmark
 
 The [2026-09-23 JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/d433ab637f0a56c0926aa3698f470794a553472f/go_rust_shared_performance_2026_09_23.json)
-is authoritative for the current [README tables](README.md#current-quality-and-speed).
+records a historical suite, not the current 2.2.6 behavior. The
+[README tables](README.md#current-quality-and-speed) identify their measured versions.
 Its published-file SHA-256 (LF line endings) is `7d7be9839f1652606cb91850af5134b188f2508be25623df889372dab4a06cc6`.
 Read text scores at `quality[worker][engine].evaluations[corpus].overall.f1`,
 selected timings at `overall`, and all-four timings at `all_passes`.
@@ -91,22 +92,23 @@ The fallback pipeline is an intentional algorithm difference, not a Python-parit
 | Area | Go | Python Reference |
 | --- | --- | --- |
 | Library default | Fallbacks disabled | Fallbacks enabled unless `fast=True` |
-| Engines | Go-ReadabilityV2 0.6.0 and Go-DomDistiller | Bundled Readability and jusText |
-| Selection | Go candidate ordering, acceptance/stopping rules, sanitization, and bounded DomDistiller recall rescue | Python's Readability comparison and jusText-specific triggers and replacement rules |
-| Caller-supplied candidates | `FallbackCandidates` | No equivalent Go candidate contract |
+| Engines | Bundled native readability-lxml only | Bundled Readability and jusText |
+| Selection | Existing comparison/sanitization and native recall/baseline; no DomDistiller rescue | Python's Readability comparison and jusText-specific triggers and replacement rules |
+| Caller-supplied candidates | Deprecated `FallbackCandidates` is ignored | No equivalent Go candidate contract |
 
-The Go CLI enables fallbacks unless `--no-fallback` is supplied. DomDistiller does not emulate jusText, and Python's jusText replacement ratios are not applied to it. Different engines can select different regions before common cleanup.
+The Go CLI enables lxml unless `--no-fallback` is supplied. `ReadabilityFallback`
+is deprecated and ignored, including its old Mozilla value. No standalone
+Mozilla or DomDistiller extraction is invoked or accepted. Python's jusText
+recovery is not implemented. Application goHTML/rustHTML workers always use FAST.
 
-The current suite retains eight failing leaf checks covering these output differences:
+The current suite retains four failing leaf checks covering these output differences:
 
 | Scenario | Checks | Go Output Compared with Python Expectations |
 | --- | ---: | --- |
-| Forum introduction and replies | 3 | Selects replies without the introduction expected by Python's fallback tests. |
-| Blog article with outside comments | 1 | Includes comments outside the article that Python excludes. |
-| Saved love-hina page | 2 | Retains unwanted visitor-counter/comment-link content; covered by both imported and native tests. |
-| Saved RNZ page | 2 | Misses required article text during recovery; covered by both imported and native tests. |
+| Forum introduction and replies | 3 | Lxml-only fallback/native recall select different introductory or reply content from Python's jusText recovery. |
+| Expandable FAQ | 1 | Lxml selects the article but omits a separate details-wrapped FAQ paragraph. |
 
-[test-files/known-differences.json](test-files/known-differences.json) specifies exact test names and assertion counts. Eight failing checks do not mean eight independent defects, and this list is not an exhaustive catalog of differences between fallback engines.
+[test-files/known-differences.json](test-files/known-differences.json) specifies exact test names and assertion counts. Four failing checks do not mean four independent defects, and this list is not an exhaustive catalog of differences between fallback engines. Python assertions are unchanged.
 
 ## Metadata and Language
 
@@ -139,7 +141,7 @@ A nonempty `TargetLanguage` rejects a mismatching or empty detected label. Witho
 
 | Area | Go | Python Reference and Consequence |
 | --- | --- | --- |
-| HTML parser | `golang.org/x/net/html` | lxml/libxml2; malformed-markup repair and namespaces can produce different input trees and hence different extraction results. |
+| HTML parser | `golang.org/x/net/html`, scripting disabled in `Extract` | lxml/libxml2; malformed-markup repair and namespaces can produce different input trees and hence different extraction results. |
 | Supplied DOM | `ExtractDocument` preserves the caller's DOM and uses Go HTML nodes | lxml nodes and text/tail slots require an adapter for same-tree comparisons; reparsing serialized HTML is not a same-tree guarantee. |
 | Result tree | HTML vocabulary and attributes | Python's internal/XML vocabulary differs, such as `ref`, `graphic`, `row`, `cell`, and `hi`. Structural tests map these explicitly. |
 | Plain text and serialization | Native Go text rendering and HTML/JSON output | Python serializers have their own whitespace and output-format rules. Normalized text matches do not establish byte-for-byte output equality. |
@@ -178,7 +180,7 @@ Important comparison adaptations are explicit:
 
 ### Current Results
 
-The latest local check of this development snapshot, on Windows with Go 1.27.1 on September 19, 2026, reports **7,363 passing leaves, eight reviewed fallback failures, and 42 skips**, plus 56 native coverage mappings. Build and `go vet` also pass. This does not claim a hosted-CI result for the snapshot.
+The local 2.2.6 check on Windows with Go 1.27.1 on September 29, 2026, reports **7,370 passing leaves, four reviewed fallback failures, and 43 skips**, plus 56 native coverage mappings. `go vet`, module tidiness and all nine gate self-tests pass. This does not claim a hosted-CI result.
 
 Run the reviewed-difference gate with:
 
@@ -186,7 +188,7 @@ Run the reviewed-difference gate with:
 python scripts/check_tests.py
 ```
 
-[scripts/check_tests.py](scripts/check_tests.py) checks the exact failure names and assertion counts in the manifest, and rejects unexpected failures, missing/fixed/skipped known cases, crashes, and incomplete native coverage. Ordinary `go test` still fails on the eight reviewed differences. A passing gate means only that the reviewed expectations hold.
+[scripts/check_tests.py](scripts/check_tests.py) checks the exact failure names and assertion counts in the manifest, and rejects unexpected failures, missing/fixed/skipped known cases, crashes, and incomplete native coverage. Ordinary `go test` still fails on the four reviewed differences. A passing gate means only that the reviewed expectations hold.
 
 ### Historical Measured Speed
 

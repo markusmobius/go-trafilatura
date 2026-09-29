@@ -2,11 +2,11 @@
 
 Go-Trafilatura extracts main text, comments, and metadata from supplied HTML while preserving useful formatting and document structure. It is a Go port of [Trafilatura][0], the Python extractor created by [Adrien Barbaresi][1].
 
-The current source follows the non-fallback extractor in Python Trafilatura [v2.2.0][last-version], with native Go fallback engines and deliberate differences described below. It does not aim to reproduce every Python feature or guarantee identical output for every input.
+The current source follows the non-fallback extractor in Python Trafilatura [v2.2.0][last-version], with a native readability-lxml fallback and deliberate differences described below. It does not aim to reproduce every Python feature or guarantee identical output for every input.
 
 This README describes the library as it works now, its design choices, and how to use it. [CHANGELOG.md](CHANGELOG.md) records changes by release. [UPSTREAM.md](UPSTREAM.md) is the technical reference for Python compatibility, intentional differences, and verification evidence.
 
-The current released version is **v2.2.5**, adding an explicit native readability-lxml fallback while preserving the library's existing default mode.
+The current released version is **v2.2.6**. Non-FAST extraction uses only bundled readability-lxml; FAST disables that external fallback. Reader parsing now treats noscript contents as HTML children.
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ Python's Markdown, XML/TEI, CSV, YAML headers, configuration-file interfaces, an
 ## Extraction Choices
 
 - **Python-aligned core.** We follow the supplied-HTML, non-fallback behavior of the pinned Python 2.2.0 source. Compare with Python's `fast=True`; Python's default fallback path is a different algorithm combination.
-- **Native Go fallbacks.** Choose the default [Go-ReadabilityV2 v0.6.0][readability] or explicit `ReadabilityLxml`, followed by [Go-DomDistiller][dom-distiller]. Candidate ordering, acceptance, cleanup, recall rescue and custom `FallbackCandidates` are retained. DomDistiller is not Python's jusText. Library fallbacks are off by default; the CLI enables the existing default mode unless `--no-fallback` is set.
+- **One internal fallback implementation.** `EnableFallback: true` permits only the bundled native readability-lxml candidate. Mozilla/Go-ReadabilityV2, DomDistiller and supplied/custom candidates are never used by Trafilatura. Library fallback is off by default; the CLI enables lxml unless `--no-fallback` is set. Native recall and baseline recovery remain available in FAST mode.
 - **Complete cleanup and accurate recovery decisions.** Cleaning removes all matching unwanted elements, including nested ones. Recovery decisions use text from the final cleaned body, so removed duplicates cannot make an incomplete article appear long enough. These are deliberate corrections to Python behavior, not website-specific exceptions.
 - **Whitespace-tolerant author selection.** Author-selection and author-discard rules trim ID whitespace and normalize class whitespace, so values such as `class=" username "` remain usable. This deliberate difference from Python does not broaden content selectors or change case matching. Single-word meta-tag authors are also retained. See the [metadata boundaries](UPSTREAM.md#metadata-and-language).
 - **Upstream candidate selection.** We retain Python's narrower `article ` class-prefix rule. The broader old Go `article` prefix is not restored; other Python-alignment improvements remain in place.
@@ -84,21 +84,30 @@ This option is strictly opt-in: omitting it or using `""` keeps the existing aut
 
 ## Native Readability-Lxml
 
-For Python-aligned fallback candidates, use the library option explicitly:
+For internally generated readability-lxml fallback candidates:
 
 ```go
 options := trafilatura.Options{
   EnableFallback: true,
-  ReadabilityFallback: trafilatura.ReadabilityLxml,
 }
 ```
 
-Leave `FallbackCandidates` nil to retain Trafilatura's input preparation rather
-than reuse independently extracted standalone results. Zero-value selection
-remains `ReadabilityMozilla`. The Apache-2.0 port follows Python Trafilatura
+`ReadabilityFallback` and `FallbackCandidates` are deprecated and ignored;
+legacy enum values remain source-compatible but cannot select another engine.
+Standalone Mozilla/Go-ReadabilityV2 is a separate extractor and is unchanged.
+The Apache-2.0 port follows Python Trafilatura
 2.2.0's bundled readability-lxml, with Arc90, starrhorne/iterationlabs and
 gfxmonk/python-readability ancestry. See [CHANGELOG.md](CHANGELOG.md) for validation
 and remaining Python differences.
+
+`Extract` uses scripting-disabled HTML parsing, so noscript markup becomes
+child nodes instead of leaking into extracted text. For `ExtractDocument`,
+parse its input with `html.ParseWithOptions(reader,
+html.ParseOptionEnableScripting(false))`. Document extraction preserves the
+supplied tree and does not silently reparse it. Keep a separate default parser
+input for standalone Mozilla Readability, whose noscript image recovery expects
+raw markup. The application goHTML/rustHTML workers always use FAST and never
+hand standalone extraction results to Trafilatura.
 
 ## Usage as a CLI Application
 
@@ -181,6 +190,9 @@ Ordinary `go test` reports the known fallback differences as failures; a passing
 
 ## Current Quality and Speed
 
+The following measurements are historical 2.2.5 results, not 2.2.6 measurements.
+Fresh 2.2.6 quality, timing and fallback-selection results are being collected.
+
 The [2026-09-28 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/README.md#results-2026-09-28) uses 2,659 saved
 development pages: 983 LegoNews, 181 ScrapingHub and 1,495 WCXB. Their F1
 scores use different rules and must not be averaged. Errors are listed in
@@ -199,8 +211,8 @@ ThinLTO/mimalloc. Native extraction includes working copies, metadata and
 text rendering; file I/O, startup, IPC and scoring are excluded.
 Shared parsing is charged once per language/page: Go 7.308 and Rust 3.369 ms
 with fallback off; Go 8.710 and Rust 4.137 ms in the separate Lxml run.
-Lxml is explicitly selected and generates its own candidates; Mozilla remains
-the library's default selector. Comments and pagination are off; tables are on.
+That historical run explicitly selected Lxml and generated its own candidates;
+2.2.6 no longer offers Mozilla fallback. Comments and pagination are off; tables are on.
 DomDistiller is not Python jusText, and full Python parity is not claimed.
 These are not standalone request latencies or isolated old/new-version speedups.
 
