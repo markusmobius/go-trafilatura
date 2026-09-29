@@ -9,16 +9,16 @@ preserving useful formatting and document structure. It is a native Go port of
 Our extractor packages share three principles:
 
 1. **Bring your own HTML.** Keep page acquisition separate from extraction.
-	The primary workflow uses HTML supplied by the caller, who controls fetching,
-	caching, rendering, retries and scheduling.
+   The primary workflow uses HTML supplied by the caller, who controls fetching,
+   caching, rendering, retries and scheduling.
 2. **Stay close to upstream.** Preserve the algorithms and behavior of each
-	package's declared upstream reference as closely as possible. Document
-	deliberate differences and compatibility limits in [UPSTREAM.md](UPSTREAM.md)
-	rather than claiming exact equivalence on every page.
+   package's declared upstream reference as closely as possible. Document
+   deliberate differences and compatibility limits in [UPSTREAM.md](UPSTREAM.md)
+   rather than claiming exact equivalence on every page.
 3. **Provide very fast Go and Rust packages.** Run extraction natively, without
-	a Python or Java runtime. Improve throughput and allocation efficiency while
-	preserving intended behavior, and substantiate performance with reproducible
-	benchmarks that report quality alongside speed.
+   a Python or Java runtime. Improve throughput and allocation efficiency while
+   preserving intended behavior, and substantiate performance with reproducible
+   benchmarks that report quality alongside speed.
 
 ## Overview
 
