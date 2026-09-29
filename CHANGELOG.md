@@ -4,11 +4,16 @@ Changes by Go release. For current behavior and usage, see [README.md](README.md
 
 ### Documentation - 2026-09-29
 
+- Apply the approved nine-section README format, including the three shared
+	philosophy principles, a runnable supplied-HTML example and actual options.
+- Specify the full structure and required content in AGENTS.md, including
+	named credits for Adrien Barbaresi, Markus Mobius, Arc90, starrhorne,
+	iterationlabs and gfxmonk. Keep optional fallback evidence in Options.
 - Explain the measured reason for removing supplied fallback candidates and
 	align the six-library speed/quality comparison with the shared benchmark.
 - Add AGENTS.md with instructions for README, UPSTREAM, CHANGELOG and
 	coordinated release documentation.
-- Keep Go-Trafilatura 2.2.6, runtime source, dependencies and all measured data
+- Keep `go-trafilatura` 2.2.6, runtime source, dependencies and all measured data
 	unchanged. No new module version or benchmark run.
 
 ### v2.2.6 - 2026-09-29

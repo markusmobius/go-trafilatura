@@ -4,6 +4,15 @@ This document compares the current Go implementation with **Python Trafilatura 2
 
 For the current library overview and usage, see [README.md](README.md). For changes between Go releases, see [CHANGELOG.md](CHANGELOG.md).
 
+## README Format and Attribution
+
+The September 29 documentation update applies the approved nine-section README
+format and the full requirements in [AGENTS.md](AGENTS.md), including named
+creator credits for Adrien Barbaresi and the retained port ancestry.
+`go-trafilatura` remains 2.2.6; runtime sources, dependencies, tags and historical
+benchmark evidence are unchanged. Optional fallback evidence remains local to
+the packages that implement it.
+
 ## Released Suite Benchmark
 
 The September 29 documentation refresh aligns all six library README sections
