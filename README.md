@@ -190,7 +190,7 @@ Ordinary `go test` reports the known fallback differences as failures; a passing
 
 ## Current Quality and Speed
 
-The [2026-09-29 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/README.md#results-2026-09-29) uses 2,659 saved
+The [2026-09-29 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/d5e8c6402430b4e8a36ff364df991ba74e3ace67/README.md#results-2026-09-29) uses 2,659 saved
 development pages: 983 LegoNews, 181 ScrapingHub and 1,495 WCXB. Their F1
 scores use different rules and must not be averaged. Errors are listed in
 that order and remain in the denominators.
@@ -227,6 +227,17 @@ retain metadata scores, field-level differences, source/build pins, all pass
 totals and verification limits. Historical reports remain unchanged.
 
 ### Fallback Selection Rates
+
+These rates concern Trafilatura, not independent standalone extractors.
+goHTML/rustHTML run DomDistiller when `RunDistiller` is enabled and honor
+`SkipPagination`/`Verbose`; its result is never supplied to Trafilatura.
+The initial worker integration mistakenly disabled it. The
+[correction record](https://github.com/markusmobius/content-extractor-benchmark/blob/d5e8c6402430b4e8a36ff364df991ba74e3ace67/worker_correction_2026_09_29.json)
+verifies restored standalone DomDistiller on all 6,554 pages against the frozen
+pre-removal workers, unchanged other sections, and complete Go/Rust equality.
+DomDistiller returns nonempty text on 6,169 pages. Library benchmark results and
+the Trafilatura-only fallback rates below are unchanged; earlier worker receipts
+remain historical and are superseded by the corrected deployment identities.
 
 The separate 6,554-page unannotated application corpus measures **final returned
 source**, not calls or accuracy. Failures remain in the denominator. Production
