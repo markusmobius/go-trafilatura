@@ -16,8 +16,17 @@ Changes by Go release. For current behavior and usage, see [README.md](README.md
 	Python fallback differences, 43 skips and 56 native mappings on Windows/Go 1.27.1.
 	Six former reviewed Mozilla differences now pass; Python fixture assertions remain.
 - Application workers always use FAST, with separate default input for standalone
-	Mozilla image recovery. Fresh benchmarks and fallback selection rates will be
-	linked from the [shared benchmark](https://github.com/markusmobius/content-extractor-benchmark).
+	Mozilla image recovery. All 6,554 standalone outputs remain unchanged in each
+	language; 129 corrected FAST bodies now match Python FAST exactly.
+- Measure final external fallback on the separate application corpus: **0% FAST**,
+	**202/6,554 (3.082%) non-FAST**, solely bundled lxml. Recall/baseline are separate;
+	21 failures remain in the denominator. Non-FAST probes are never deployed.
+- Publish [fresh 2,659-page results](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/README.md#results-2026-09-29):
+	FAST F1 90.91534% / 96.15663% / 78.51703%, non-FAST 91.13924% / 95.98168% /
+	79.56922% (LegoNews / ScrapingHub / WCXB). Go/Rust extraction is 11.329 / 6.570
+	ms/page FAST and 24.745 / 10.910 non-FAST, all four passes retained. These are
+	within-run language comparisons, not old/new speedups. The lxml-only policy
+	has lower non-FAST WCXB F1 and one extra LegoNews rejection versus 2.2.5.
 
 ### v2.2.5 - 2026-09-28
 

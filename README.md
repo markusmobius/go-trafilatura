@@ -190,68 +190,72 @@ Ordinary `go test` reports the known fallback differences as failures; a passing
 
 ## Current Quality and Speed
 
-The following measurements are historical 2.2.5 results, not 2.2.6 measurements.
-Fresh 2.2.6 quality, timing and fallback-selection results are being collected.
-
-The [2026-09-28 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/README.md#results-2026-09-28) uses 2,659 saved
+The [2026-09-29 benchmark](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/README.md#results-2026-09-29) uses 2,659 saved
 development pages: 983 LegoNews, 181 ScrapingHub and 1,495 WCXB. Their F1
 scores use different rules and must not be averaged. Errors are listed in
 that order and remain in the denominators.
 
 | Implementation | Fallback | LegoNews F1 | ScrapingHub F1 | WCXB F1 | Errors | Extraction ms/page |
 | --- | --- | ---: | ---: | ---: | --- | ---: |
-| go-trafilatura-2.2.5 | Off | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 | 8.716 |
-| rust-trafilatura-2.2.5 | Off | 90.88412% | 96.15663% | 78.49352% | 3 / 0 / 10 | 5.324 |
-| go-trafilatura-2.2.5 | Native Lxml | 91.14833% | 95.94602% | 81.17181% | 3 / 0 / 9 | 23.737 |
-| rust-trafilatura-2.2.5 | Native Lxml | 91.14833% | 95.94602% | 81.17181% | 3 / 0 / 9 | 10.517 |
+| go-trafilatura-2.2.6 | FAST | 90.91534% | 96.15663% | 78.51703% | 4 / 0 / 10 | 11.329 |
+| rust-trafilatura-2.2.6 | FAST | 90.91534% | 96.15663% | 78.51703% | 4 / 0 / 10 | 6.570 |
+| go-trafilatura-2.2.6 | Non-FAST lxml | 91.13924% | 95.98168% | 79.56922% | 4 / 0 / 9 | 24.745 |
+| rust-trafilatura-2.2.6 | Non-FAST lxml | 91.13924% | 95.98168% | 79.56922% | 4 / 0 / 9 | 10.910 |
 
 Timings are means of **all four measured passes** after one warmup, not best-of
 selection. Windows 11 / Ryzen AI 7 PRO 350; Go 1.27.1 and Rust 1.98.1 GNU with
 ThinLTO/mimalloc. Native extraction includes working copies, metadata and
 text rendering; file I/O, startup, IPC and scoring are excluded.
-Shared parsing is charged once per language/page: Go 7.308 and Rust 3.369 ms
-with fallback off; Go 8.710 and Rust 4.137 ms in the separate Lxml run.
-That historical run explicitly selected Lxml and generated its own candidates;
-2.2.6 no longer offers Mozilla fallback. Comments and pagination are off; tables are on.
-DomDistiller is not Python jusText, and full Python parity is not claimed.
-These are not standalone request latencies or isolated old/new-version speedups.
+Parsing costs Go 11.283 / Rust 6.386 ms/page in FAST and 11.518 / 6.545 in
+non-FAST. This is one charge per worker/page, including a separate
+scripting-disabled Trafilatura tree when noscript is present; standalone Mozilla
+retains its default tree. Comments and pagination are off; tables are on.
+Within-run Go/Rust extraction ratios are **1.72x FAST** and **2.27x non-FAST**,
+not old/new release speedups or complete application latency. Each mode audited
+26,590 responses, with AC power and no sleep events; separate runs are not pooled.
 
-[Disabled-mode JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/go_rust_shared_performance_2026_09_28.json),
-[native-Lxml JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/go_rust_lxml_performance_2026_09_28.json), and
-[release validation](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/release_validation_2026_09_28.json)
-retain separate metadata scores, output differences, exact source/build pins,
-all pass totals and verification limits. Historical results use other protocols.
+Non-FAST WCXB F1 is lower than the older 81.17181% configuration that also
+permitted DomDistiller rescue; FAST has one more LegoNews rejection. The lxml-only
+policy is not a claim of universal quality improvement. Python jusText recovery
+is not implemented. Go/Rust text scores match; only one title and one author
+field differ in the annotated suite.
+
+[FAST JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/go_rust_shared_performance_2026_09_29.json),
+[non-FAST JSON](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/go_rust_lxml_performance_2026_09_29.json), and
+[release validation](https://github.com/markusmobius/content-extractor-benchmark/blob/49c426d6135df81b7d492bea7e6aec8e6d77d80c/release_validation_2026_09_29.json)
+retain metadata scores, field-level differences, source/build pins, all pass
+totals and verification limits. Historical reports remain unchanged.
 
 ### Fallback Selection Rates
 
-The separate [6,554-page application-worker validation](https://github.com/markusmobius/content-extractor-benchmark/blob/97c0f3f67261c275ceb2ab532ee05992dbce8cc7/release_validation_2026_09_28.json)
-was captured before release packaging, with native readability-lxml explicitly
-selected, internally generated candidates and dates disabled. This unannotated
-corpus is not the 2,659-page benchmark above or a measurement of Mozilla mode.
+The separate 6,554-page unannotated application corpus measures **final returned
+source**, not calls or accuracy. Failures remain in the denominator. Production
+goHTML/rustHTML always use FAST. Non-FAST figures come from isolated library
+probes, never deployment workers; their plain/diagnostic complete outputs and
+Go/Rust source labels match on all pages.
 
-Cells show pages and percentages of all 6,554 inputs, including failures.
+| Final Content Source | Production FAST | Non-FAST Go And Rust (Each) |
+| --- | ---: | ---: |
+| Native core | 5,726 | 5,604 |
+| Native recall | 81 | 58 |
+| Bundled readability-lxml | 0 | 202 |
+| Mozilla / DomDistiller / custom | 0 | 0 |
+| Internal baseline | 726 | 669 |
+| No result | 21 | 21 |
+| **External fallback total** | **0 / 6,554 (0%)** | **202 / 6,554 (3.082%)** |
 
-| Final Content Source | Go | Rust | Python 2.2.0 |
-| --- | ---: | ---: | ---: |
-| Trafilatura core (including recall) | 5,655 (86.283%) | 5,655 (86.283%) | 5,695 (86.894%) |
-| readability-lxml | 206 (3.143%) | 206 (3.143%) | 158 (2.411%) |
-| DomDistiller | 75 (1.144%) | 75 (1.144%) | Not used |
-| jusText | Not used | Not used | 62 (0.946%) |
-| Internal baseline recovery | 597 (9.109%) | 597 (9.109%) | 605 (9.231%) |
-| No result | 21 (0.320%) | 21 (0.320%) | 34 (0.519%) |
-| **External fallback total** | **281 (4.287%)** | **281 (4.287%)** | **220 (3.357%)** |
+Rust FAST tracing recorded zero external events; both source receipts verify
+permanently disabled fallback, and all 6,554 complete Go/Rust outputs match.
+In non-FAST, lxml ran on all inputs but supplied final content on only 202.
+Native recall and baseline are excluded from the external rate.
 
-Before correction, the Rust worker and Go v2.2.2 supplied-candidate reference
-selected external fallback on **2,408 pages (36.741%)** of this same corpus,
-**10.95x** Python's rate. Internally prepared native-Lxml candidates reduce that
-to **4.287% versus Python's 3.357% (1.28x)**. This compares worker configurations,
-not the unchanged Mozilla library default.
-
-Go and Rust's aggregate external-fallback rate is within **0.931 percentage
-points** of Python (61 pages). This is comparable frequency, not identical
-behavior or complete extraction parity: Go and Rust use DomDistiller, not
-jusText. Counts identify the final returned source, not engine calls or accuracy;
-recall and internal baseline recovery are excluded from the external total.
+Standalone Mozilla output is unchanged on all 6,554 inputs in both languages.
+Exactly 129 FAST bodies changed and now match Python FAST exactly. Of 6,520
+nonempty native/Python FAST pairs, 4,443 match exactly and 6,306 (96.72%) match
+after collapsing whitespace. This is agreement, not accuracy or full parity.
+Dates were off; 18 existing Go all-flags date failures are outside this check.
+Published archives retain release-time documentation; these fresh measurements
+are follow-up repository and GitHub release-note updates, not replaced crates.
 
 ## Performance
 
