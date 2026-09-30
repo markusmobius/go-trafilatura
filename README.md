@@ -248,7 +248,8 @@ See [AGENTS.md](AGENTS.md) for documentation and release requirements.
 
 `go-trafilatura` is distributed under [Apache-2.0](LICENSE). Adrien Barbaresi
 created [adbar/trafilatura](https://github.com/adbar/trafilatura), the original
-Python package on which this port builds. Markus Mobius maintains `go-trafilatura`.
+Python package on which this port builds. Radhi Fadlillah wrote the initial Go
+port from Python. Markus Mobius maintains `go-trafilatura`.
 
 The bundled readability-lxml ancestry credits Arc90 for the original algorithm,
 starrhorne and iterationlabs for the Ruby port, and gfxmonk for the Python port.
