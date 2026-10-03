@@ -37,6 +37,8 @@ func outputExt(cmd *cobra.Command) string {
 		return ".txt"
 	case "json":
 		return ".json"
+	case "md", "markdown":
+		return ".md"
 	default:
 		return ".html"
 	}
@@ -50,6 +52,8 @@ func writeOutput(w io.Writer, result *trafilatura.ExtractResult, cmd *cobra.Comm
 		return writeText(w, result)
 	case "json":
 		return writeJSON(w, result)
+	case "md", "markdown":
+		return writeMarkdown(w, result)
 	default:
 		return writeHTML(w, result)
 	}
@@ -82,6 +86,25 @@ func writeJSON(w io.Writer, result *trafilatura.ExtractResult) error {
 func writeHTML(w io.Writer, result *trafilatura.ExtractResult) error {
 	doc := trafilatura.CreateReadableDocument(result)
 	_, err := fmt.Fprintln(w, dom.OuterHTML(doc))
+	return err
+}
+
+func writeMarkdown(w io.Writer, result *trafilatura.ExtractResult) error {
+	var sb strings.Builder
+	sb.WriteString(result.ContentMarkdown())
+
+	if comments := result.CommentsMarkdown(); comments != "" {
+		if sb.Len() > 0 {
+			sb.WriteString("\n\n")
+		}
+		sb.WriteString(comments)
+	}
+
+	if sb.Len() > 0 {
+		sb.WriteString("\n")
+	}
+
+	_, err := w.Write([]byte(sb.String()))
 	return err
 }
 

@@ -63,7 +63,7 @@ func main() {
 
 	// Register persistent flags
 	flags := rootCmd.PersistentFlags()
-	flags.StringP("format", "f", "", "output format for the extract result, either 'html' (default), 'txt' or 'json'")
+	flags.StringP("format", "f", "", "output format for the extract result, either 'html' (default), 'txt', 'json' or 'md'")
 	flags.StringP("language", "l", "", "target language (ISO 639-1 codes)")
 	flags.Bool("no-fallback", false, "disable fallback extraction using readability and dom-distiller")
 	flags.Bool("no-comments", false, "exclude comments  extraction result")
