@@ -111,6 +111,23 @@ func isTextElement(element *html.Node) bool {
 	return element != nil && textCharsTest(etree.IterText(element, ""))
 }
 
+// isInlineRun reports whether every tag is a line break or inline formatting,
+// matching the tag set of Python's single-text-run branch (INLINE_FORMATTABLE
+// plus "lb"). inlineCarriedTags maps Python's INLINE_CARRIED; dropping "img"
+// (graphic, which is not formattable) leaves INLINE_FORMATTABLE, so the tag
+// list is reused rather than duplicated here.
+func isInlineRun(tags map[string]struct{}) bool {
+	for tag := range tags {
+		if inMap(tag, mapXmlLbTags) {
+			continue
+		}
+		if tag == "img" || !inMap(tag, inlineCarriedTags) {
+			return false
+		}
+	}
+	return true
+}
+
 // defineNewElement creates a new sub-element if necessary.
 func defineNewElement(processedElement, originalElement *html.Node, keepChildren ...bool) {
 	if processedElement != nil {
@@ -890,7 +907,16 @@ func extractContent(doc *html.Node, cache *lru.Cache, opts Options) (*html.Node,
 			subTagTracker[dom.TagName(e)] = struct{}{}
 		}
 
+		// A frame that keeps its text directly and whose remaining descendants are
+		// only line breaks or inline formatting holds a single text run: process the
+		// frame itself so its own text nodes are not skipped. This happens after
+		// <span> unwrapping, where the text ends up directly under the selected
+		// element and GetElementsByTagName returns none. Frames without direct text
+		// are left to their element descendants, which carry the text instead.
 		if _, hasLineBreak := subTagTracker["br"]; len(subTagTracker) == 1 && hasLineBreak {
+			subElements = []*html.Node{subTree}
+		} else if dom.TagName(subTree) == "div" && inMap("div", potentialTags) &&
+			isInlineRun(subTagTracker) && textCharsTest(etree.Text(subTree)) {
 			subElements = []*html.Node{subTree}
 		}
 

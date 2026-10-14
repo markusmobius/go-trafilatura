@@ -2,6 +2,14 @@
 
 Changes by Go release. For current behavior and usage, see [README.md](README.md); for detailed Python compatibility decisions and evidence, see [UPSTREAM.md](UPSTREAM.md).
 
+### Unreleased
+
+- Process a selected frame that keeps its text directly after `<span>` unwrapping,
+	when its remaining descendants are only inline formatting or line breaks. Native
+	extraction no longer falls through to whole-document recovery for this shape,
+	which could add surrounding navigation. The behavior and its difference from the
+	pinned Python reference are recorded in [UPSTREAM.md](UPSTREAM.md).
+
 ### Documentation - 2026-09-29
 
 - Apply the approved nine-section README format, including the three shared

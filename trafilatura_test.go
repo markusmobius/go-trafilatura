@@ -93,6 +93,34 @@ func TestExtractReaderNoScript(test *testing.T) {
 	}
 }
 
+func Test_ExtractSingleTextRunFrame(test *testing.T) {
+	// The whole article body is a single text node wrapped in <span>s. Span
+	// unwrapping moves that text directly under the selected <div>, so there are
+	// no element descendants left to collect. The extractor must process the frame
+	// itself instead of falling back to whole-document recovery, which would drag
+	// in the surrounding navigation.
+	article := strings.Repeat("The corporate earnings season has begun in full force with several major banks reporting strong results. ", 6)
+	page := "<html><head><title>Earnings season</title></head><body>" +
+		`<nav class="site-nav"><a href="/markets">Markets</a> <a href="/tech">Tech</a> ` +
+		`<a href="/politics">Politics</a> <a href="/investing">Investing</a></nav>` +
+		`<div class="article-body">` +
+		`<span class="article-body-extra"><span class="article-body-extra">` +
+		`<span class="article-body-extra">` + article + `</span>` +
+		`</span></span><span class="share-hidden"></span></div>` +
+		`<footer><p>Copyright 2026 Example. All rights reserved. Terms of Service Privacy Policy.</p></footer>` +
+		"</body></html>"
+
+	result, err := Extract(strings.NewReader(page), Options{EnableFallback: false})
+	if !assert.NoError(test, err) || !assert.NotNil(test, result) {
+		return
+	}
+
+	assert.Contains(test, result.ContentText, "The corporate earnings season has begun in full force")
+	assert.NotContains(test, result.ContentText, "Markets")
+	assert.NotContains(test, result.ContentText, "Investing")
+	assert.NotContains(test, result.ContentText, "Terms of Service")
+}
+
 func Test_Python220_CoreMatrix(test *testing.T) {
 	type sample struct {
 		HTML             string          `json:"html"`
