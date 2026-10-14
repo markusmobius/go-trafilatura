@@ -57,9 +57,16 @@ func handleTitles(element *html.Node, cache *lru.Cache, opts Options) *html.Node
 // handleFormatting process formatting elements (b, i, etc) found
 // outside of paragraphs.
 func handleFormatting(element *html.Node, cache *lru.Cache, opts Options) *html.Node {
+	// processNode trims the tail, which would glue the run after this inline
+	// element to it once the element is emitted on its own. Remember whether the
+	// original tail carried a leading separator so it can be restored.
+	tail := etree.Tail(element)
 	formatting := processNode(element, cache, opts)
 	if formatting == nil {
 		return nil
+	}
+	if etree.Tail(formatting) != "" && strings.TrimLeftFunc(tail, unicode.IsSpace) != tail {
+		etree.SetTail(formatting, " "+etree.Tail(formatting))
 	}
 
 	// Repair orphan elements

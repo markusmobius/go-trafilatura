@@ -290,6 +290,27 @@ func Test_ExtractContent_PostCleanupText(test *testing.T) {
 	}
 }
 
+func Test_ExtractContent_PreservesInlineTailWhitespace(test *testing.T) {
+	// An inline element that survives as a standalone node (its <a>/<span>
+	// wrappers are stripped) must keep the leading whitespace of its tail so the
+	// following run is not glued to it.
+	link := "Story title continued here"
+	paragraph := strings.TrimSpace(strings.Repeat("Retained article prose has enough detail to describe the subject. ", 3))
+	input := "<html><body><article class=\"article-body\">" +
+		"<span><span class=\"article-readmore\"><a href=\"/story\"><em>Read more</em> " + link + "</a></span></span>" +
+		strings.Repeat("<p>"+paragraph+"</p>", 3) +
+		"</article></body></html>"
+
+	opts := Options{Config: DefaultConfig(), ExcludeComments: true}
+	opts.Config.MinExtractedSize = 0
+	content, _ := extractContent(prepareTree(docFromStr(input), opts), lru.NewCache(opts.Config.CacheSize), opts)
+
+	text := dom.TextContent(content)
+	assert.Contains(test, text, "Read more "+link)
+	assert.NotContains(test, text, "Read more"+link)
+	assert.Contains(test, etree.ToString(content), "<em>Read more</em> "+link)
+}
+
 func Test_RecoveryIgnoresRemovedDuplicates(test *testing.T) {
 	caption := strings.TrimSpace(strings.Repeat("A descriptive caption identifies the subject and the setting. ", 3))
 	article := strings.TrimSpace(strings.Repeat("The complete article explains the evidence, observations and conclusions in detail. ", 12))
