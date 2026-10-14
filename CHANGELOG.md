@@ -2,6 +2,13 @@
 
 Changes by Go release. For current behavior and usage, see [README.md](README.md); for detailed Python compatibility decisions and evidence, see [UPSTREAM.md](UPSTREAM.md).
 
+### Unreleased
+
+- Preserve the leading whitespace of an inline element's tail when the element
+	is extracted outside a paragraph. The tail was trimmed and the following run
+	was glued to it (for example `Read moreStory` instead of
+	`Read more Story`), which diverged from Python Trafilatura's text output.
+
 ### Documentation - 2026-09-29
 
 - Apply the approved nine-section README format, including the three shared
